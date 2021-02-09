@@ -591,9 +591,19 @@ Fixpoint make_prop
       end
   in
 
+  let fix build_rep_args (nts : list named_term) : TemplateMonad (list named_term) :=
+      match nts with
+      | tVar ty_name :: rest =>
+        rest' <- build_rep_args rest ;;
+        (* FIXME if the [tVar] doesn't belong to a type *)
+        ret (tVar ty_name :: tVar ("Rep_" ++ ty_name) :: rest')
+      | _ => ret nil
+      end
+  in
+
   let fix build_rep_call (nt : named_term) : TemplateMonad named_term :=
-      (* tmMsg "build_rep_call:" ;; *)
-      (* tmEval all nt >>= tmPrint ;; *)
+      tmMsg "build_rep_call:" ;;
+      tmEval all nt >>= tmPrint ;;
       match nt with
       | tInd arg_inductive _ =>
         if eq_kername (inductive_mind ind) (inductive_mind arg_inductive)
@@ -609,12 +619,9 @@ Fixpoint make_prop
           (* TODO construct applications to the t_ins *)
           ret (tApp <% @rep %> [ make_tInd arg_inductive ; t_ins ])
       | tApp root args => (* TODO fix args *)
-          (* tmMsg "tApp in build_rep_call: " ;; *)
-          (* tmEval all nt >>= tmPrint ;; *)
-          (* root' <- build_rep_call root ;; *)
-          (* args' <- monad_map build_rep_call args ;; *)
-          (* ret (tApp root' args') *)
-          build_rep_call root
+          root' <- build_rep_call root ;;
+          args' <- build_rep_args args ;;
+          ret (tApp root' args')
       | tVar ty_name =>
         ret (tApp <% @rep %> [tVar ty_name ; tVar ("Rep_" ++ ty_name)])
         (* TODO what is there's a [tVar] that's not a type? *)
@@ -691,31 +698,6 @@ Definition matchmaker
              (tVar "x")
              branches).
 
-
-(* Make a single record to use in a [tFix].
-   For mutually inductive types, we want to build them all once,
-   and define all the [Rep] instances with that. *)
-Definition make_fix_single
-           (tau : term) (* fully applied type constructor *)
-           (ind : inductive)
-           (one : one_inductive_body) : TemplateMonad (BasicAst.def named_term) :=
-  let this_name := nNamed ("rep" ++ string_of_nat (inductive_ind ind)) in
-  prop <- matchmaker ind one tau (process_ctors (ind_ctors one)) ;;
-  let body :=
-      (tLambda (mkBindAnn (nNamed "g") Relevant) <% graph %>
-        (tLambda (mkBindAnn (nNamed "x") Relevant) tau
-          (tLambda (mkBindAnn (nNamed "p") Relevant) <% mtype %> prop))) in
-  ret {| dname := mkBindAnn this_name Relevant
-       ; dtype := tProd (mkBindAnn (nNamed "g") Relevant)
-                       <% graph %>
-                       (tProd (mkBindAnn (nNamed "x") Relevant)
-                               tau
-                               (tProd (mkBindAnn (nNamed "p") Relevant)
-                                     <% mtype %>
-                                     <% Prop %>))
-       ; dbody := body
-       ; rarg := 1 |}.
-
 (* Remove all the initial consecutive π-type quantifiers from a [term]. *)
 Fixpoint strip_quantifiers (t : named_term) : named_term :=
   match t with
@@ -724,10 +706,10 @@ Fixpoint strip_quantifiers (t : named_term) : named_term :=
   end.
 
 (* Get binder names and binding types for all
-   initial consecutive π-type quantifiers in an [any_term]. *)
+   initial consecutive π-type quantifiers in a [named_term]. *)
 Fixpoint get_quantifiers
          (modify : ident -> ident)
-         (t : any_term) : list (aname * any_term) :=
+         (t : named_term) : list (aname * named_term) :=
   match t with
   | tProd (mkBindAnn nAnon rel) ty rest =>
     (mkBindAnn nAnon rel, ty) :: get_quantifiers modify rest
@@ -747,6 +729,30 @@ Fixpoint build_quantifiers
   | (n, t) :: rest => binder n t (build_quantifiers binder rest base)
   end.
 
+(* Make a single record to use in a [tFix].
+   For mutually inductive types, we want to build them all once,
+   and define all the [Rep] instances with that. *)
+Definition make_fix_single
+           (quantifiers : list (aname * named_term))
+           (tau : named_term) (* fully applied type constructor *)
+           (ind : inductive)
+           (one : one_inductive_body) : TemplateMonad (BasicAst.def named_term) :=
+  let this_name := nNamed ("rep" ++ string_of_nat (inductive_ind ind)) in
+  prop <- matchmaker ind one tau (process_ctors (ind_ctors one)) ;;
+  let ty :=
+      tProd (mkBindAnn (nNamed "g") Relevant) <% graph %>
+        (tProd (mkBindAnn (nNamed "x") Relevant) tau
+          (tProd (mkBindAnn (nNamed "p") Relevant) <% mtype %> <% Prop %>)) in
+  let body :=
+      tLambda (mkBindAnn (nNamed "g") Relevant) <% graph %>
+        (tLambda (mkBindAnn (nNamed "x") Relevant) tau
+          (tLambda (mkBindAnn (nNamed "p") Relevant) <% mtype %> prop)) in
+  ret {| dname := mkBindAnn this_name Relevant
+       ; dtype := build_quantifiers tProd quantifiers ty
+       ; dbody := build_quantifiers tLambda quantifiers body
+       ; rarg := 1 + length quantifiers |}.
+
+Check monad_map.
 Definition add_instances (kn : kername) : TemplateMonad unit :=
   mut <- tmQuoteInductive kn ;;
   (* Build the single function definitions for each of
@@ -760,9 +766,11 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
                                     let n := "Rep_" ++ ty_name in
                                     tProd (mkBindAnn (nNamed n) Relevant) (tApp <% Rep %> [tVar ty_name]) t)
                                     id ;;
-                  (* quantified_named <- DB.undeBruijn [] quantified ;; *)
+                  tmMsg "quantified:" ;;
+                  tmEval all quantified >>= tmPrint ;;
+                  let quantifiers := get_quantifiers id quantified in
                   let tau := strip_quantifiers quantified in
-                  make_fix_single tau {| inductive_mind := kn ; inductive_ind := i |} one)
+                  make_fix_single quantifiers tau {| inductive_mind := kn ; inductive_ind := i |} one)
                (ind_bodies mut) ;;
 
   (* Loop over each mutually recursive type again *)
@@ -794,12 +802,24 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
                                  (tProd (mkBindAnn (nNamed "p") Relevant)
                                         <% mtype %>
                                         <% Prop %>)) in
-       let quantifiers : list (aname * any_term) :=
+       let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
+       args_let <- monad_map (fun '(an, _) =>
+                                match an with
+                                | mkBindAnn (nNamed n) _ => ret (tVar n)
+                                | _ => tmFail "Unnamed parameter"
+                                end) quantifiers ;;
+       tmMsg "args_let: " ;; tmEval all args_let >>= tmPrint ;;
+       let fn : named_term :=
+           tLetIn (mkBindAnn (nNamed "f") Relevant)
+                  (tFix singles i)
+                  (build_quantifiers tProd quantifiers fn_ty)
+                  (* fn_ty *)
+                  (tApp (tVar "f") args_let) in
        let prog_named : named_term :=
            build_quantifiers tLambda quantifiers
                              (tApp <% @Build_Rep %>
-                                   [tau; tFix singles i]) in
+                                   [tau; fn]) in
        (* tmMsg "" ;; *)
        tmMsg "Final:" ;;
        tmEval all prog_named >>= tmPrint ;;
@@ -867,14 +887,12 @@ Definition rep_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
 (* Print Rep_bool. *)
 (* MetaCoq Run (rep_gen nat). *)
 (* Print Rep_nat. *)
-(* MetaCoq Run (rep_gen option). *)
-(* Print Rep_option. *)
-(* MetaCoq Run (rep_gen prod). *)
+MetaCoq Run (rep_gen option).
+Print Rep_option.
+MetaCoq Run (rep_gen prod).
 (* Print Rep_prod. *)
-(* MetaCoq Run (rep_gen list). *)
-(* Print Rep_list. *)
-
-(* MetaCoq Run (rep_gen option). *)
+MetaCoq Run (rep_gen list).
+Print Rep_list.
 
 Instance option_rep : forall A, Rep A -> Rep (option A) :=
   fun _ _ =>
