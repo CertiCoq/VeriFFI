@@ -86,7 +86,7 @@ Module DB.
      We should eventually consider making a MetaCoq_utils module. *)
 
   (* Takes a named representation and converts it into the de Bruijn representation. *)
-  Definition deBruijn (t : named_term) : TemplateMonad term :=
+  Definition deBruijn' (ctx : list name) (t : named_term) : TemplateMonad term :=
     let fix find_in_ctx (count : nat) (id : ident) (ctx : list name) : option nat :=
       match ctx with
       | nil => None
@@ -152,7 +152,9 @@ Module DB.
             mfix' <- go_mfix mfix ;;
             ret (tCoFix mfix' idx)
         end
-    in go [] t.
+    in go ctx t.
+
+  Definition deBruijn (t : named_term) : TemplateMonad term := deBruijn' nil t.
 
   (* Takes a de Bruijn representation and changes [tRel]s to [tVar]s. *)
   Definition undeBruijn' (ctx : list name) (t : term) : TemplateMonad named_term :=
@@ -284,13 +286,51 @@ Module Substitution.
     | _ => u
     end.
 
-  (* Substitute multiple [global_term]s into a [named_term]. *)
-  Fixpoint named_subst_all (l : list (ident * global_term)) (u : named_term) : named_term :=
+  (* Substitute multiple [named_term]s into a [named_term]. *)
+  Fixpoint named_subst_all (l : list (ident * named_term)) (u : named_term) : named_term :=
     match l with
     | nil => u
     | (id, t) :: l' => named_subst_all l' (named_subst t id u)
     end.
 End Substitution.
+
+Module ConstSubstitution.
+  Fixpoint named_subst (t : global_term) (x : kername) (u : named_term) {struct u} : named_term :=
+    match u with
+    | tConst kn _ => if eq_kername x kn then t else u
+    | tVar id => t
+    | tEvar ev args => tEvar ev (map (named_subst t x) args)
+    | tCast c kind ty => tCast (named_subst t x c) kind (named_subst t x ty)
+    | tProd (mkBindAnn (nNamed id) rel) A B =>
+      tProd (mkBindAnn (nNamed id) rel) (named_subst t x A) (named_subst t x B)
+    | tProd na A B => tProd na (named_subst t x A) (named_subst t x B)
+    | tLambda (mkBindAnn (nNamed id) rel) T M =>
+      tLambda (mkBindAnn (nNamed id) rel) (named_subst t x T) (named_subst t x M)
+    | tLambda na T M => tLambda na (named_subst t x T) (named_subst t x M)
+    | tLetIn (mkBindAnn (nNamed id) rel) b ty b' =>
+      tLetIn (mkBindAnn (nNamed id) rel) (named_subst t x b) (named_subst t x ty) (named_subst t x b')
+    | tLetIn na b ty b' => tLetIn na (named_subst t x b) (named_subst t x ty) (named_subst t x b')
+    | tApp u0 v => mkApps (named_subst t x u0) (map (named_subst t x) v)
+    | tCase ind p c brs =>
+        let brs' := map (on_snd (named_subst t x)) brs in
+        tCase ind (named_subst t x p) (named_subst t x c) brs'
+    | tProj p c => tProj p (named_subst t x c)
+    | tFix mfix idx => (* FIXME *)
+      let mfix' := map (map_def (named_subst t x) (named_subst t x)) mfix in
+      tFix mfix' idx
+    | tCoFix mfix idx =>
+      let mfix' := map (map_def (named_subst t x) (named_subst t x)) mfix in
+      tCoFix mfix' idx
+    | _ => u
+    end.
+
+  (* Substitute multiple [named_term]s into a [named_term]. *)
+  Fixpoint named_subst_all (l : list (kername * named_term)) (u : named_term) : named_term :=
+    match l with
+    | nil => u
+    | (id, t) :: l' => named_subst_all l' (named_subst t id u)
+    end.
+End ConstSubstitution.
 
 Notation "f >=> g" := (fun x => (f x) >>= g)
                       (at level 51, right associativity) : monad_scope.
@@ -550,7 +590,7 @@ Definition tmInferInstanceEval (t : Type) := tmInferInstance (Some all) t.
 
 (* Takes in a term representing a type like [forall A, Rep (list A)]),
    and finds the type class instance for that. *)
-Definition instance_term (inst_ty : term) : TemplateMonad global_term :=
+Definition instance_term (inst_ty : named_term) : TemplateMonad global_term :=
   inst_ty' <- DB.deBruijn inst_ty >>= tmUnquoteTyped Type ;;
   opt_ins <- tmInferInstanceEval inst_ty' ;;
   match opt_ins with
@@ -558,7 +598,80 @@ Definition instance_term (inst_ty : term) : TemplateMonad global_term :=
   | _ => tmFail "No such instance"
   end.
 
+Definition named_term_root (nt : named_term) : TemplateMonad (option inductive) :=
+  (* tmMsg "named_term_root:" ;; *)
+  (* tmEval all nt >>= tmPrint ;; *)
+  match nt with
+  | tInd ind _
+  | tApp (tInd ind _) _ => ret (Some ind)
+  | _ => ret None
+  end.
+
+Definition root_dissection (nt : named_term)
+           : TemplateMonad (option (inductive * list named_term)) :=
+  match nt with
+  | tInd ind _ => ret (Some (ind, nil))
+  | tApp (tInd ind _) args => ret (Some (ind, args))
+  | _ => ret None
+  end.
+
+Fixpoint build_rep_args (nts : list named_term) : TemplateMonad (list named_term) :=
+    match nts with
+    | tVar ty_name :: rest =>
+      rest' <- build_rep_args rest ;;
+      (* FIXME if the [tVar] doesn't belong to a type *)
+      ret (tVar ty_name :: tVar ("Rep_" ++ ty_name) :: rest')
+    | _ => ret nil
+    end.
+
+Fixpoint build_rep_call
+         (quantifiers : list (aname * named_term))
+         (ind : inductive)
+         (nt : named_term) : TemplateMonad named_term :=
+    tmMsg "build_rep_call:" ;;
+    tmEval all nt >>= tmPrint ;;
+    match nt with
+    | tInd arg_inductive _ =>
+      if eq_kername (inductive_mind ind) (inductive_mind arg_inductive)
+      then ret (tVar ("rep" ++ string_of_nat (inductive_ind arg_inductive)))
+      else
+        one <- get_one_from_inductive arg_inductive ;;
+        (* not a recursive call, find the right [Rep] instance *)
+        inst_ty <- generate_Rep_instance_type arg_inductive one ;;
+        tmMsg "Finding Rep instance for the type:" ;;
+        tmEval all inst_ty >>= tmPrint ;;
+        (* TODO fix this for special [Rep] instances *)
+        t_ins <- instance_term inst_ty ;;
+        (* TODO construct applications to the t_ins *)
+        ret (tApp <% @rep %> [ make_tInd arg_inductive ; t_ins ])
+    | tApp root args => (* TODO fix args *)
+        root' <- build_rep_call quantifiers ind root ;;
+        args' <- build_rep_args args ;;
+        ret (tApp root' args')
+    | tVar ty_name =>
+      ret (tApp <% @rep %> [tVar ty_name ; tVar ("Rep_" ++ ty_name)])
+      (* TODO what is there's a [tVar] that's not a type? *)
+    | _ => tmFail ("Cannot find root of the argument term: " ++ string_of_term nt)
+    end.
+
+(* Fixpoint build_rep_call *)
+(*          (quantifiers : list (aname * named_term)) *)
+(*          (ind : inductive) *)
+(*          (nt : named_term) : TemplateMonad named_term := *)
+(*   d <- root_dissection nt ;; *)
+(*   match d with *)
+(*   | None => (* if there's a function argument etc. *) *)
+(*     tmFail ("Cannot find root of the argument term: " ++ string_of_term nt) *)
+(*   | Some (root_ind, args) => *)
+(*     if eq_kername (inductive_mind ind) (inductive_mind root_ind) *)
+(*     then *)
+(*       ret <% True %> *)
+(*     else *)
+(*       ret <% False %> *)
+(*   end. *)
+
 Fixpoint make_prop
+         (quantifiers : list (aname * named_term))
          (ind : inductive)
          (one : one_inductive_body)
          (ctor : ctor_info)
@@ -582,52 +695,6 @@ Fixpoint make_prop
               [ t_g ; t_p ; t_crep ; l])
   in
 
-  let named_term_root (nt : named_term) : TemplateMonad inductive :=
-      (* tmMsg "named_term_root:" ;; *)
-      (* tmEval all nt >>= tmPrint ;; *)
-      match nt with
-      | tInd ind _ | tApp (tInd ind _) _ => ret ind
-      | _ => tmFail ("Cannot find root of the argument term: " ++ string_of_term nt)
-      end
-  in
-
-  let fix build_rep_args (nts : list named_term) : TemplateMonad (list named_term) :=
-      match nts with
-      | tVar ty_name :: rest =>
-        rest' <- build_rep_args rest ;;
-        (* FIXME if the [tVar] doesn't belong to a type *)
-        ret (tVar ty_name :: tVar ("Rep_" ++ ty_name) :: rest')
-      | _ => ret nil
-      end
-  in
-
-  let fix build_rep_call (nt : named_term) : TemplateMonad named_term :=
-      tmMsg "build_rep_call:" ;;
-      tmEval all nt >>= tmPrint ;;
-      match nt with
-      | tInd arg_inductive _ =>
-        if eq_kername (inductive_mind ind) (inductive_mind arg_inductive)
-        then ret (tVar ("rep" ++ string_of_nat (inductive_ind arg_inductive)))
-        else
-          one <- get_one_from_inductive arg_inductive ;;
-          (* not a recursive call, find the right [Rep] instance *)
-          inst_ty <- generate_Rep_instance_type arg_inductive one ;;
-          tmMsg "Finding Rep instance for the type:" ;;
-          tmEval all inst_ty >>= tmPrint ;;
-          (* TODO fix this for special [Rep] instances *)
-          t_ins <- instance_term inst_ty ;;
-          (* TODO construct applications to the t_ins *)
-          ret (tApp <% @rep %> [ make_tInd arg_inductive ; t_ins ])
-      | tApp root args => (* TODO fix args *)
-          root' <- build_rep_call root ;;
-          args' <- build_rep_args args ;;
-          ret (tApp root' args')
-      | tVar ty_name =>
-        ret (tApp <% @rep %> [tVar ty_name ; tVar ("Rep_" ++ ty_name)])
-        (* TODO what is there's a [tVar] that's not a type? *)
-      | _ => tmFail ("Cannot find root of the argument term: " ++ string_of_term nt)
-      end
-  in
 
   (* Takes in the [arg_variant],
      generates the call to [rep] for that argument.
@@ -638,7 +705,7 @@ Fixpoint make_prop
         (* tmMsg "HERE'S ONE!" ;; *)
         let t_arg := tVar arg_name in
         let t_p := tVar p_name in
-        call <- build_rep_call nt ;;
+        call <- build_rep_call nil ind nt ;;
         tmMsg "rep call: " ;;
         tmEval all call >>= tmPrint ;;
         ret [tApp call [ t_g ; t_arg; t_p ]]
@@ -654,6 +721,8 @@ Fixpoint make_prop
 (* Takes in the info for a single constructor of a type, generates the branches
    of a match expression for that constructor. *)
 Definition ctor_to_branch
+    (quantifiers : list (aname * named_term))
+      (* all quantifiers for this type *)
     (ind : inductive)
       (* the type we're generating for *)
     (one : one_inductive_body)
@@ -675,7 +744,7 @@ Definition ctor_to_branch
   (* tmMsg "ARGS:" ;; *)
   (* tmEval all args >>= tmPrint ;; *)
 
-  prop <- make_prop ind one ctor args ;;
+  prop <- make_prop quantifiers ind one ctor args ;;
   let t := make_lambdas args (make_exists args prop) in
   (* tmMsg "PROP:" ;; *)
   (* tmEval all t >>= tmPrint ;; *)
@@ -683,6 +752,8 @@ Definition ctor_to_branch
 
 (* Generates a reified match expression *)
 Definition matchmaker
+    (quantifiers : list (aname * named_term))
+      (* all quantifiers for this type *)
     (ind : inductive)
       (* description of the type we're generating for *)
     (one : one_inductive_body)
@@ -692,7 +763,7 @@ Definition matchmaker
     (ctors : list ctor_info)
       (* constructors we're generating match branches for *)
     : TemplateMonad named_term :=
-  branches <- monad_map (ctor_to_branch ind one tau) ctors ;;
+  branches <- monad_map (ctor_to_branch quantifiers ind one tau) ctors ;;
   ret (tCase (ind, 0, Relevant)
              (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>)
              (tVar "x")
@@ -738,7 +809,7 @@ Definition make_fix_single
            (ind : inductive)
            (one : one_inductive_body) : TemplateMonad (BasicAst.def named_term) :=
   let this_name := nNamed ("rep" ++ string_of_nat (inductive_ind ind)) in
-  prop <- matchmaker ind one tau (process_ctors (ind_ctors one)) ;;
+  prop <- matchmaker quantifiers ind one tau (process_ctors (ind_ctors one)) ;;
   let ty :=
       tProd (mkBindAnn (nNamed "g") Relevant) <% graph %>
         (tProd (mkBindAnn (nNamed "x") Relevant) tau
@@ -752,7 +823,6 @@ Definition make_fix_single
        ; dbody := build_quantifiers tLambda quantifiers body
        ; rarg := 1 + length quantifiers |}.
 
-Check monad_map.
 Definition add_instances (kn : kername) : TemplateMonad unit :=
   mut <- tmQuoteInductive kn ;;
   (* Build the single function definitions for each of
@@ -814,7 +884,6 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
            tLetIn (mkBindAnn (nNamed "f") Relevant)
                   (tFix singles i)
                   (build_quantifiers tProd quantifiers fn_ty)
-                  (* fn_ty *)
                   (tApp (tVar "f") args_let) in
        let prog_named : named_term :=
            build_quantifiers tLambda quantifiers
@@ -848,18 +917,18 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
        (* https://github.com/MetaCoq/metacoq/issues/455 *)
        name <- tmFreshName =<< tmEval all ("Rep_" ++ ind_name one)%string ;;
 
-       (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
-       (*    because of a mysterious type error. (Coq's type errors in monadic *)
-       (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
-       (*    a Σ-type. But when you project the second field out of that, *)
-       (*    the type doesn't get evaluated to [Rep _], it stays as *)
-       (*    [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
-       (*    which is the type of the second projection. When the user prints *)
-       (*    their [Rep] instance, Coq shows the unevaluated version. *)
-       (*    But we don't want to evaluate it [all] the way, that would unfold *)
-       (*    the references to other instances of [Rep]. We only want to get *)
-       (*    the head normal form with [hnf]. *)
-       (*    We have to do this both for the instance body and its type. *)
+       (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above
+          because of a mysterious type error. (Coq's type errors in monadic
+          contexts are just wild.) Therefore I had to [tmUnquote] it to get
+          a Σ-type. But when you project the second field out of that,
+          the type doesn't get evaluated to [Rep _], it stays as
+          [my_projT2 {| ... |}]. The same thing goes for the first projection,
+          which is the type of the second projection. When the user prints
+          their [Rep] instance, Coq shows the unevaluated version.
+          But we don't want to evaluate it [all] the way, that would unfold
+          the references to other instances of [Rep]. We only want to get
+          the head normal form with [hnf].
+          We have to do this both for the instance body and its type. *)
        tmEval hnf (my_projT2 instance) >>=
          tmDefinitionRed_ false name (Some hnf) ;;
 
@@ -885,8 +954,8 @@ Definition rep_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
 (* Print Rep_unit. *)
 (* MetaCoq Run (rep_gen bool). *)
 (* Print Rep_bool. *)
-(* MetaCoq Run (rep_gen nat). *)
-(* Print Rep_nat. *)
+MetaCoq Run (rep_gen nat).
+Print Rep_nat.
 MetaCoq Run (rep_gen option).
 Print Rep_option.
 MetaCoq Run (rep_gen prod).
@@ -894,13 +963,46 @@ MetaCoq Run (rep_gen prod).
 MetaCoq Run (rep_gen list).
 Print Rep_list.
 
-Instance option_rep : forall A, Rep A -> Rep (option A) :=
-  fun _ _ =>
-  {| rep _ _ _ := True |}.
+Section Stuff.
+(* Variable (A : Type). *)
+(* Check <% A %>. *)
+(* Variable (Rep_A : Rep A). *)
+  Print tmVariable.
+  Print tmDefinition.
+(* MetaCoq Run (tmVariable "A" Set). *)
+  Print global_reference.
+             (* tmExistingInstance (ConstRef (MPfile ["rep"; "generator"; "VeriFFI"], "Rep_A")) ;; *)
 
-Inductive mylist (A : Type) : Type :=
-| mynil : mylist A
-| mycons : A -> option A -> mylist A.
+  Print term.
+  Print reductionStrategy.
+  MetaCoq Run (
+               let t := (forall (A : Type) (Rep_A : Rep A) (B : Type) (Rep_B : Rep B), Rep (list (option A))) in
+               (* let t := Rep nat in *)
+               mp <- tmCurrentModPath tt ;;
+               n <- tmFreshName "_" ;;
+               tmPrint n ;;
+               a <- tmLemma n t ;;
+               tmEval (unfold (mp, n)) a >>= tmPrint
+               ).
+
+
+  MetaCoq Run
+    (tmInferInstanceEval (forall (A : Type) (Rep_A : Rep A)
+                                 (B : Type) (Rep_B : Rep B), Rep (list (option A))) >>=
+     tmEval hnf >>=
+     tmPrint).
+
+Print tmPrint.
+(* Instance option_rep : forall A, Rep A -> Rep (option A) := *)
+(*   fun _ _ => *)
+(*   {| rep _ _ _ := True |}. *)
+
+Inductive mylist (A B : Type) : Type :=
+| mynil : mylist A B
+| mycons : A -> option B -> mylist A B.
+
+Search _ (nat -> nat -> nat).
+Print Nat.mul.
 
 MetaCoq Run (rep_gen mylist).
 
