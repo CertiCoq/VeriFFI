@@ -156,11 +156,71 @@ value pack(struct thread_info *tinfo, value s)
   return (value) (argv + 1LLU);
 }
 
+// from https://codereview.stackexchange.com/a/207541/68819
+// allocates enough memory for a string (which has to be freed later)
+// returns its length by assigning it to the pointer in the argument
+char *scan(size_t *length)
+{
+  size_t capacity = 16;
+  char *buffer = malloc(capacity);
+  if (!buffer) { return NULL; }
+  size_t i = 0;
+
+  int c; // current input character
+  while ((c = getchar()) != EOF) {
+    if (i + 2 > capacity) {
+      // ensure space for c and terminating NUL
+      capacity *= 2;
+      char *newbuf = realloc(buffer, capacity);
+      if (!newbuf) {
+        // allocation failed - undo the read, terminate string, and return
+        ungetc(c, stdin);
+        buffer[i] = '\0';
+        return buffer;
+      }
+      buffer = newbuf;
+    }
+
+    // We have enough space; now store it
+    if (c == '\n') { break; }
+    buffer[i++] = (char) c;
+  }
+
+  if (i == 0) { free(buffer); return NULL; } // we didn't read anything
+
+  buffer[i] = '\0';
+  *length = i;
+
+  return buffer;
+}
+
 value scan_bytestring(struct thread_info *tinfo)
 {
-  fprintf(stderr, "scan unimplemented");
-  exit(EXIT_FAILURE);
-  return 0;
+  size_t len;
+  char *s = scan(&len);
+
+  value mod = len % sizeof(value);
+  value pad_length = sizeof(value) - (len % sizeof(value));
+  value needed = (len + pad_length) / sizeof(value) + 1;
+  if (!(needed <= tinfo->limit - tinfo->alloc)) {
+    fprintf(stderr, "not enough memory, call GC");
+    exit(EXIT_FAILURE);
+  }
+
+  value *argv = (value *) tinfo->alloc;
+  *((value *) argv + 0LLU) = 252LLU; // string tag
+
+  char *ptr = (char *) (argv + 1LLU);
+  char *t = (char *) s;
+  while (*t != '\0') { *ptr = *t; ptr++; t++; }
+
+  // make the padding
+  char i = 0;
+  while (i < pad_length - 1) { *ptr = 0; ptr++; i++; }
+  *ptr = i; // last char in the padding is # of 0s coming before the last char
+
+  tinfo->alloc += needed;
+  return (value) (argv + 1LLU);
 }
 
 

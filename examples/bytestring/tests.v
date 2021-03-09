@@ -40,19 +40,14 @@ Import MonadNotation.
 Open Scope monad_scope.
 
 Definition prog : itree console unit :=
-  trigger (print_string (append (pack "abcd") (pack "efgh"))).
-  (* trigger (print_string (pack "hello there")). *)
-  (* trigger (print_string (pack "What's your name?")) ;; *)
-  (* name <- trigger scan_string ;; *)
-  (* trigger (print_string (append (append (pack "Hello ") name) (pack "!"))). *)
+  trigger (print_string (pack "What's your name?")) ;;
+  name <- trigger scan_string ;;
+  trigger (print_string (append (append (pack "Hello ") name) (pack "!"))).
 
 CertiCoq Generate Glue -file "glue" [itree, console, string, unit].
 CertiCoq Compile prog
-         Extract Constants [
-                    (* pack => "pack" with tinfo *)
-                      append => "append" with tinfo
+         Extract Constants 
+                    [ append => "append" with tinfo
                     , pack => "pack" with tinfo
-                    (* , pack => "pack" with tinfo *)
-                    (* , unpack => "unpack" with tinfo *)
                     ]
   Include [ "io.h" ].
