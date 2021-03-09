@@ -2,12 +2,17 @@ From CertiCoq.Plugin Require Import CertiCoq.
 
 Require Import Coq.Numbers.Cyclic.Int63.Int63.
 Require Import ExtLib.Structures.Monad.
-Require Import String.
+Require Import String Ascii.
 
-Axioms (bytestring : Type)
+Axioms (word8 : Type)
+       (word8_to_ascii : word8 -> ascii)
+       (ascii_to_word8 : ascii -> word8)
+       (to_upper : word8 -> word8)
+       (bytestring : Type)
        (append : bytestring -> bytestring -> bytestring)
        (pack : string -> bytestring)
-       (unpack : bytestring -> string).
+       (unpack : bytestring -> string)
+       (map : (word8 -> word8) -> bytestring -> bytestring).
 
 Inductive itree (E : Type -> Type) (R : Type) : Type :=
 | Ret (r : R)
@@ -39,15 +44,22 @@ Inductive console : Type -> Type :=
 Import MonadNotation.
 Open Scope monad_scope.
 
+Definition uppercase (b : bytestring) : bytestring :=
+  map to_upper b.
+
+Notation "x ++ y" := (append x y) (right associativity, at level 60).
+
 Definition prog : itree console unit :=
   trigger (print_string (pack "What's your name?")) ;;
   name <- trigger scan_string ;;
-  trigger (print_string (append (append (pack "Hello ") name) (pack "!"))).
+  trigger (print_string (pack "HELLO " ++ uppercase name ++ pack "!")).
 
 CertiCoq Generate Glue -file "glue" [itree, console, string, unit].
 CertiCoq Compile prog
-         Extract Constants 
+         Extract Constants
                     [ append => "append" with tinfo
                     , pack => "pack" with tinfo
+                    , map => "map" with tinfo
+                    , to_upper => "to_upper" with tinfo
                     ]
   Include [ "io.h" ].
