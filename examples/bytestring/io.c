@@ -61,9 +61,17 @@ value to_upper(struct thread_info *tinfo, value v)
   return (((value) up) << 1) + 1;
 }
 
+value bytestrlen(value s)
+{
+  value words = (*((value *) s - 1) >> 10);
+  value bytes = words * sizeof(value);
+  value padding = (value) *((char *) s + (bytes - 1)) + 1;
+  return bytes - padding;
+}
+
 value map(struct thread_info *tinfo, value f, value s)
 {
-  size_t len = strlen(s);
+  value len = bytestrlen(s);
 
   value mod = len % sizeof(value);
   value pad_length = sizeof(value) - (len % sizeof(value));
@@ -74,7 +82,7 @@ value map(struct thread_info *tinfo, value f, value s)
   }
 
   value *argv = (value *) tinfo->alloc;
-  *((value *) argv + 0LLU) = 252LLU; // string tag
+  *((value *) argv + 0LLU) = ((needed - 1) << 10) + 252LLU; // string tag
 
   char *ptr = (char *) (argv + 1LLU);
   char *t = (char *) s;
@@ -95,8 +103,8 @@ value map(struct thread_info *tinfo, value f, value s)
 
 value append(struct thread_info *tinfo, value s1, value s2)
 {
-  size_t len1 = strlen((char *) s1);
-  size_t len2 = strlen((char *) s2);
+  value len1 = bytestrlen(s1);
+  value len2 = bytestrlen(s2);
   value sum = len1 + len2;
   value mod = sum % sizeof(value);
   value pad_length = sizeof(value) - (sum % sizeof(value));
@@ -107,7 +115,7 @@ value append(struct thread_info *tinfo, value s1, value s2)
   }
 
   value *argv = (value *) tinfo->alloc;
-  *((value *) argv + 0LLU) = 252LLU; // string tag
+  *((value *) argv + 0LLU) = ((needed - 1) << 10) + 252LLU; // string tag
   
   // take a pointer pointing to the beginning of destination string
   char *ptr = (char *) (argv + 1LLU);
@@ -132,7 +140,7 @@ value append(struct thread_info *tinfo, value s1, value s2)
 value pack(struct thread_info *tinfo, value s)
 {
   value temp = s;
-  int len = 0;
+  value len = 0;
   while(get_Coq_Strings_String_string_tag(temp) == 1) {
     len++;
     temp = *((value *) temp + 1ULL);
@@ -146,7 +154,7 @@ value pack(struct thread_info *tinfo, value s)
   }
 
   value *argv = (value *) tinfo->alloc;
-  *((value *) argv + 0LLU) = 252LLU; // string tag
+  *((value *) argv + 0LLU) = ((needed - 1) << 10) + 252LLU; // string tag
 
   char *ptr = (char *) (argv + 1LLU);
   temp = s;
@@ -223,7 +231,7 @@ value scan_bytestring(struct thread_info *tinfo)
   }
 
   value *argv = (value *) tinfo->alloc;
-  *((value *) argv + 0LLU) = 252LLU; // string tag
+  *((value *) argv + 0LLU) = ((needed - 1) << 10) + 252LLU; // string tag
 
   char *ptr = (char *) (argv + 1LLU);
   char *t = (char *) s;
