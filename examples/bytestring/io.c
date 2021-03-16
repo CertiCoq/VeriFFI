@@ -86,7 +86,7 @@ value map(struct thread_info *tinfo, value f, value s)
 
   char *ptr = (char *) (argv + 1LLU);
   char *t = (char *) s;
-  while (*t != '\0') { 
+  for (value i = 0; i < len; i++) {
     value c = (*t << 1) + 1;
     *ptr = call(tinfo, f, c) >> 1;; 
     ptr++; t++; 
@@ -125,8 +125,8 @@ value append(struct thread_info *tinfo, value s1, value s2)
   // copy the OCaml-string pointed by t1 and t2
   // into the array pointed by ptr
   // skip the padding in each one, we'll make our own padding later
-  while (*t1 != '\0') { *ptr = *t1; ptr++; t1++; }
-  while (*t2 != '\0') { *ptr = *t2; ptr++; t2++; }
+  for (value i = 0; i < len1; i++) { *ptr = *t1; ptr++; t1++; }
+  for (value i = 0; i < len2; i++) { *ptr = *t2; ptr++; t2++; }
 
   // make the padding
   char i = 0;
@@ -253,7 +253,15 @@ value run_console(struct thread_info * tinfo, value action)
 {
   switch (get_tests_console_tag(action)) {
     case PRINT_STRING:
-      return puts((char *) *((value *) action));
+      {
+        value s = *((value *) action);
+        value len = bytestrlen(s);
+        for (value i = 0; i < len; i ++) {
+          printf("%c", ((char *) s)[i]);
+        }
+        printf("\n");
+        return 0;
+      }
     case SCAN_STRING:
       return scan_bytestring(tinfo);
     default:
