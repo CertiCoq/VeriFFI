@@ -6,6 +6,14 @@
 #include "values.h"
 #include "glue.h"
 
+value bytestrlen(value s)
+{
+  value words = (*((value *) s - 1) >> 10);
+  value bytes = words * sizeof(value);
+  value padding = (value) *((char *) s + (bytes - 1)) + 1;
+  return bytes - padding;
+}
+
 unsigned char ascii_to_char(value x) {
   unsigned char c = 0;
   for(unsigned int i = 0; i < 8; i++) {
@@ -59,14 +67,6 @@ value to_upper(struct thread_info *tinfo, value v)
   char c = (char) (v >> 1); 
   char up = toupper(c);
   return (((value) up) << 1) + 1;
-}
-
-value bytestrlen(value s)
-{
-  value words = (*((value *) s - 1) >> 10);
-  value bytes = words * sizeof(value);
-  value padding = (value) *((char *) s + (bytes - 1)) + 1;
-  return bytes - padding;
 }
 
 value map(struct thread_info *tinfo, value f, value s)
@@ -174,9 +174,15 @@ value pack(struct thread_info *tinfo, value s)
 }
 
 
-value unpack(struct thread_info *tinfo, value s)
+value unpack(struct thread_info *tinfo, value bs)
 {
-  return string_to_value(tinfo, (char *) s);
+  char *s = (char *) bs;
+  value temp = make_Coq_Strings_String_string_EmptyString();
+  for (unsigned int i = bytestrlen(bs); 0 < i; i--) {
+    value c = char_to_value(tinfo, s[i-1]);
+    temp = alloc_make_Coq_Strings_String_string_String(tinfo, c, temp);
+  }
+  return temp;
 }
 
 // from https://codereview.stackexchange.com/a/207541/68819
