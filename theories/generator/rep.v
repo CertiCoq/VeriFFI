@@ -418,7 +418,7 @@ Section Argumentation.
         ret (nil , t')
       end in
 
-    aux number_of_params O mut_names (ctor_type ctor).
+    aux number_of_params O (rev mut_names) (ctor_type ctor).
 
 End Argumentation.
 
@@ -494,7 +494,7 @@ Definition generate_Rep_instance_type
 Definition find_missing_instance
            (ind : inductive)
            (one : one_inductive_body) : TemplateMonad bool :=
-  tmMsg ("Missing: " ++ string_of_kername (inductive_mind ind)) ;;
+  tmMsg ("Missing: " ++ string_of_inductive ind) ;;
   generate_Rep_instance_type ind one >>=
   DB.deBruijn >>= tmUnquoteTyped Type >>= has_instance.
 
@@ -657,8 +657,11 @@ Definition build_Rep_call
   let args := (all_single_rep_tys ++ quantifiers)%list in
   let quantified := build_quantifiers tProd args (tApp <% Rep %> [nt]) in
   quantified <- tmEval all quantified ;;
-  tmMsg "QUANTIFIED:" ;;
-  tmPrint quantified ;;
+  tmMsg "==========" ;;
+  (* tmMsg "FOR:" ;; *)
+  (* tmPrint nt ;; *)
+  (* tmMsg "QUANTIFIED:" ;; *)
+  (* tmPrint quantified ;; *)
   t <- instance_term quantified ;;
   (* NOTE: could this ever be a problem?
            is it possible for the fake [___Rep]s to come eta reduced? *)
@@ -728,7 +731,8 @@ Fixpoint make_prop
         let t_arg := tVar arg_name in
         let t_p := tVar p_name in
         call <- build_rep_call all_single_rep_tys quantifiers ind nt ;;
-        tmMsg "rep call: " ;;
+        tmMsg "REP CALL: " ;;
+        tmEval all nt >>= tmPrint ;;
         tmEval all call >>= tmPrint ;;
         ret [tApp call [ t_g ; t_arg; t_p ]]
       | _ => ret nil
@@ -771,8 +775,8 @@ Definition ctor_to_branch
   (* TODO these are the quantifiers for the entire type? not just this branch *)
   prop <- make_prop all_single_rep_tys quantifiers ind one ctor args ;;
   let t := make_lambdas args (make_exists args prop) in
-  (* tmMsg "PROP:" ;; *)
-  (* tmEval all t >>= tmPrint ;; *)
+  tmMsg "PROP:" ;;
+  tmEval all t >>= tmPrint ;;
   ret (ctor_arity ctor, t).
 
 (* Generates a reified match expression *)
@@ -974,7 +978,7 @@ Print Rep_prod.
 
 Inductive mylist (A B : Type) : Type :=
 | mynil : mylist A B
-| mycons : A -> option B -> mylist A B.
+| mycons : A -> option A -> option B -> mylist A B.
 MetaCoq Run (rep_gen mylist).
 
 MetaCoq Run (rep_gen nat).
@@ -983,27 +987,20 @@ MetaCoq Run (rep_gen list).
 Print Rep_list.
 
 
-(* Testing mutually recursive inductive types: *)
-Inductive R1 :=
-| r1 : R1
-with R2 :=
-| r2 : R2.
-MetaCoq Run (rep_gen R1).
+(* Inductive T1 : nat -> Type := *)
+(* | c1 : forall n : nat, T1 n. *)
+(* Check <% fun (x : T1 0) => *)
+(*            match x with *)
+(*            | @c1 n' => tt *)
+(*            end %>. *)
+(* MetaCoq Run (rep_gen T1). *)
 
+(* Testing mutually recursive inductive types: *)
 Inductive T1 :=
 | c1 : T2 -> T1
 with T2 :=
 | c2 : T1 -> T2.
 MetaCoq Run (rep_gen T1).
-
-Inductive T1 : nat -> Type :=
-| c1 : forall n : nat, T1 n.
-Check <% fun (x : T1 0) =>
-           match x with
-           | @c1 n' => tt
-           end %>.
-MetaCoq Run (rep_gen T1).
-
 
 Inductive tree (A : Type) : Type :=
 | tleaf : tree A
@@ -1011,7 +1008,7 @@ Inductive tree (A : Type) : Type :=
 with forest (A : Type) : Type :=
 | fnil : forest A
 | fcons : tree A -> forest A -> forest A.
-(* MetaCoq Run (rep_gen tree). *)
+MetaCoq Run (rep_gen tree).
 
 
 (* Testing dependent types: *)
