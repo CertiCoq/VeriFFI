@@ -1,18 +1,29 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "values.h"
+/* #include "values.h" */
 #include "glue.h"
+typedef unsigned long long value;
 
 value bytestrlen(value s)
 {
-  value words = (*((value *) s - 1) >> 10);
+  value *ptr = (value *) s;
+  value *headerptr = ptr - 1;
+  value header = *headerptr;
+  value words = header >> 10;
   value bytes = words * sizeof(value);
   value padding = (value) *((char *) s + (bytes - 1)) + 1;
   return bytes - padding;
 }
+
+/* value bytestrlen(value s) */
+/* { */
+/*   value words = (*((value *) s - 1) >> 10); */
+/*   value bytes = words * sizeof(value); */
+/*   value padding = (value) *((char *) s + (bytes - 1)) + 1; */
+/*   return bytes - padding; */
+/* } */
 
 unsigned char ascii_to_char(value x) {
   unsigned char c = 0;

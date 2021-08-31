@@ -246,13 +246,15 @@ Module MetaCoqNotations.
   (* Check (~( <% fun (x : bool) => if x then false else true  %>)). *)
   (* Compute (~(<% fun (x : bool) => if x then false else true %>) false). *)
 
-  (* Data type name resolution *)
+  (* Name resolution *)
   Notation "<? x ?>" :=
     (ltac:(let p y :=
               match y with
               | tInd {| inductive_mind := ?name |} _ =>
                 exact name
-              | _ => fail "not a type constructor" end in
+              | tConst ?name _ =>
+                exact name
+              | _ => fail "not a type constructor or definition name" end in
           run_template_program (tmQuote x) p))
     (only parsing).
   (* Compute <? option ?>. *)
