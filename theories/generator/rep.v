@@ -8,7 +8,7 @@
   the same way CertiCoq represents it.
 
   This is similar to the pattern in VST but instead of [T -> val -> mpred],
-  our [rep] function has the type [graph -> T -> mtype -> Prop],
+  our [rep] function has the type [graph -> T -> rep_type -> Prop],
   for a given [T].
 
   This file defines a [Rep] type class containing the [rep] relation,
@@ -47,7 +47,6 @@
   * Parameters are not included in the memory representation,
     indices are. But parameters should be quantified over in the [Rep] instance type.
 *)
-
 Require Import Coq.ZArith.ZArith
                Coq.Program.Basics
                Coq.Strings.String
@@ -70,7 +69,6 @@ Import monad_utils.MonadNotation
        ListNotations
        MetaCoqNotations.
 
-Check <%% list nat %%>.
 (* Alias to distinguish terms that are NOT in de Bruijn notation. *)
 Definition named_term : Type := term.
 (* Alias for terms that do not contain references to local variables,
@@ -151,6 +149,8 @@ Module DB.
         | tCoFix mfix idx =>
             mfix' <- go_mfix mfix ;;
             ret (tCoFix mfix' idx)
+        | tInt p => ret (tInt p)
+        | tFloat p => ret (tFloat p)
         end
     in go ctx t.
 
@@ -216,6 +216,8 @@ Module DB.
         | tCoFix mfix idx =>
             mfix' <- go_mfix mfix ;;
             ret (tCoFix mfix' idx)
+        | tInt p => ret (tInt p)
+        | tFloat p => ret (tFloat p)
         end
     in go ctx t.
 
@@ -338,16 +340,24 @@ Notation "f <$> x" := (x' <- x%monad ;; ret (f x'))
                       (at level 52, right associativity) : monad_scope.
 Open Scope string.
 
-Variables (graph : Type) (mtype : Type).
+Module Type RepsTypes.
 
-Inductive cRep : Set :=
-| enum : forall (ordinal : N), cRep
-| boxed : forall (ordinal : N) (arity : N), cRep.
+  Parameters (graph : Type) (rep_type : Type).
 
-Variable fitting_index : graph -> mtype -> cRep -> list mtype -> Prop.
+  Inductive cRep : Set :=
+  | enum : forall (ordinal : N), cRep
+  | boxed : forall (ordinal : N) (arity : N), cRep.
+
+  Parameter fitting_index : graph -> rep_type -> cRep -> list rep_type -> Prop.
+
+End RepsTypes.
+
+Module Reps (RT : RepsTypes).
+
+Import RT.
 
 Class Rep (A : Type) : Type :=
-  { rep : forall (g : graph) (x : A) (p : mtype), Prop }.
+  { rep : forall (g : graph) (x : A) (p : rep_type), Prop }.
 
 Instance Rep_Prop : Rep Prop :=
   {| rep g x p := fitting_index g p (enum 0) [] |}.
@@ -591,20 +601,20 @@ Fixpoint make_exists
   match args with
   | value_arg _ p_name nt :: args' =>
     fun x => tApp <% ex %>
-                  [ <% mtype %>
+                  [ <% rep_type %>
                   ; tLambda (mkBindAnn (nNamed p_name) Relevant)
-                            <% mtype %>
+                            <% rep_type %>
                             (make_exists args' x) ]
   | _ :: args' => fun x => make_exists args' x
   | _ => fun x => x
   end.
 
 
-(* Special helper functions to make lists consisting of [mtype] values *)
+(* Special helper functions to make lists consisting of [rep_type] values *)
 Definition t_cons (t : any_term) (t' : any_term) : any_term :=
-  tApp <% @cons %> [<% mtype %> ; t ; t'].
+  tApp <% @cons %> [<% rep_type %> ; t ; t'].
 Definition t_conses (xs : list any_term) : any_term :=
-  fold_right t_cons <% @nil mtype %> xs.
+  fold_right t_cons <% @nil rep_type %> xs.
 Definition t_and (t : any_term) (t' : any_term) : any_term :=
   tApp <% @and %> [t ; t'].
 
@@ -723,11 +733,6 @@ Definition build_rep_call
   (* tmPrint res ;; *)
   ret res.
 
-
-Check monad_map.
-Locate monad_map.
-(* Search _ ((_ -> _ -> TemplateMonad _) -> _ -> _). *)
-Print monad_utils.
 Fixpoint make_prop
          (all_single_rep_tys : list (aname * named_term))
          (quantifiers : list (aname * named_term))
@@ -873,11 +878,11 @@ Definition make_fix_single
   let ty :=
       tProd (mkBindAnn (nNamed "g") Relevant) <% graph %>
         (tProd (mkBindAnn (nNamed "x") Relevant) tau
-          (tProd (mkBindAnn (nNamed "p") Relevant) <% mtype %> <% Prop %>)) in
+          (tProd (mkBindAnn (nNamed "p") Relevant) <% rep_type %> <% Prop %>)) in
   let body :=
       tLambda (mkBindAnn (nNamed "g") Relevant) <% graph %>
         (tLambda (mkBindAnn (nNamed "x") Relevant) tau
-          (tLambda (mkBindAnn (nNamed "p") Relevant) <% mtype %> prop)) in
+          (tLambda (mkBindAnn (nNamed "p") Relevant) <% rep_type %> prop)) in
   ret {| dname := mkBindAnn this_name Relevant
        ; dtype := build_quantifiers tProd quantifiers ty
        ; dbody := build_quantifiers tLambda quantifiers body
@@ -944,9 +949,9 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
        let fn_ty := tProd (mkBindAnn (nNamed "g") Relevant)
                           <% graph %>
                           (tProd (mkBindAnn (nNamed "x") Relevant)
-                                 tau
+                                 hole
                                  (tProd (mkBindAnn (nNamed "p") Relevant)
-                                        <% mtype %>
+                                        <% rep_type %>
                                         <% Prop %>)) in
        let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
@@ -1025,6 +1030,22 @@ Definition rep_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   monad_iter add_instances (rev missing).
 
 (* Playground: *)
+
+(*
+
+Inductive vec (A : Type) : nat -> Type :=
+| vnil : vec A O
+| vcons : forall n, A -> vec A n -> vec A (S n).
+
+Check <%% vec %%>.
+MetaCoq Run (rep_gen nat).
+
+(* Check <% fun (A : Type) (P1 : nat) (x : vec A P1) => *)
+(*            match x with vnil => False end %>. *)
+
+
+MetaCoq Run (rep_gen vec).
+
 MetaCoq Run (rep_gen unit).
 Print Rep_unit.
 
@@ -1070,7 +1091,7 @@ Inductive tree (A : Type) : Type :=
 with forest (A : Type) : Type :=
 | fnil : forest A
 | fcons : tree A -> forest A -> forest A.
-MetaCoq Run (rep_gen tree).
+MetaCoq Run (rep_gen tree)
 
 
 (* Testing dependent types: *)
@@ -1090,11 +1111,8 @@ Inductive indexed : nat -> Type :=
 | bar : indexed O.
 MetaCoq Run (rep_gen indexed).
 
-Inductive vec (A : Type) : nat -> Type :=
-| vnil : vec A O.
 | vcons : forall n, A -> vec A n -> vec A (S n).
 (* FIXME: this one doesn't work but should *)
-MetaCoq Run (rep_gen vec).
 
 Inductive fin : nat -> Set :=
 | F1 : forall {n}, fin (S n)
@@ -1109,11 +1127,11 @@ Inductive param_and_index (a b : nat) : a < b -> Type :=
 
 (*
 Instance Rep_vec (A : Type) (Rep_A : Rep A) (n : nat) : Rep (vec A n) :=
-  let fix rep_vec (n : nat) (g : graph) (x : vec A n) (p : mtype) {struct x} : Prop :=
+  let fix rep_vec (n : nat) (g : graph) (x : vec A n) (p : rep_type) {struct x} : Prop :=
     match x with
     | vnil => fitting_index g p (enum 0) []
     | vcons arg0 arg1 arg2 =>
-        exists p0 p1 p2 : mtype,
+        exists p0 p1 p2 : rep_type,
           @rep nat Rep_nat g arg0 p0 /\
           @rep A Rep_A g arg1 p1 /\
           rep_vec arg0 g arg2 p2 /\
@@ -1122,12 +1140,12 @@ Instance Rep_vec (A : Type) (Rep_A : Rep A) (n : nat) : Rep (vec A n) :=
   in @Build_Rep (vec A n) (rep_vec n).
 
 Instance Rep_fin (n : nat) : Rep (fin n) :=
-  let fix rep_fin (n : nat) (g : graph) (x : fin n) (p : mtype) {struct x} : Prop :=
+  let fix rep_fin (n : nat) (g : graph) (x : fin n) (p : rep_type) {struct x} : Prop :=
     match x with
     | @F1 arg0 =>
-        exists p0 : mtype, rep g arg0 p0 /\ fitting_index g p (boxed 0 1) [p0]
+        exists p0 : rep_type, rep g arg0 p0 /\ fitting_index g p (boxed 0 1) [p0]
     | @FS arg0 arg1 =>
-        exists p0 p1 : mtype,
+        exists p0 p1 : rep_type,
           rep g arg0 p0 /\
           rep_fin arg0 g arg1 p1 /\ fitting_index g p (boxed 1 2) [p0; p1]
     end in @Build_Rep (fin n) (rep_fin n).
@@ -1161,3 +1179,7 @@ Inductive tree (A : Type) : Type :=
 Inductive ntree (A : Type) : Type :=
 | nleaf : ntree A
 | nnode : ntree (two A) -> ntree A.
+
+*)
+
+End Reps.

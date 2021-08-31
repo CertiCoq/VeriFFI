@@ -4,9 +4,48 @@ Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 
 Require Import Coq.Strings.Ascii.
+Require Import ITree.ITree.
+
+Require Import VST.veric.juicy_extspec.
+
+Require Export io_events.
+
+Require Export ITree.ITree.
+Require Export ITree.Eq.Eq.
+Require Export ITree.Eq.SimUpToTaus.
+
+Require Import prog.
+
+Locate byte.
+Check translate.
+
+Fixpoint mytree_to_itree {E : Type -> Type} {A : Type} (t : mytree E A) : itree E A :=
+  match t with
+  | MyRet t => Ret t
+  | MyTau t' => Tau (mytree_to_itree t')
+  | MyVis _ e h => Vis e (fun x => mytree_to_itree (h x))
+  end.
+
+Definition stdin := 0%nat.
+Definition stdout := 1%nat.
+
+Check stdout.
+
+Definition runitree_spec {CS : compspecs} :=
+  WITH sh : share, buf : val, msg : list byte, len : Z, rest : list val, k : IO_itree
+  PRE [ tptr tuchar, tint ]
+    PROP (readable_share sh)
+    PARAMS (buf; Vint (Int.repr (Zlength msg))) GLOBALS ()
+    SEP (ITREE (write_list stdout msg ;; k);
+           data_at sh (tarray tuchar len) (map Vubyte msg ++ rest) buf)
+  POST [ tint ]
+    PROP ()
+    LOCAL (temp ret_temp (Vint (Int.repr (Zlength msg))))
+    SEP (ITREE k;
+           data_at sh (tarray tuchar len) (map Vubyte msg ++ rest) buf).
 
 (* Print offset_val. *)
-(* Print field_address. *)
+Print field_address.
 (* Print field_address0. *)
 
 Definition make_bytestring_padding (padding : Z) : list byte :=
@@ -49,10 +88,43 @@ Proof.
   unfold bytestring_pred.
   Intros header padding.
 
-  evar (t : type); evar (gfs : list gfield); evar (p : val).
-  assert_PROP (force_val (sem_sub_pi tulong Signed str (Vint (Int.repr 1)))
-               = field_address ?t ?gfs ?p).
+  forward.
+  autorewrite with norm.
   entailer!.
+  destruct str; entailer.
+
+  forward.
+  hint.
+  deadvars!.
+  autorewrite with norm.
+  forward.
+  Print denote_tc_iszero.
+  unfold denote_tc_iszero.
+
+  forward.
+
+  hint.
+
+  (* unfold offset_val. *)
+
+(* try doing cast in separate statement *)
+
+(* Set Printing All. *)
+
+  hint.
+  Print string.
+  (* Check sem_sub_pi. *)
+  (* Check field_address. *)
+  (* evar (t : type); evar (gfs : list gfield); evar (p : val). *)
+  (* Check str. *)
+  (* assert_PROP (force_val (sem_sub_pi tulong Signed str (Vint (Int.repr 1))) *)
+  (*              = field_address ?t ?gfs str). *)
+
+  (* Print gfield. *)
+  (* Print force_val. *)
+  (* Print sem_sub_pi. *)
+  (* entailer!. *)
+  (* admit. *)
 
   (* forward. *)
 Admitted.
