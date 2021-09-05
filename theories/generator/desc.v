@@ -32,6 +32,8 @@ End MyRepsTypes.
 Module MyReps := Reps MyRepsTypes.
 Import MyReps MyRepsTypes.
 
+Print MyReps.
+
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
 Import monad_utils.MonadNotation
@@ -124,7 +126,7 @@ but the possibility for representation is needed later, e.g., A in [list A]
  *)
  | TYPEPARAM  : (forall (A : Type) `{Rep A}, code) -> code
 (* Non-type parameters of a fixed type which isn't represented in memory, e.g., n in [n < m] *)
- | PARAM  : forall X : Type, (X -> code) -> code
+ | PARAM  : forall A : Type, (A -> code) -> code
 (* index, represented in memory, e.g. the index of a vector *)
  | INDEX  : forall (A : Type) `{Rep A}, (A -> code) -> code
  (* non-dependent version of arguments, argument represented in memory, e.g. for X/list X of cons *)
@@ -135,23 +137,91 @@ but the possibility for representation is needed later, e.g., A in [list A]
  | RES  : forall (A : Type) `{Rep A}, code.
 
 
-(*
 Fixpoint reconstruct (c : code) : Type :=
   match c with
-  | TYPEPARAM f => forall (a : Type), reconstruct (f a)
-  (* | PARAM X x => _ *)
-  (* | INDEX A H x => _ *)
-  (* | ARG A H x => _ *)
-  (* | DEPARG A H x => _ *)
-  (* | RES A H => _ *)
-  | _ => nat
+  | TYPEPARAM f => forall (A : Type) `{H : Rep A}, reconstruct (f A H)
+  | PARAM A f => forall (a : A), reconstruct (f a)
+  | INDEX A H f => forall (a : A), reconstruct (f a)
+  | ARG A H c => forall (a : A), reconstruct c
+  | DEPARG A H f => forall (a : A), reconstruct (f a)
+  | RES A H => A
   end.
 
 
-Record constructor_description =
-{ name : ident;
-  constr : constrCode;
-  coqConstr : forall (xs : args constr), X_type (getRes constr xs)
+Print Reps.
+
+Definition Rep_nat : Rep nat.
+  constructor. intros. exact True. Defined.
+Definition Rep_list : forall A : Type, Rep A -> Rep (list A).
+  intros. constructor. intros. exact True. Defined.
+
+Inductive vec (A : Type) : nat -> Type :=
+| vnil : vec A 0
+| vcons : forall n : nat, A -> vec A n -> vec A (S n).
+Definition Rep_vec : forall (A : Type) (n : nat), Rep A -> Rep (vec A n).
+  intros. constructor. intros. exact True. Defined.
+
+Definition S_code : code :=
+  @ARG nat Rep_nat (@RES nat Rep_nat).
+Compute (reconstruct S_code).
+
+Definition cons_code : code :=
+  @TYPEPARAM (fun A H =>
+                @ARG A H
+                     (@ARG (list A) (Rep_list A H)
+                           (@RES (list A) (Rep_list A H)))).
+Goal (reconstruct cons_code).
+simpl. intros. eapply @cons. auto. auto. Defined.
+
+Inductive two (A : Type) : Type :=
+| mkTwo : A -> A -> two A.
+
+Definition Rep_two : forall (A : Type), Rep A -> Rep (two A).
+  intros. constructor. intros. exact True. Defined.
+Existing Instance Rep_two.
+
+Definition mkTwo_code : code :=
+  @TYPEPARAM (fun A H =>
+                @ARG A H (@ARG A H (@RES (two A) (Rep_two A H)))).
+
+
+
+Definition reconstructor {T : Type} (x : T) (c : code) :=
+  reconstruct c.
+
+
+Ltac up C :=
+  match goal with
+    | [ |- reconstructor ?C _ ] => simpl; up C
+    | [ |- Rep _ -> _ ] => intro; up C
+    | [ |- forall (a : ?A), _ ] => let c := fresh "c" in
+                                   let x := fresh "x" in
+                                   intro x;
+                                   pose (c := C x); up c
+    | [ |- _ ] => apply C
+  end.
+
+Definition mkTwo_recon : (reconstructor mkTwo mkTwo_code).
+  up tt. Defined.
+
+Print mkTwo_recon.
+
+
+Definition vcons_code : code :=
+  @TYPEPARAM (fun A H =>
+                @INDEX nat Rep_nat (fun n =>
+                                      @ARG A H (@ARG (vec A n) (Rep_vec A n H)
+                                                     (@RES (vec A (S n)) (Rep_vec A (S n) H))))).
+Goal (reconstructor vcons vcons_code).
+  up tt. Defined.
+
+
+
+
+Record constructor_description :=
+{ ctor_name : ident;
+  ctor_code : code;
+  ctor_real : reconstruct ctor_code
 }.
 
 Print TemplateMonad.
@@ -164,18 +234,26 @@ Print context_decl.
 Print  ind_params.
 Print one_inductive_body.
 
+Locate name.
+
 Definition create_code
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : (ident * term * nat)) : TemplateMonad constrCode :=
-  let fix params (xs : context) (base : constrCode) : constrCode :=
+           (ctor : (ident * term * nat)) : TemplateMonad code :=
+  let '(cn, t, arity) := ctor in
+  let fix params (xs : context) (base : code) : code :=
       match xs with
       | nil => base
       | x :: rest =>
-        params rest (TYPEPARAM (fun r => base))
+        params rest (TYPEPARAM (fun r H => base))
       end
   in
-  ret (params (ind_params mut) (RES representable_Type)).
+  let fix args (t : named_term) : code :=
+    @RES Type Rep_Type
+  in
+  let c := params (ind_params mut) in
+  t' <- DB.undeBruijn' nil t ;;
+  ret (c (args t')).
 
 Print TemplateMonad.
 
@@ -195,12 +273,11 @@ Definition create_desc {T : Type} (ctor_val : T) : TemplateMonad constructor_des
         code <- create_code mut one (ctor_name, ctor_type, ctor_arity) ;;
 
         newName <- tmFreshName "new"%string ;;
-        actual <- tmLemma newName (forall (xs : args code), X_type (getRes code xs)) ;;
+        actual <- tmLemma newName (reconstructor ctor_val code) ;;
 
         ret {| name := ctor_name
              ; constr := code
              ; coqConstr := actual
-                 (* ltac:(simpl; intros; eapply T) *)
              |}
       end
     end
@@ -249,5 +326,3 @@ Check <%% @nil %%>.
 (* Eval compute in test. *)
 
 (* Search _ (vec _ _). *)
-
-*)
