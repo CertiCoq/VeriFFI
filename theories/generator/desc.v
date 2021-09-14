@@ -74,52 +74,6 @@ Definition get_representableM {A : Type} : TemplateMonad representable_X :=
   end.
 
 
-
-(*
-Inductive constrCode :=
-(* the type parameters in parametric polymorphism, isn't represented immediately in memory,
-but the possibility for representation is needed later, e.g., A in [list A]
- *)
- | TYPEPARAM  : (representable_X -> constrCode) -> constrCode
-(* Non-type parameters of a fixed type which isn't represented in memory, e.g., n in [n < m] *)
- | PARAM  : forall X : Type, (X -> constrCode) -> constrCode
-(* index, represented in memory, e.g. the index of a vector *)
- | INDEX  : forall (X_: representable_X), (X_type X_ -> constrCode) -> constrCode
- (* non-dependent version of arguments, argument represented in memory, e.g. for X/list X of cons *)
- | ARG : representable_X -> constrCode -> constrCode
- (* dependent argument, represented in memory, e.g. in positive_nat_list *)
- | DEPARG : forall (X_: representable_X), (X_type X_ -> constrCode) -> constrCode
-(* the end type, e.g., list X for cons : forall X, X -> list X -> **list X** *)
- | RES  : representable_X -> constrCode.
-
-Fixpoint args (c : constrCode) : Type :=
-    match c with
-    | TYPEPARAM f => {X_ : representable_X & args (f X_) }
-    | PARAM X f => {x : X & args (f x) }
-    | INDEX X_ f => {x : X_type X_ & args (f x)}
-    | ARG X_ arg => (X_type X_ * args arg)%type
-    | DEPARG X_ f => {x : X_type X_ & args (f x) }
-    | RES x => unit
-end.
-
-(* Instance of result type *)
-Fixpoint getRes (c: constrCode) (xs : args c) : representable_X :=
-  match c as l return (args l -> representable_X) with
-  | TYPEPARAM f => fun H => let (X_, xs') := H in getRes (f X_) xs'
-  | PARAM X f => fun H => let (x, xs') := H in getRes (f x) xs'
-  | INDEX X_ f => fun H => let (x, xs') := H in getRes (f x) xs'
-  | ARG X_ arg => fun H => let (x, xs') := H in getRes arg xs'
-  | DEPARG X_ f => fun H  => let (x, xs') := H in getRes (f x) xs'
-  | RES x => fun _ => x
-  end xs.
-
-Record constructor_description :=
-{ name : ident;
-  constr : constrCode;
-  coqConstr : forall (xs : args constr), X_type (getRes constr xs)
-}.
-*)
-
 Inductive code :=
 (* the type parameters in parametric polymorphism, isn't represented immediately in memory,
 but the possibility for representation is needed later, e.g., A in [list A]
@@ -136,20 +90,65 @@ but the possibility for representation is needed later, e.g., A in [list A]
 (* the end type, e.g., list X for cons : forall X, X -> list X -> **list X** *)
  | RES  : forall (A : Type) `{Rep A}, code.
 
-
-Fixpoint reconstruct (c : code) : Type :=
+Fixpoint args (c : code) : Type :=
   match c with
-  | TYPEPARAM f => forall (A : Type) `{H : Rep A}, reconstruct (f A H)
-  | PARAM A f => forall (a : A), reconstruct (f a)
-  | INDEX A H f => forall (a : A), reconstruct (f a)
-  | ARG A H c => forall (a : A), reconstruct c
-  | DEPARG A H f => forall (a : A), reconstruct (f a)
-  | RES A H => A
+  | TYPEPARAM f => {A : Type & {H : Rep A & args (f A H)}}
+  | PARAM A f => {a : A & args (f a) }
+  | INDEX A H f => {a : A & args (f a)}
+  | ARG A H c => (A * args c)%type
+  | DEPARG A H f => {a : A & args (f a)}
+  | RES _ _ => unit
+  end.
+
+Definition Reppy := {A : Type & Rep A}.
+
+(* Instance of result type *)
+Fixpoint result (c: code) (xs : args c) : Reppy :=
+  match c as l return (args l -> Reppy) with
+  | TYPEPARAM f => fun P => let '(a; (h; rest)) := P in result (f a h) rest
+  | PARAM A f => fun P => let '(a; rest) := P in result (f a) rest
+  | INDEX A H f => fun P => let '(a; rest) := P in result (f a) rest
+  | ARG A H c => fun P => let '(a, rest) := P in result c rest
+  | DEPARG A H f => fun P => let '(a; rest) := P in result (f a) rest
+  | RES A H => fun _ => (A; H)
+  end xs.
+
+Definition reconstruct (c : code) : Type :=
+  forall (P : args c),
+  let '(A; _) := result c P in A.
+
+
+Ltac destruct_through C :=
+  match goal with
+  | [P : (@sigT (Rep _) _) |- _ ] =>
+    destruct P; destruct_through C
+  | [P : (@sigT _ _) |- _ ] =>
+    let a := fresh "a" in destruct P as [a];
+    destruct_through constr:(C a)
+  | [P : (@prod _ _) |- _ ] =>
+    let a := fresh "a" in destruct P as [a];
+    let C' := constr:(C a) in
+    destruct_through constr:(C a)
+  | [P : unit |- _ ] => exact C
+  end.
+
+Ltac reconstructing_aux C :=
+  compute;
+  let P := fresh "P" in
+  intro P;
+  destruct_through C.
+
+Definition reconstructor {T : Type} (x : T) (c : code) :=
+  reconstruct c.
+
+Ltac reconstructing :=
+  match goal with
+  | [ |- reconstructor ?C _ ] => simpl; reconstructing_aux C
   end.
 
 
-Print Reps.
 
+(* EXAMPLES *)
 Definition Rep_nat : Rep nat.
   constructor. intros. exact True. Defined.
 Definition Rep_list : forall A : Type, Rep A -> Rep (list A).
@@ -163,15 +162,14 @@ Definition Rep_vec : forall (A : Type) (n : nat), Rep A -> Rep (vec A n).
 
 Definition S_code : code :=
   @ARG nat Rep_nat (@RES nat Rep_nat).
-Compute (reconstruct S_code).
 
 Definition cons_code : code :=
   @TYPEPARAM (fun A H =>
                 @ARG A H
                      (@ARG (list A) (Rep_list A H)
                            (@RES (list A) (Rep_list A H)))).
-Goal (reconstruct cons_code).
-simpl. intros. eapply @cons. auto. auto. Defined.
+Goal reconstructor (@cons) cons_code.
+  reconstructing. Defined.
 
 Inductive two (A : Type) : Type :=
 | mkTwo : A -> A -> two A.
@@ -184,28 +182,8 @@ Definition mkTwo_code : code :=
   @TYPEPARAM (fun A H =>
                 @ARG A H (@ARG A H (@RES (two A) (Rep_two A H)))).
 
-
-
-Definition reconstructor {T : Type} (x : T) (c : code) :=
-  reconstruct c.
-
-
-Ltac up C :=
-  match goal with
-    | [ |- reconstructor ?C _ ] => simpl; up C
-    | [ |- Rep _ -> _ ] => intro; up C
-    | [ |- forall (a : ?A), _ ] => let c := fresh "c" in
-                                   let x := fresh "x" in
-                                   intro x;
-                                   pose (c := C x); up c
-    | [ |- _ ] => apply C
-  end.
-
-Definition mkTwo_recon : (reconstructor mkTwo mkTwo_code).
-  up tt. Defined.
-
-Print mkTwo_recon.
-
+Goal reconstructor mkTwo mkTwo_code.
+  reconstructing. Defined.
 
 Definition vcons_code : code :=
   @TYPEPARAM (fun A H =>
@@ -213,49 +191,73 @@ Definition vcons_code : code :=
                                       @ARG A H (@ARG (vec A n) (Rep_vec A n H)
                                                      (@RES (vec A (S n)) (Rep_vec A (S n) H))))).
 Goal (reconstructor vcons vcons_code).
-  up tt. Defined.
+  reconstructing. Defined.
 
 
-
-
+(* GENERATION *)
 Record constructor_description :=
 { ctor_name : ident;
   ctor_code : code;
   ctor_real : reconstruct ctor_code
 }.
 
-Print TemplateMonad.
-Check <% @S %>.
-Check <%% @S %%>.
-Check <%% @pair %%>.
-Print  context.
+Check <%% le %%>.
 
-Print context_decl.
-Print  ind_params.
-Print one_inductive_body.
+Definition Reppyish := option ({A : Type & Rep A}).
 
-Locate name.
+Axiom TODO : Type.
 
 Definition create_code
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
            (ctor : (ident * term * nat)) : TemplateMonad code :=
   let '(cn, t, arity) := ctor in
-  let fix params (xs : context) (base : code) : code :=
-      match xs with
-      | nil => base
-      | x :: rest =>
-        params rest (TYPEPARAM (fun r H => base))
-      end
+  let fix params (xs : context)
+                 (base : list (ident * Reppyish) -> code)
+                 (ctx : list (ident * Reppyish))
+                 : code :=
+    match xs with
+    | nil => base ctx
+    | x :: rest =>
+      let n := match binder_name (decl_name x) with
+               | nNamed id => id
+               | _ => "_" end in
+      TYPEPARAM (fun r H => params rest base ((n, Some (r; H)) :: ctx))
+    end
   in
-  let fix args (t : named_term) : code :=
-    @RES Type Rep_Type
-  in
-  let c := params (ind_params mut) in
-  t' <- DB.undeBruijn' nil t ;;
-  ret (c (args t')).
 
-Print TemplateMonad.
+  ind_ty (* named_term *) <- DB.undeBruijn (ind_type one) ;;
+
+  let fix indices
+          (t : named_term) (remaining_params : nat) (count : nat)
+          (base : list (ident * Reppyish) -> code)
+          (ctx : list (ident * Reppyish))
+          : code :=
+    match t with
+    | tProd (mkBindAnn nAnon rel) ty rest =>
+      if remaining_params then
+        indices rest (pred remaining_params) count base ctx
+      else
+        PARAM TODO (fun r =>
+          let new_name := "P" ++ string_of_nat count in
+          indices rest (pred remaining_params) (S count) base ((new_name, None) :: ctx))
+    | tProd (mkBindAnn (nNamed id) rel) ty rest =>
+      if remaining_params then
+        indices rest (pred remaining_params) count base ctx
+      else
+        PARAM TODO (fun r =>
+          indices rest (pred remaining_params) (S count) base ((id, None) :: ctx))
+    | _ => base ctx
+    end in
+  let num_of_params := ind_npars mut in
+
+  let fix args (t : named_term) (ctx : list (ident * Reppyish)) : code :=
+    @RES Type Rep_Type (* TODO *)
+  in
+  t' <- DB.undeBruijn' nil t ;;
+  let c := params (ind_params mut) (indices ind_ty num_of_params 0 (args t')) in
+  ret (c nil).
+
 
 Definition create_desc {T : Type} (ctor_val : T) : TemplateMonad constructor_description :=
   t <- tmQuote ctor_val ;;
@@ -275,21 +277,28 @@ Definition create_desc {T : Type} (ctor_val : T) : TemplateMonad constructor_des
         newName <- tmFreshName "new"%string ;;
         actual <- tmLemma newName (reconstructor ctor_val code) ;;
 
-        ret {| name := ctor_name
-             ; constr := code
-             ; coqConstr := actual
+        ret {| ctor_name := ctor_name
+             ; ctor_code := code
+             ; ctor_real := actual
              |}
       end
     end
-  | _ => tmFail "Not a constructor"
+  | t' => tmPrint t' ;; tmFail "Not a constructor"
+  (* | t' => tmPrint t' ;; tmMsg "error" ;; tmFail "" *)
   end.
 
 Notation "$ x" :=
   ((ltac:(let p y := exact y in run_template_program (create_desc x) p)))
   (only parsing, at level 30).
 
-MetaCoq Run (create_desc S).
+MetaCoq Run (create_desc (@Some)).
 Next Obligation.
+  reconstructing_aux (@Some).
+Defined.
+
+MetaCoq Run (@create_desc (nat -> option nat) (@Some)).
+Next Obligation.
+  Admitted.
 
 
 Check $ (@le_n).
