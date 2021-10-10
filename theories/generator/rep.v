@@ -1031,6 +1031,11 @@ Definition rep_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
 
 (* Playground: *)
 
+MetaCoq Run (rep_gen unit).
+MetaCoq Run (rep_gen nat).
+MetaCoq Run (rep_gen option).
+MetaCoq Run (rep_gen list).
+
 (*
 
 Inductive vec (A : Type) : nat -> Type :=
