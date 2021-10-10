@@ -62,6 +62,7 @@ From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
+Require Import VeriFFI.types.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
@@ -339,22 +340,6 @@ Notation "f >=> g" := (fun x => (f x) >>= g)
 Notation "f <$> x" := (x' <- x%monad ;; ret (f x'))
                       (at level 52, right associativity) : monad_scope.
 Open Scope string.
-
-Module Type RepsTypes.
-
-  Parameters (graph : Type) (rep_type : Type).
-
-  Inductive cRep : Set :=
-  | enum : forall (ordinal : N), cRep
-  | boxed : forall (ordinal : N) (arity : N), cRep.
-
-  Parameter fitting_index : graph -> rep_type -> cRep -> list rep_type -> Prop.
-
-End RepsTypes.
-
-Module Reps (RT : RepsTypes).
-
-Import RT.
 
 Class Rep (A : Type) : Type :=
   { rep : forall (g : graph) (x : A) (p : rep_type), Prop }.
@@ -1186,5 +1171,3 @@ Inductive ntree (A : Type) : Type :=
 | nnode : ntree (two A) -> ntree A.
 
 *)
-
-End Reps.

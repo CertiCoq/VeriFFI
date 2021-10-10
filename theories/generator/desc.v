@@ -13,24 +13,10 @@ From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
+Require Import VeriFFI.types.
 Require Import VeriFFI.generator.rep.
-Print Reps.
 
-Module MyRepsTypes : RepsTypes.
-
-Axiom rep_type : Type.
-Axiom graph : Type.
-
-Inductive cRep : Set :=
-| enum : forall (ordinal : N), cRep
-| boxed : forall (ordinal : N) (arity : N), cRep.
-
-Axiom fitting_index : graph -> rep_type -> cRep -> list rep_type -> Prop.
-
-End MyRepsTypes.
-
-Module MyReps := Reps MyRepsTypes.
-Import MyReps MyRepsTypes.
+MetaCoq Run (rep_gen Z).
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
@@ -253,7 +239,7 @@ Definition fill_hole
         (fun tm '(id, ty) => tProd (mkBindAnn (nNamed id) Relevant) ty tm)
         named_ctx goal in
   (* use primitives to infer the type class instance over the global term *)
-  hoisted <- MyReps.instance_term quantified ;;
+  hoisted <- instance_term quantified ;;
   (* make function application again to have the same free variables *)
   ret (tApp hoisted (rev (map (fun '(id, _) => tVar id) named_ctx))).
 
