@@ -46,6 +46,10 @@ Here are the necessary steps:
                                                     docker
                                                    ))
    ```
+   You can also install the ``docker`` package using [melpa](https://melpa.org/#/getting-started): 
+   
+   ```M-x package-list-packages docker```
+   
    If you're not using such an Emacs distribution, you can use [use-package](https://github.com/jwiegley/use-package) or more traditional methods to install that package.
    
    Once you do, you will also want to add this to your `.emacs` (or `.spacemacs`) file:
