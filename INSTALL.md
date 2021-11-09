@@ -2,12 +2,14 @@
 
 Currently the recommended way to build the VeriFFI project is through Docker containers.
 
+## Using the prebuilt image
+
 Here are the necessary steps:
 
 1. [Install Docker on your machine.](https://docs.docker.com/get-docker/)
-2. Start the Docker.
-3. Download our image by running `docker pull cattheory/veriffi` in your terminal.
-   This image currently has Opam 2.0.0, OCaml 4.07.1, Coq 8.13.2, CompCert 3.9, VST 2.8 (from `master`), MetaCoq's branch for Coq 8.13, Coq-Ext-Lib 0.11.4.
+2. Start the Docker engine.
+3. Download our image by running `docker pull certicoq/veriffi` in your terminal.
+   This image currently has Opam 2.0.10, OCaml 4.07.1, Coq 8.13.2, CompCert 3.9, VST 2.8, MetaCoq's branch for Coq 8.12, coq-ext-lib 0.11.5, the latest CertiGraph.
    It doesn't yet have CertiCoq because it is not compatible with the software listed here. It will once CertiCoq is updated to work with them. (MetaCoq is the main showstopper here.)
 4. Create a workspace folder in which you will have the files you want to run in the container. 
 
@@ -20,7 +22,7 @@ Here are the necessary steps:
    
    ```
    cd ~/container
-   docker run -ti -v $(pwd):/tmp --name vf cattheory/veriffi
+   docker run -ti -v $(pwd):/tmp --name vf certicoq/veriffi
    ```
    This will take you to a bash session inside the container.
 6. When you are inside that bash session, you can find the files in your host machine's `~/container` directory in `/tmp` in the container.
@@ -74,4 +76,15 @@ Here are the necessary steps:
     You can now load a file (C-x C-f) in Emacs from the Docker container by typing `/docker:vf:/tmp/` (complete it yourself) and you should be able to open any file from `~/container/` but using the Coq version in the container.
    
    
-   
+## Building the image yourself
+
+1. [Install Docker on your machine.](https://docs.docker.com/get-docker/)
+2. Start the Docker engine.
+3. Get [the Dockerfile from this repo](https://github.com/CertiCoq/VeriFFI/blob/main/docker/Dockerfile).
+4. In your terminal, get in the same directory as your Dockerfile.
+5. Run 
+   ```
+   docker build -t certicoq/veriffi .
+   ```
+   This took around 2 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
+6. You can now continue with the instructions to use a prebuilt image, starting from step 4.
