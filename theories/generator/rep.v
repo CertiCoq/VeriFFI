@@ -66,7 +66,7 @@ Require Import VeriFFI.types.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
-Import monad_utils.MonadNotation
+Import monad_utils.MCMonadNotation
        ListNotations
        MetaCoqNotations.
 
@@ -605,7 +605,7 @@ Definition t_and (t : any_term) (t' : any_term) : any_term :=
 
 (* [tmInferInstance] can create some type checking error
    but this definition solves it for some reason. *)
-Definition tmInferInstanceEval (t : Type) := tmInferInstance (Some all) t.
+Polymorphic Definition tmInferInstanceEval (t : Type) := tmInferInstance (Some all) t.
 
 (* Takes in a term representing a type like [forall A, Rep (list A)]),
    and finds the type class instance for that. *)

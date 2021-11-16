@@ -20,7 +20,7 @@ MetaCoq Run (rep_gen Z).
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
-Import monad_utils.MonadNotation
+Import monad_utils.MCMonadNotation
        ListNotations
        MetaCoqNotations.
 

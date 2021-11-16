@@ -11,8 +11,8 @@ Require Import ExtLib.Structures.Monads
 From MetaCoq.Template Require Import BasicAst.
 Require MetaCoq.Template.All.
 
-Import MonadNotation.
-Open Scope monad_scope.
+(* Import monad_utils.MCMonadNotation. *)
+(* Open Scope monad_scope. *)
 
 Section Names.
 
