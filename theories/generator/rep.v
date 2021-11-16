@@ -62,7 +62,7 @@ From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
-Require Import VeriFFI.types.
+Require Import VeriFFI.base.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
@@ -86,12 +86,12 @@ Module DB.
 
   (* Takes a named representation and converts it into the de Bruijn representation. *)
   Definition deBruijn' (ctx : list name) (t : named_term) : TemplateMonad term :=
-    let fix find_in_ctx (count : nat) (id : ident) (ctx : list name) : option nat :=
+    let fix find_in_ctx (count : nat) (id : BasicAst.ident) (ctx : list name) : option nat :=
       match ctx with
       | nil => None
       | nAnon :: ns => find_in_ctx (S count) id ns
       | (nNamed id') :: ns =>
-        if ident_eq id id' then Some count else find_in_ctx (S count) id ns
+        if BasicAst.ident_eq id id' then Some count else find_in_ctx (S count) id ns
       end in
     let fix go (ctx : list name) (t : named_term) : TemplateMonad term :=
         let go_mfix (mf : mfixpoint named_term) : TemplateMonad (mfixpoint term) :=
@@ -255,7 +255,7 @@ End DB.
 
 Module Substitution.
   (* Capturing substitution for named terms, only use for global terms. *)
-  Fixpoint named_subst (t : global_term) (x : ident) (u : named_term) {struct u} : named_term :=
+  Fixpoint named_subst (t : global_term) (x : BasicAst.ident) (u : named_term) {struct u} : named_term :=
     match u with
     | tVar id => if eq_string id x then t else u
     | tEvar ev args => tEvar ev (map (named_subst t x) args)
@@ -290,7 +290,7 @@ Module Substitution.
     end.
 
   (* Substitute multiple [named_term]s into a [named_term]. *)
-  Fixpoint named_subst_all (l : list (ident * named_term)) (u : named_term) : named_term :=
+  Fixpoint named_subst_all (l : list (BasicAst.ident * named_term)) (u : named_term) : named_term :=
     match l with
     | nil => u
     | (id, t) :: l' => named_subst_all l' (named_subst t id u)
@@ -345,19 +345,19 @@ Class Rep (A : Type) : Type :=
   { rep : forall (g : graph) (x : A) (p : rep_type), Prop }.
 
 Instance Rep_Prop : Rep Prop :=
-  {| rep g x p := fitting_index g p (enum 0) [] |}.
+  {| rep g x p := graph_cRep g p (enum 0) [] |}.
 Instance Rep_Set : Rep Set :=
-  {| rep g x p := fitting_index g p (enum 0) [] |}.
+  {| rep g x p := graph_cRep g p (enum 0) [] |}.
 Instance Rep_Type : Rep Type :=
-  {| rep g x p := fitting_index g p (enum 0) [] |}.
+  {| rep g x p := graph_cRep g p (enum 0) [] |}.
 
 (* Starting generation of [Rep] instances! *)
 
 Section Argumentation.
 
   Variant arg_variant : Type :=
-  | param_arg : forall (param_name : ident) (param_type : named_term), arg_variant
-  | value_arg : forall (arg_name exists_name : ident) (arg_type : named_term), arg_variant.
+  | param_arg : forall (param_name : BasicAst.ident) (param_type : named_term), arg_variant
+  | value_arg : forall (arg_name exists_name : BasicAst.ident) (arg_type : named_term), arg_variant.
 
   (* Takes the identifying information for a single inductive type
      in a mutual block, a constructor for that type,
@@ -377,9 +377,9 @@ Section Argumentation.
        - another to substitute those [ident]s into terms referring to those types,
          so that later when we encounter the [tInd] we know which [Rep] instance to call.
      *)
-    let mut_names : list ident :=
+    let mut_names : list BasicAst.ident :=
         map (fun one => "$$$" ++ string_of_kername (mp, ind_name one)) (ind_bodies mut) in
-    let mut_ind_terms : list (ident * global_term) :=
+    let mut_ind_terms : list (BasicAst.ident * global_term) :=
         mapi (fun i one =>
                 let id := "$$$" ++ string_of_kername (mp, ind_name one) in
                 let ind := mkInd kn i in
@@ -388,7 +388,7 @@ Section Argumentation.
 
     let fix aux (params : nat) (* number of parameters left *)
                 (arg_count : nat) (* number of args seen *)
-                (ctx : list ident) (* names of params and args to be used *)
+                (ctx : list BasicAst.ident) (* names of params and args to be used *)
                 (t : term) (* what is left from the constructor type *)
                 {struct t}
                 : TemplateMonad (list arg_variant * named_term) :=
@@ -407,8 +407,8 @@ Section Argumentation.
 
       (* Other arguments *)
       | O , tProd n t b =>
-        let arg_name : ident := "arg" ++ string_of_nat arg_count in
-        let exists_name : ident := "p" ++ string_of_nat arg_count in
+        let arg_name : BasicAst.ident := "arg" ++ string_of_nat arg_count in
+        let exists_name : BasicAst.ident := "p" ++ string_of_nat arg_count in
         '(args, rest) <- aux O (S arg_count) (arg_name :: ctx) b ;;
         t' <- DB.undeBruijn' (map nNamed ctx) t ;;
         let t' := Substitution.named_subst_all mut_ind_terms t' in
@@ -440,7 +440,7 @@ Definition generate_instance_type
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (type_quantifier : ident -> named_term -> named_term)
+           (type_quantifier : BasicAst.ident -> named_term -> named_term)
            (replacer : named_term -> named_term) : TemplateMonad named_term :=
   (* Convert the type of the type to explicitly named representation *)
   ty <- DB.undeBruijn (ind_type one) ;;
@@ -450,7 +450,7 @@ Definition generate_instance_type
      It also builds a function to replace the part after the π-binders. *)
   let fix collect
           (t : named_term) (remaining_params : nat) (count : nat) (replacer : named_term -> named_term)
-          : list (ident * is_param * is_sort) * (named_term -> named_term) :=
+          : list (BasicAst.ident * is_param * is_sort) * (named_term -> named_term) :=
     match t with
     | tProd (mkBindAnn nAnon rel) ty rest =>
         let '(idents, f) := collect rest (pred remaining_params) (S count) replacer in
@@ -465,7 +465,7 @@ Definition generate_instance_type
          (fun t' => tProd (mkBindAnn (nNamed id) rel) ty (f t')))
     | _ => (nil, replacer)
     end in
-  let (quantified, new) := collect ty num_of_params 0 replacer in
+  let (quantified, new) := collect ty num_of_params O replacer in
 
   (* Check if there are any non-parameter type arguments *)
   monad_map (fun '(n,p,s) =>
@@ -645,7 +645,7 @@ Fixpoint strip_n_lambdas (n : nat) (t : named_term) : named_term :=
 (* Get binder names and binding types for all
    initial consecutive π-type quantifiers in a [named_term]. *)
 Fixpoint get_quantifiers
-         (modify : ident -> ident)
+         (modify : BasicAst.ident -> BasicAst.ident)
          (t : named_term) : list (aname * named_term) :=
   match t with
   | tProd (mkBindAnn nAnon rel) ty rest =>
@@ -737,10 +737,10 @@ Fixpoint make_prop
                 | a => boxed (N.of_nat (ctor_ordinal ctor)) (N.of_nat a)
                 end) ;;
     t_crep <- tmQuote crep ;;
-    (* Create list of [[p0;p1;p2;...]] to pass to [fitting_index] *)
+    (* Create list of [[p0;p1;p2;...]] to pass to [graph_cRep] *)
     let l := t_conses (map (fun n => tVar ("p" ++ string_of_nat n))
                            (seq 0 (ctor_arity ctor))) in
-    ret (tApp <% fitting_index %>
+    ret (tApp <% graph_cRep %>
               [ t_g ; t_p ; t_crep ; l])
   in
 
@@ -840,7 +840,7 @@ Definition matchmaker
       skipn to_skip quantifiers in
   tmMsg "QUANT WITHOUT PARAMS:" ;;
   tmEval all quantifiers_without_params >>= tmPrint ;;
-  ret (tCase (ind, 0, Relevant)
+  ret (tCase (ind, O, Relevant)
              (* TODO only quantify over the indices, not parameters *)
              (build_quantifiers tLambda quantifiers_without_params
                                 (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>))
@@ -1016,10 +1016,10 @@ Definition rep_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
 
 (* Playground: *)
 
-MetaCoq Run (rep_gen unit).
-MetaCoq Run (rep_gen nat).
-MetaCoq Run (rep_gen option).
-MetaCoq Run (rep_gen list).
+(* MetaCoq Run (rep_gen unit). *)
+(* MetaCoq Run (rep_gen nat). *)
+(* MetaCoq Run (rep_gen option). *)
+(* MetaCoq Run (rep_gen list). *)
 
 (*
 
@@ -1119,13 +1119,13 @@ Inductive param_and_index (a b : nat) : a < b -> Type :=
 Instance Rep_vec (A : Type) (Rep_A : Rep A) (n : nat) : Rep (vec A n) :=
   let fix rep_vec (n : nat) (g : graph) (x : vec A n) (p : rep_type) {struct x} : Prop :=
     match x with
-    | vnil => fitting_index g p (enum 0) []
+    | vnil => graph_cRep g p (enum 0) []
     | vcons arg0 arg1 arg2 =>
         exists p0 p1 p2 : rep_type,
           @rep nat Rep_nat g arg0 p0 /\
           @rep A Rep_A g arg1 p1 /\
           rep_vec arg0 g arg2 p2 /\
-          fitting_index g p (boxed 0 3) [p0; p1; p2]
+          graph_cRep g p (boxed 0 3) [p0; p1; p2]
     end
   in @Build_Rep (vec A n) (rep_vec n).
 
@@ -1133,11 +1133,11 @@ Instance Rep_fin (n : nat) : Rep (fin n) :=
   let fix rep_fin (n : nat) (g : graph) (x : fin n) (p : rep_type) {struct x} : Prop :=
     match x with
     | @F1 arg0 =>
-        exists p0 : rep_type, rep g arg0 p0 /\ fitting_index g p (boxed 0 1) [p0]
+        exists p0 : rep_type, rep g arg0 p0 /\ graph_cRep g p (boxed 0 1) [p0]
     | @FS arg0 arg1 =>
         exists p0 p1 : rep_type,
           rep g arg0 p0 /\
-          rep_fin arg0 g arg1 p1 /\ fitting_index g p (boxed 1 2) [p0; p1]
+          rep_fin arg0 g arg1 p1 /\ graph_cRep g p (boxed 1 2) [p0; p1]
     end in @Build_Rep (fin n) (rep_fin n).
 *)
 

@@ -13,7 +13,7 @@ From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
-Require Import VeriFFI.types.
+Require Import VeriFFI.base.
 Require Import VeriFFI.generator.rep.
 
 MetaCoq Run (rep_gen Z).
@@ -151,7 +151,6 @@ Instance Rep_nat : Rep nat.
   constructor. intros. exact True. Defined.
 Instance Rep_list : forall A : Type, Rep A -> Rep (list A).
   intros. constructor. intros. exact True. Defined.
-*)
 
 Inductive vec (A : Type) : nat -> Type :=
 | vnil : vec A 0
@@ -202,16 +201,18 @@ Goal (reconstructor vcons vcons_reific).
 
 Check <%% vec %%>.
 
+*)
+
 (* GENERATION *)
 Record constructor_description :=
-{ ctor_name : ident;
+{ ctor_name : BasicAst.ident;
   ctor_reific : reific;
   ctor_real : reconstruct ctor_reific
 }.
 
 Definition Reppyish := option ({A : Type & Rep A}).
 
-Fixpoint adjust_context (ctx : list (ident * Reppyish)) : TemplateMonad (list (ident * named_term)) :=
+Fixpoint adjust_context (ctx : list (BasicAst.ident * Reppyish)) : TemplateMonad (list (BasicAst.ident * named_term)) :=
   match ctx with
   | nil => ret nil
   | (id, None) :: xs => adjust_context xs
@@ -224,13 +225,13 @@ Fixpoint adjust_context (ctx : list (ident * Reppyish)) : TemplateMonad (list (i
 Definition kleisli_compose {m a b c} `{Monad m} : (b -> m c) -> (a -> m b) -> (a -> m c) :=
   fun g f x => f x >>= g.
 
-Definition fresh_aname (prefix : string) (a : aname) : TemplateMonad (ident * aname) :=
+Definition fresh_aname (prefix : string) (a : aname) : TemplateMonad (BasicAst.ident * aname) :=
   let x := match binder_name a with | nAnon => prefix | nNamed i => prefix ++ i end in
   x' <- tmFreshName x ;;
   ret (x, {| binder_name := nNamed x'; binder_relevance := binder_relevance a |}).
 
 Definition fill_hole
-           (named_ctx : list (ident * named_term))
+           (named_ctx : list (BasicAst.ident * named_term))
            (goal : named_term)
             : TemplateMonad named_term :=
   (* quantify all the free variables in the goal *)
@@ -252,10 +253,10 @@ Definition create_reific
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : (ident * term * nat)) : TemplateMonad reific :=
+           (ctor : (BasicAst.ident * term * nat)) : TemplateMonad reific :=
   let '(cn, t, arity) := ctor in
   (* We convert the constructor type to the named representation *)
-  let init_index_ctx : list (ident  * named_term) :=
+  let init_index_ctx : list (BasicAst.ident  * named_term) :=
       mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind
                                               ; inductive_ind := i |} []))
            (ind_bodies mut) in
@@ -265,28 +266,28 @@ Definition create_reific
            (* type of the constructor to be taken apart *)
              (t : named_term)
            (* the context kept for De Bruijn indices *)
-             (index_ctx : list (ident  * named_term))
+             (index_ctx : list (BasicAst.ident  * named_term))
            (* the context kept for "lambda lifting" the holes *)
-             (named_ctx : list (ident * named_term))
+             (named_ctx : list (BasicAst.ident * named_term))
            (* unprocessed number of parameters left on the type *)
              (num_params : nat) : TemplateMonad named_term :=
       match t, num_params with
       | tProd n (tSort s as t) b , S n' =>
         '(h, H) <- fresh_aname "H" n ;;
-        let named_ctx' : list (ident * named_term) :=
+        let named_ctx' : list (BasicAst.ident * named_term) :=
             match binder_name n with
             | nNamed id => (h, tApp <% @Rep %> [tVar id]) :: (id, t) :: named_ctx
             | _ => named_ctx end in
         rest <- go b index_ctx named_ctx' (pred num_params) ;;
-        let f := tLambda n (tSort s) (tLambda H (tApp <% @Rep %> [tRel 0]) rest) in
+        let f := tLambda n (tSort s) (tLambda H (tApp <% @Rep %> [tRel O]) rest) in
         ret (tApp <% @TYPEPARAM %> [f])
 
-      | tProd n t b , 0 =>
-        let named_ctx' : list (ident * named_term) :=
+      | tProd n t b , O =>
+        let named_ctx' : list (BasicAst.ident * named_term) :=
             match binder_name n with
             | nNamed id => (id, t) :: named_ctx
             | _ => named_ctx end in
-        rest <- go b index_ctx named_ctx' 0 ;;
+        rest <- go b index_ctx named_ctx' O ;;
         let t' := Substitution.named_subst_all index_ctx t in
         let f := tLambda n t' rest in
         H <- fill_hole named_ctx (tApp <% Rep %> [t']) ;;
@@ -336,7 +337,7 @@ Notation "$ x" :=
 
 Obligation Tactic := reconstructing.
 
-MetaCoq Run (create_desc tt >>= tmPrint).
-MetaCoq Run (create_desc S >>= tmPrint).
-MetaCoq Run (create_desc (@Some) >>= tmPrint).
-MetaCoq Run (create_desc (@cons) >>= tmPrint).
+(* MetaCoq Run (create_desc tt >>= tmPrint). *)
+(* MetaCoq Run (create_desc S >>= tmPrint). *)
+(* MetaCoq Run (create_desc (@Some) >>= tmPrint). *)
+(* MetaCoq Run (create_desc (@cons) >>= tmPrint). *)

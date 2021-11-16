@@ -1,7 +1,8 @@
 -Q theories VeriFFI
 -Q theories/generator VeriFFI.generator
+-Q theories/verification VeriFFI.verification
 
-theories/types.v
+theories/base.v
 theories/generator/gen_utils.v
 theories/generator/rep.v
 theories/generator/desc.v
