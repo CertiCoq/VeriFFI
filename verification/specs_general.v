@@ -6,10 +6,10 @@ This file contains a general specification for the alloc function,
 using a representation of constructors. 
  *)
 
-From VC Require Export graphCRep. 
-From VC Require Export graph_add.
-From VC Require Export glue.
-From VC Require Export specs_library.
+From VeriFFI Require Export library.base_representation. 
+From VeriFFI Require Export verification.graph_add.
+From VeriFFI Require Export verification.example.glue.
+From VeriFFI Require Export verification.specs_library.
 
 
 (** ** 1. Representable Type Class

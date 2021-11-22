@@ -7,7 +7,7 @@ In the second part, we prove several compatibility properties for this augmented
  *)
 
 Require Export CertiGraph.CertiGC.gc_correct.
-From VC Require Export graphCRep. 
+From VeriFFI.library Require Export base_representation. 
 
 
 (** ** 1. Definition of the function for adding a node to CertiCoq Graph with a given label. 

@@ -13,7 +13,7 @@ From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
-Require Import VeriFFI.base.
+Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.generator.rep.
 
 MetaCoq Run (rep_gen Z).

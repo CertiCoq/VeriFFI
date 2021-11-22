@@ -74,17 +74,38 @@ Here are the necessary steps:
  9. That's it!
     
     You can now load a file (C-x C-f) in Emacs from the Docker container by typing `/docker:vf:/tmp/` (complete it yourself) and you should be able to open any file from `~/container/` but using the Coq version in the container.
-   
-   
+
+
 ## Building the image yourself
 
 1. [Install Docker on your machine.](https://docs.docker.com/get-docker/)
+
 2. Start the Docker engine.
+
 3. Get [the Dockerfile from this repo](https://github.com/CertiCoq/VeriFFI/blob/main/docker/Dockerfile).
+
 4. In your terminal, get in the same directory as your Dockerfile.
+
 5. Run 
    ```
    docker build -t certicoq/veriffi .
    ```
    This took around 2 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
+   
 6. You can now continue with the instructions to use a prebuilt image, starting from step 4.
+
+
+
+## Building the Coq Code
+
+All Coq code can be run from the Docker image. 
+
+1. Follow all instructions until step 7, restart the machine.
+
+```
+docker exec -ti vf /bin/bash
+```
+
+2. Inside the Docker image, you can run the ``make file`` in the main directory.
+3. You can browse the Coq code as described above.
+

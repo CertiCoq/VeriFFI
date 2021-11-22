@@ -3,12 +3,13 @@
 Kathrin Stark, 2021. 
  *)
 
-From VC Require Export graphCRep. 
-From VC Require Export graph_add.
-From VC Require Export glue.
+From VeriFFI.library Require Export base_representation. 
+From VeriFFI.verification Require Export graph_add.
+(* TODO: Dependency. *) 
+From VeriFFI.verification Require Export glue.
 
 Instance CompSpecs : compspecs. make_compspecs prog. Defined.
-Definition Vprog : varspecs.  mk_varspecs prog. Defined.
+Definition Vprog : varspecs.  mk_varspecs prog. Defined. 
 
 
 (** ** Library definitions for specifications *)
@@ -32,6 +33,7 @@ Definition array_type := int_or_ptr_type.
 (** Propositional conditions from the garbage collector specification and getting the isomorphism property for the garbage collector: 
 The thread_info has to be a new one, roots and outlier stay preserved *)
 Definition gc_condition_prop g t_info roots outlier := 
+
 graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec t_info (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
 /\ safe_to_copy g 
 /\ graph_thread_info_compatible g t_info /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
@@ -45,7 +47,7 @@ Definition space_rest_rep (sp: space): mpred :=
                 (offset_val (WORD_SIZE * used_space sp) sp.(space_start)).
 
 Definition heap_rest_rep (hp: heap): mpred :=
-  iter_sepcon  space_rest_rep hp.(spaces).
+  iter_sepcon hp.(spaces) space_rest_rep.
 
 (* Adapted from Shengyi to get the right GC *) 
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=

@@ -1,3 +1,8 @@
+(** Demo Glue File 
+    
+    Demo file on what ``rep.v`` generates.
+*)
+
 Require Import BinNums.
 
 (* Variables of types for graph and how to describe elements in the graph/outside *)

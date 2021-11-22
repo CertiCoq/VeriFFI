@@ -1,8 +1,16 @@
--Q theories VeriFFI
--Q theories/generator VeriFFI.generator
--Q theories/verification VeriFFI.verification
+-Q . VeriFFI
 
-theories/base.v
-theories/generator/gen_utils.v
-theories/generator/rep.v
-theories/generator/desc.v
+library/base_representation.v
+
+generator/demoRepr.v
+generator/gen_utils.v
+generator/rep.v
+generator/desc.v
+
+verification/example/glue.v
+verification/specs_library.v
+verification/graph_add.v
+verification/proofs_library_general.v
+verification/specs_general.v
+
+

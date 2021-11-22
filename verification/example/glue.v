@@ -1,16 +1,18 @@
 From Coq Require Import String List ZArith.
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.
+Import Clightdefs.ClightNotations.
 Local Open Scope Z_scope.
 Local Open Scope string_scope.
+Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.8".
+  Definition version := "3.9".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
   Definition arch := "x86".
   Definition model := "64".
-  Definition abi := "macosx".
+  Definition abi := "standard".
   Definition bitsize := 64.
   Definition big_endian := false.
   Definition source_file := "glue.c".
@@ -26,122 +28,125 @@ Definition _Coq_Init_Datatypes_cons_args : ident := 12%positive.
 Definition _Coq_Init_Datatypes_false_args : ident := 14%positive.
 Definition _Coq_Init_Datatypes_nil_args : ident := 9%positive.
 Definition _Coq_Init_Datatypes_true_args : ident := 13%positive.
-Definition ___builtin_annot : ident := 31%positive.
-Definition ___builtin_annot_intval : ident := 32%positive.
-Definition ___builtin_bswap : ident := 16%positive.
-Definition ___builtin_bswap16 : ident := 18%positive.
-Definition ___builtin_bswap32 : ident := 17%positive.
-Definition ___builtin_bswap64 : ident := 15%positive.
-Definition ___builtin_clz : ident := 19%positive.
-Definition ___builtin_clzl : ident := 20%positive.
-Definition ___builtin_clzll : ident := 21%positive.
-Definition ___builtin_ctz : ident := 22%positive.
-Definition ___builtin_ctzl : ident := 23%positive.
-Definition ___builtin_ctzll : ident := 24%positive.
-Definition ___builtin_debug : ident := 67%positive.
-Definition ___builtin_fabs : ident := 25%positive.
-Definition ___builtin_fabsf : ident := 26%positive.
-Definition ___builtin_fmadd : ident := 59%positive.
-Definition ___builtin_fmax : ident := 57%positive.
-Definition ___builtin_fmin : ident := 58%positive.
-Definition ___builtin_fmsub : ident := 60%positive.
-Definition ___builtin_fnmadd : ident := 61%positive.
-Definition ___builtin_fnmsub : ident := 62%positive.
-Definition ___builtin_fsqrt : ident := 27%positive.
-Definition ___builtin_membar : ident := 33%positive.
-Definition ___builtin_memcpy_aligned : ident := 29%positive.
-Definition ___builtin_read16_reversed : ident := 63%positive.
-Definition ___builtin_read32_reversed : ident := 64%positive.
-Definition ___builtin_sel : ident := 30%positive.
-Definition ___builtin_sqrt : ident := 28%positive.
-Definition ___builtin_va_arg : ident := 35%positive.
-Definition ___builtin_va_copy : ident := 36%positive.
-Definition ___builtin_va_end : ident := 37%positive.
-Definition ___builtin_va_start : ident := 34%positive.
-Definition ___builtin_write16_reversed : ident := 65%positive.
-Definition ___builtin_write32_reversed : ident := 66%positive.
-Definition ___compcert_i64_dtos : ident := 42%positive.
-Definition ___compcert_i64_dtou : ident := 43%positive.
-Definition ___compcert_i64_sar : ident := 54%positive.
-Definition ___compcert_i64_sdiv : ident := 48%positive.
-Definition ___compcert_i64_shl : ident := 52%positive.
-Definition ___compcert_i64_shr : ident := 53%positive.
-Definition ___compcert_i64_smod : ident := 50%positive.
-Definition ___compcert_i64_smulh : ident := 55%positive.
-Definition ___compcert_i64_stod : ident := 44%positive.
-Definition ___compcert_i64_stof : ident := 46%positive.
-Definition ___compcert_i64_udiv : ident := 49%positive.
-Definition ___compcert_i64_umod : ident := 51%positive.
-Definition ___compcert_i64_umulh : ident := 56%positive.
-Definition ___compcert_i64_utod : ident := 45%positive.
-Definition ___compcert_i64_utof : ident := 47%positive.
-Definition ___compcert_va_composite : ident := 41%positive.
-Definition ___compcert_va_float64 : ident := 40%positive.
-Definition ___compcert_va_int32 : ident := 38%positive.
-Definition ___compcert_va_int64 : ident := 39%positive.
+Definition ___builtin_ais_annot : ident := 15%positive.
+Definition ___builtin_annot : ident := 32%positive.
+Definition ___builtin_annot_intval : ident := 33%positive.
+Definition ___builtin_bswap : ident := 17%positive.
+Definition ___builtin_bswap16 : ident := 19%positive.
+Definition ___builtin_bswap32 : ident := 18%positive.
+Definition ___builtin_bswap64 : ident := 16%positive.
+Definition ___builtin_clz : ident := 20%positive.
+Definition ___builtin_clzl : ident := 21%positive.
+Definition ___builtin_clzll : ident := 22%positive.
+Definition ___builtin_ctz : ident := 23%positive.
+Definition ___builtin_ctzl : ident := 24%positive.
+Definition ___builtin_ctzll : ident := 25%positive.
+Definition ___builtin_debug : ident := 70%positive.
+Definition ___builtin_expect : ident := 44%positive.
+Definition ___builtin_fabs : ident := 26%positive.
+Definition ___builtin_fabsf : ident := 27%positive.
+Definition ___builtin_fmadd : ident := 62%positive.
+Definition ___builtin_fmax : ident := 60%positive.
+Definition ___builtin_fmin : ident := 61%positive.
+Definition ___builtin_fmsub : ident := 63%positive.
+Definition ___builtin_fnmadd : ident := 64%positive.
+Definition ___builtin_fnmsub : ident := 65%positive.
+Definition ___builtin_fsqrt : ident := 28%positive.
+Definition ___builtin_membar : ident := 34%positive.
+Definition ___builtin_memcpy_aligned : ident := 30%positive.
+Definition ___builtin_read16_reversed : ident := 66%positive.
+Definition ___builtin_read32_reversed : ident := 67%positive.
+Definition ___builtin_sel : ident := 31%positive.
+Definition ___builtin_sqrt : ident := 29%positive.
+Definition ___builtin_unreachable : ident := 43%positive.
+Definition ___builtin_va_arg : ident := 36%positive.
+Definition ___builtin_va_copy : ident := 37%positive.
+Definition ___builtin_va_end : ident := 38%positive.
+Definition ___builtin_va_start : ident := 35%positive.
+Definition ___builtin_write16_reversed : ident := 68%positive.
+Definition ___builtin_write32_reversed : ident := 69%positive.
+Definition ___compcert_i64_dtos : ident := 45%positive.
+Definition ___compcert_i64_dtou : ident := 46%positive.
+Definition ___compcert_i64_sar : ident := 57%positive.
+Definition ___compcert_i64_sdiv : ident := 51%positive.
+Definition ___compcert_i64_shl : ident := 55%positive.
+Definition ___compcert_i64_shr : ident := 56%positive.
+Definition ___compcert_i64_smod : ident := 53%positive.
+Definition ___compcert_i64_smulh : ident := 58%positive.
+Definition ___compcert_i64_stod : ident := 47%positive.
+Definition ___compcert_i64_stof : ident := 49%positive.
+Definition ___compcert_i64_udiv : ident := 52%positive.
+Definition ___compcert_i64_umod : ident := 54%positive.
+Definition ___compcert_i64_umulh : ident := 59%positive.
+Definition ___compcert_i64_utod : ident := 48%positive.
+Definition ___compcert_i64_utof : ident := 50%positive.
+Definition ___compcert_va_composite : ident := 42%positive.
+Definition ___compcert_va_float64 : ident := 41%positive.
+Definition ___compcert_va_int32 : ident := 39%positive.
+Definition ___compcert_va_int64 : ident := 40%positive.
 Definition _alloc : ident := 1%positive.
-Definition _alloc_make_Coq_Init_Datatypes_list_cons : ident := 93%positive.
-Definition _alloc_make_Coq_Init_Datatypes_nat_S : ident := 89%positive.
-Definition _arg : ident := 113%positive.
-Definition _arg0 : ident := 85%positive.
-Definition _arg1 : ident := 91%positive.
+Definition _alloc_make_Coq_Init_Datatypes_list_cons : ident := 96%positive.
+Definition _alloc_make_Coq_Init_Datatypes_nat_S : ident := 92%positive.
+Definition _arg : ident := 116%positive.
+Definition _arg0 : ident := 88%positive.
+Definition _arg1 : ident := 94%positive.
 Definition _args : ident := 4%positive.
-Definition _argv : ident := 86%positive.
-Definition _b : ident := 96%positive.
-Definition _call : ident := 120%positive.
-Definition _clo : ident := 116%positive.
-Definition _env : ident := 112%positive.
-Definition _envi : ident := 118%positive.
-Definition _exit : ident := 68%positive.
-Definition _f : ident := 117%positive.
-Definition _fun_lit : ident := 72%positive.
-Definition _get_Coq_Init_Datatypes_O_args : ident := 101%positive.
-Definition _get_Coq_Init_Datatypes_S_args : ident := 102%positive.
-Definition _get_Coq_Init_Datatypes_bool_tag : ident := 100%positive.
-Definition _get_Coq_Init_Datatypes_cons_args : ident := 104%positive.
-Definition _get_Coq_Init_Datatypes_false_args : ident := 106%positive.
-Definition _get_Coq_Init_Datatypes_list_tag : ident := 99%positive.
-Definition _get_Coq_Init_Datatypes_nat_tag : ident := 98%positive.
-Definition _get_Coq_Init_Datatypes_nil_args : ident := 103%positive.
-Definition _get_Coq_Init_Datatypes_true_args : ident := 105%positive.
-Definition _get_boxed_ordinal : ident := 80%positive.
-Definition _get_unboxed_ordinal : ident := 79%positive.
-Definition _halt : ident := 114%positive.
-Definition _halt_clo : ident := 115%positive.
+Definition _argv : ident := 89%positive.
+Definition _b : ident := 99%positive.
+Definition _call : ident := 123%positive.
+Definition _clo : ident := 119%positive.
+Definition _env : ident := 115%positive.
+Definition _envi : ident := 121%positive.
+Definition _exit : ident := 71%positive.
+Definition _f : ident := 120%positive.
+Definition _fun_lit : ident := 75%positive.
+Definition _get_Coq_Init_Datatypes_O_args : ident := 104%positive.
+Definition _get_Coq_Init_Datatypes_S_args : ident := 105%positive.
+Definition _get_Coq_Init_Datatypes_bool_tag : ident := 103%positive.
+Definition _get_Coq_Init_Datatypes_cons_args : ident := 107%positive.
+Definition _get_Coq_Init_Datatypes_false_args : ident := 109%positive.
+Definition _get_Coq_Init_Datatypes_list_tag : ident := 102%positive.
+Definition _get_Coq_Init_Datatypes_nat_tag : ident := 101%positive.
+Definition _get_Coq_Init_Datatypes_nil_args : ident := 106%positive.
+Definition _get_Coq_Init_Datatypes_true_args : ident := 108%positive.
+Definition _get_boxed_ordinal : ident := 83%positive.
+Definition _get_unboxed_ordinal : ident := 82%positive.
+Definition _halt : ident := 117%positive.
+Definition _halt_clo : ident := 118%positive.
 Definition _heap : ident := 3%positive.
-Definition _is_ptr : ident := 77%positive.
+Definition _is_ptr : ident := 80%positive.
 Definition _limit : ident := 2%positive.
-Definition _lparen_lit : ident := 69%positive.
-Definition _main : ident := 121%positive.
-Definition _make_Coq_Init_Datatypes_bool_false : ident := 95%positive.
-Definition _make_Coq_Init_Datatypes_bool_true : ident := 94%positive.
-Definition _make_Coq_Init_Datatypes_list_cons : ident := 92%positive.
-Definition _make_Coq_Init_Datatypes_list_nil : ident := 90%positive.
-Definition _make_Coq_Init_Datatypes_nat_O : ident := 84%positive.
-Definition _make_Coq_Init_Datatypes_nat_S : ident := 87%positive.
-Definition _names_of_Coq_Init_Datatypes_bool : ident := 83%positive.
-Definition _names_of_Coq_Init_Datatypes_list : ident := 82%positive.
-Definition _names_of_Coq_Init_Datatypes_nat : ident := 81%positive.
-Definition _print_Coq_Init_Datatypes_bool : ident := 111%positive.
-Definition _print_Coq_Init_Datatypes_list : ident := 110%positive.
-Definition _print_Coq_Init_Datatypes_nat : ident := 108%positive.
-Definition _print_param_A : ident := 109%positive.
-Definition _printf : ident := 76%positive.
-Definition _prop_lit : ident := 75%positive.
-Definition _ret : ident := 119%positive.
-Definition _rparen_lit : ident := 70%positive.
-Definition _space_lit : ident := 71%positive.
-Definition _t : ident := 97%positive.
-Definition _tag : ident := 107%positive.
+Definition _lparen_lit : ident := 72%positive.
+Definition _main : ident := 124%positive.
+Definition _make_Coq_Init_Datatypes_bool_false : ident := 98%positive.
+Definition _make_Coq_Init_Datatypes_bool_true : ident := 97%positive.
+Definition _make_Coq_Init_Datatypes_list_cons : ident := 95%positive.
+Definition _make_Coq_Init_Datatypes_list_nil : ident := 93%positive.
+Definition _make_Coq_Init_Datatypes_nat_O : ident := 87%positive.
+Definition _make_Coq_Init_Datatypes_nat_S : ident := 90%positive.
+Definition _names_of_Coq_Init_Datatypes_bool : ident := 86%positive.
+Definition _names_of_Coq_Init_Datatypes_list : ident := 85%positive.
+Definition _names_of_Coq_Init_Datatypes_nat : ident := 84%positive.
+Definition _print_Coq_Init_Datatypes_bool : ident := 114%positive.
+Definition _print_Coq_Init_Datatypes_list : ident := 113%positive.
+Definition _print_Coq_Init_Datatypes_nat : ident := 111%positive.
+Definition _print_param_A : ident := 112%positive.
+Definition _printf : ident := 79%positive.
+Definition _prop_lit : ident := 78%positive.
+Definition _ret : ident := 122%positive.
+Definition _rparen_lit : ident := 73%positive.
+Definition _space_lit : ident := 74%positive.
+Definition _t : ident := 100%positive.
+Definition _tag : ident := 110%positive.
 Definition _thread_info : ident := 5%positive.
-Definition _tinfo : ident := 88%positive.
-Definition _type_lit : ident := 73%positive.
-Definition _unk_lit : ident := 74%positive.
-Definition _v : ident := 78%positive.
-Definition _t'1 : ident := 122%positive.
-Definition _t'2 : ident := 123%positive.
-Definition _t'3 : ident := 124%positive.
-Definition _t'4 : ident := 125%positive.
+Definition _tinfo : ident := 91%positive.
+Definition _type_lit : ident := 76%positive.
+Definition _unk_lit : ident := 77%positive.
+Definition _v : ident := 81%positive.
+Definition _t'1 : ident := 125%positive.
+Definition _t'2 : ident := 126%positive.
+Definition _t'3 : ident := 127%positive.
+Definition _t'4 : ident := 128%positive.
 
 Definition v_lparen_lit := {|
   gvar_info := (tarray tschar 2);
@@ -958,7 +963,13 @@ Definition composites : list composite_definition :=
  Composite _Coq_Init_Datatypes_false_args Struct nil noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
-((___builtin_bswap64,
+((___builtin_ais_annot,
+   Gfun(External (EF_builtin "__builtin_ais_annot"
+                   (mksignature (AST.Tlong :: nil) AST.Tvoid
+                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
+     (Tcons (tptr tschar) Tnil) tvoid
+     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
+ (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
                    (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
      (Tcons tulong Tnil) tulong cc_default)) ::
@@ -1025,15 +1036,15 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_sel,
    Gfun(External (EF_builtin "__builtin_sel"
                    (mksignature (AST.Tint :: nil) AST.Tvoid
-                     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|}))
+                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tbool Tnil) tvoid
-     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|})) ::
+     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot,
    Gfun(External (EF_builtin "__builtin_annot"
                    (mksignature (AST.Tlong :: nil) AST.Tvoid
-                     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|}))
+                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons (tptr tschar) Tnil) tvoid
-     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|})) ::
+     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_annot_intval,
    Gfun(External (EF_builtin "__builtin_annot_intval"
                    (mksignature (AST.Tlong :: AST.Tint :: nil) AST.Tint
@@ -1078,6 +1089,15 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons (tptr tvoid) (Tcons tulong Tnil))
      (tptr tvoid) cc_default)) ::
+ (___builtin_unreachable,
+   Gfun(External (EF_builtin "__builtin_unreachable"
+                   (mksignature nil AST.Tvoid cc_default)) Tnil tvoid
+     cc_default)) ::
+ (___builtin_expect,
+   Gfun(External (EF_builtin "__builtin_expect"
+                   (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
+                     cc_default)) (Tcons tlong (Tcons tlong Tnil)) tlong
+     cc_default)) ::
  (___compcert_i64_dtos,
    Gfun(External (EF_runtime "__compcert_i64_dtos"
                    (mksignature (AST.Tfloat :: nil) AST.Tlong cc_default))
@@ -1207,9 +1227,9 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
                    (mksignature (AST.Tint :: nil) AST.Tvoid
-                     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|}))
+                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tint Tnil) tvoid
-     {|cc_vararg:=true; cc_unproto:=false; cc_structret:=false|})) ::
+     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (_exit,
    Gfun(External (EF_external "exit"
                    (mksignature (AST.Tint :: nil) AST.Tvoid cc_default))
@@ -1280,15 +1300,16 @@ Definition public_idents : list ident :=
  ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
  ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
  ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
- ___compcert_va_composite :: ___compcert_va_float64 ::
- ___compcert_va_int64 :: ___compcert_va_int32 :: ___builtin_va_end ::
- ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
- ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
- ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
- ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
- ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
- ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
- ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 :: nil).
+ ___builtin_expect :: ___builtin_unreachable :: ___compcert_va_composite ::
+ ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
+ ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
+ ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
+ ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
+ ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
+ ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
+ ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
+ ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
+ ___builtin_bswap64 :: ___builtin_ais_annot :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.

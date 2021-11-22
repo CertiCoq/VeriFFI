@@ -2,7 +2,7 @@
 
 *) 
 
-From VC Require Export specs_general.
+From VeriFFI Require Export verification.specs_general.
 
 
 (** ** VST Lemmas *)
@@ -537,7 +537,7 @@ Proof.
    f_equal.
    unfold align_compatible. entailer!.
    - destruct p; auto.
-     eapply align_compatible_rec_by_value_inv in H0;
+     eapply align_compatible_rec_by_value_inv in H1;
      try reflexivity;
      try (eapply align_compatible_rec_by_value; eauto).
      reflexivity.
@@ -566,7 +566,7 @@ Proof.
    unfold tc_val; simpl. entailer.
    unfold is_long in *. 
    
-   destruct v; try (exfalso; apply H2; eauto; congruence).
+   destruct v; try (exfalso; apply H3; eauto; congruence).
    * unfold is_pointer_or_integer. 
      apply prop_and_same_derives'.
      eauto.
@@ -604,11 +604,11 @@ Archi.ptr64 = true -> data_at sh (tarray int_or_ptr_type n) v p |--
    - destruct p; auto.
      simpl in *.
      apply align_compatible_rec_Tarray. intros.
-     eapply align_compatible_rec_Tarray_inv in H0; eauto.
+     eapply align_compatible_rec_Tarray_inv in H1; eauto.
      simpl in *. eauto.
 
 
-     eapply align_compatible_rec_by_value_inv in H0;
+     eapply align_compatible_rec_by_value_inv in H1;
      try reflexivity;
      try (eapply align_compatible_rec_by_value; eauto).
      reflexivity.
