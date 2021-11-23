@@ -32,3 +32,5 @@ nia.cache
 nlia.cache
 nra.cache
 *.DS_Store
+Makefile.coq
+Makefile.coq.conf
