@@ -1,41 +1,36 @@
 (** * Library for Specifications
 
-Kathrin Stark, 2021. 
+Kathrin Stark, 2021.
  *)
 
-From VeriFFI.library Require Export base_representation. 
+From VeriFFI.library Require Export base_representation.
 From VeriFFI.verification Require Export graph_add.
-(* TODO: Dependency. *) 
-From VeriFFI.verification Require Export glue.
-
-Instance CompSpecs : compspecs. make_compspecs prog. Defined.
-Definition Vprog : varspecs.  mk_varspecs prog. Defined. 
-
+(* TODO: Dependency. *)
 
 (** ** Library definitions for specifications *)
 
 (** Custom types for thread info *)
 Definition thread_info_type := Tstruct _thread_info noattr.
-Definition thread_info := tptr thread_info_type. 
+Definition thread_info := tptr thread_info_type.
 
 (* Representation of rep_type as a C value *)
 Definition rep_type_val (g : graph) (x : rep_type) : val :=
-match x with 
+match x with
 | repZ y => odd_Z2val y
 | repOut p => GC_Pointer2val p
 | repNode v => vertex_address g v
-end. 
+end.
 
 (** *** Graph Conditions *)
 
-Definition array_type := int_or_ptr_type. 
+Definition array_type := int_or_ptr_type.
 
-(** Propositional conditions from the garbage collector specification and getting the isomorphism property for the garbage collector: 
+(** Propositional conditions from the garbage collector specification and getting the isomorphism property for the garbage collector:
 The thread_info has to be a new one, roots and outlier stay preserved *)
-Definition gc_condition_prop g t_info roots outlier := 
+Definition gc_condition_prop g t_info roots outlier :=
 
 graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec t_info (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
-/\ safe_to_copy g 
+/\ safe_to_copy g
 /\ graph_thread_info_compatible g t_info /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
 
@@ -49,7 +44,7 @@ Definition space_rest_rep (sp: space): mpred :=
 Definition heap_rest_rep (hp: heap): mpred :=
   iter_sepcon hp.(spaces) space_rest_rep.
 
-(* Adapted from Shengyi to get the right GC *) 
+(* Adapted from Shengyi to get the right GC *)
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=
   let nursery := heap_head ti.(ti_heap) in
   let p := nursery.(space_start) in
@@ -63,5 +58,5 @@ Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph
   heap_rest_rep ti.(ti_heap))%logic.
 
 (* Full condition for the garbage collector *)
-Definition full_gc g t_info roots outlier ti sh := 
-  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep t_info * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic. 
+Definition full_gc g t_info roots outlier ti sh :=
+  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep t_info * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic.

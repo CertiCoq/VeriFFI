@@ -561,7 +561,11 @@ Proof.
 Qed. *)
 
 Definition geneeral_subsumption t n descr :  
-  X_in_graph_cons descr t -> 0 <= Z.of_nat t < 250 -> (* n = get_size (constr descr) margs -> *) 0 < Z.of_nat n < 2096895 ->  funspec_sub (n_arguments (calc t n) n) (snd (alloc_make_spec_general descr n)).
+  X_in_graph_cons descr t -> 
+  0 <= Z.of_nat t < 250 -> 
+  (* n = get_size (constr descr) margs -> *) 
+  0 < Z.of_nat n < 2096895 ->  
+  funspec_sub (n_arguments (calc t n) n) (snd (alloc_make_spec_general descr n)).
 Proof.
   intros t_eq A  HHA.
   assert (HH : 0 < Z.of_nat n < two_power_pos 54).  { unfold two_power_pos. simpl. rep_lia. }
