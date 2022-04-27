@@ -69,19 +69,16 @@ Fixpoint model_spec_aux
          (a : annotated)
          (ft : to_prim_fn_type a)
          (mt : to_model_fn_type a) {struct a} : Prop.
-destruct a as [f|prim_type model_type M|A R o].
-* simpl in ft, mt.
-  exact (forall (A : Type), model_spec_aux (f A Rep_any) (ft A) (mt A)).
-* simpl in ft, mt.
-  destruct o as [pf|].
+destruct a as [f|prim_type model_type M|A R o]; simpl in ft, mt.
+* exact (forall (A : Type), model_spec_aux (f A Rep_any) (ft A) (mt A)).
+* destruct o as [pf|].
   - refine (forall (x : prim_type), model_spec_aux (pf x) (ft x) _).
     pose (m := mt (prim_to_model x)).
     rewrite prim_to_model_to_prim in m.
     exact m.
   - exact (ft = model_to_prim mt).
-* simpl in ft, mt.
-  destruct o as [pf|].
-  - refine (forall (x : A), model_spec_aux (pf x) (ft x) (mt x)).
+* destruct o as [pf|].
+  - exact (forall (x : A), model_spec_aux (pf x) (ft x) (mt x)).
   - exact (ft = mt).
 Defined.
 
@@ -103,12 +100,10 @@ End Int63.
 Module FM <: Int63.
   Definition t := {z : Z | 0 <= z < 2^63}%Z.
   Definition from_Z (z : Z) : t.
-    exists (Z.rem (Z.abs z) (2^63)).
-    apply Z.rem_bound_pos_pos.
-    apply Z.pow_pos_nonneg.
+    exists (Z.modulo z (2^63)).
+    Search _ (Z.modulo _ _).
+    apply Z_mod_lt.
     constructor.
-    apply Pos2Z.is_nonneg.
-    apply Z.abs_nonneg.
   Defined.
 
   Definition to_Z (z : t) : Z := proj1_sig z.
@@ -138,7 +133,6 @@ Module FM <: Int63.
       constructor.
   Defined.
 End FM.
-
 
 Module C : Int63.
   Axiom t : Type.
@@ -220,8 +214,7 @@ Module Int63_Proofs.
     lia.
   Qed.
 
-
-  Lemma dist_add : forall (x y z : Z),
+  Lemma mul_add_distr_l : forall (x y z : Z),
     C.to_Z (C.mul (C.from_Z x) (C.add (C.from_Z y) (C.from_Z z))) =
     C.to_Z (C.add (C.mul (C.from_Z x) (C.from_Z y)) (C.mul (C.from_Z x) (C.from_Z z))).
   Proof.
@@ -238,11 +231,12 @@ Module Int63_Proofs.
     repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
-    (* Search _ ((_ * (_ + _))%Z). *)
-    f_equal.
-    Search ((_ mod _)%Z).
-    Search (Z.add (Z.rem _ _) (Z.rem _ _)).
-    rewrite Z.mul_add_distr_l.
-  Abort.
+    pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
+    pose (z' := Z.modulo z (Z.pow_pos 2 63)); fold z'.
+    rewrite <- Zplus_mod.
+    rewrite <- Z.mul_add_distr_l.
+    rewrite Zmult_mod_idemp_r.
+    auto.
+  Qed.
 
 End Int63_Proofs.
