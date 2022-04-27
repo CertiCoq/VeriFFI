@@ -101,7 +101,6 @@ Module FM <: Int63.
   Definition t := {z : Z | 0 <= z < 2^63}%Z.
   Definition from_Z (z : Z) : t.
     exists (Z.modulo z (2^63)).
-    Search _ (Z.modulo _ _).
     apply Z_mod_lt.
     constructor.
   Defined.
@@ -194,17 +193,22 @@ Module Int63_Proofs.
   Ltac eq_refl_match :=
     match goal with
     | [ |- context[match ?x with | eq_refl => _ end] ] => destruct x
+    (* | [ _ : context[match ?x with | eq_refl => _ end] |- _] => destruct x *)
     end.
+
+  Ltac props x :=
+    let P := fresh in
+    pose proof x as P;
+    hnf in P;
+    simpl in P;
+    rewrite !P;
+    unfold id, eq_rect in *.
 
   Lemma seven : C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)) = 7%Z.
   Proof.
-    pose proof (FP := from_Z_properties).
-    pose proof (TP := to_Z_properties).
-    pose proof (AP := add_properties).
-    hnf in FP, TP, AP.
-    simpl in FP, TP, AP.
-    rewrite !FP, !TP, !AP.
-    unfold id, eq_rect in *.
+    props from_Z_properties.
+    props to_Z_properties.
+    props add_properties.
     repeat eq_refl_match.
     repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
     unfold FM.to_Z, FM.add, FM.from_Z.
@@ -219,14 +223,10 @@ Module Int63_Proofs.
     C.to_Z (C.add (C.mul (C.from_Z x) (C.from_Z y)) (C.mul (C.from_Z x) (C.from_Z z))).
   Proof.
     intros x y z.
-    pose proof (FP := from_Z_properties).
-    pose proof (TP := to_Z_properties).
-    pose proof (AP := add_properties).
-    pose proof (MP := mul_properties).
-    hnf in FP, TP, AP, MP.
-    simpl in FP, TP, AP, MP.
-    rewrite ?FP, ?TP, ?AP, ?MP.
-    unfold id, eq_rect in *.
+    props from_Z_properties.
+    props to_Z_properties.
+    props add_properties.
+    props mul_properties.
     repeat eq_refl_match.
     repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
@@ -236,6 +236,28 @@ Module Int63_Proofs.
     rewrite <- Zplus_mod.
     rewrite <- Z.mul_add_distr_l.
     rewrite Zmult_mod_idemp_r.
+    auto.
+  Qed.
+
+  Lemma mul_add_distr_r : forall (x y z : Z),
+    C.to_Z (C.mul (C.add (C.from_Z x) (C.from_Z y)) (C.from_Z z)) =
+    C.to_Z (C.add (C.mul (C.from_Z x) (C.from_Z z)) (C.mul (C.from_Z y) (C.from_Z z))).
+  Proof.
+    intros x y z.
+    props from_Z_properties.
+    props to_Z_properties.
+    props add_properties.
+    props mul_properties.
+    repeat eq_refl_match.
+    repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
+    unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
+    simpl.
+    pose (x' := Z.modulo y (Z.pow_pos 2 63)); fold x'.
+    pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
+    pose (z' := Z.modulo z (Z.pow_pos 2 63)); fold z'.
+    rewrite <- Zplus_mod.
+    rewrite <- Z.mul_add_distr_r.
+    rewrite Zmult_mod_idemp_l.
     auto.
   Qed.
 
