@@ -6,12 +6,30 @@ Require Import Psatz.
 Require Import List.
 Import ListNotations.
 
+Ltac eq_refl_match :=
+  match goal with
+  | [ |- context[match ?x with | eq_refl => _ end] ] => destruct x
+  (* | [ _ : context[match ?x with | eq_refl => _ end] |- _] => destruct x *)
+  end.
+
+Ltac props x :=
+  let P := fresh in
+  pose proof x as P;
+  hnf in P;
+  simpl in P;
+  rewrite !P;
+  unfold id, eq_rect in *.
+
 Class Modelled (prim_type model_type : Type) :=
   { model_to_prim : model_type -> prim_type
   ; prim_to_model : prim_type -> model_type
   ; prim_to_model_to_prim : forall (x : prim_type), model_to_prim (prim_to_model x) = x
   ; model_to_prim_to_model : forall (x : model_type), prim_to_model (model_to_prim x) = x
   }.
+
+Instance Modelled_same {A : Type} : Modelled A A.
+  refine (@Build_Modelled A A id id _ _); auto.
+Defined.
 
 Require Import VeriFFI.library.meta.
 
@@ -85,19 +103,21 @@ Defined.
 Definition model_spec (ep : extern_properties) : Prop :=
   model_spec_aux (type_desc ep) (prim_fn ep) (model_fn ep).
 
-Module Type Int63.
+Module IntVerification.
+
+Module Type UInt63.
   Axiom t : Type.
   Axiom from_Z : Z -> t.
   Axiom to_Z : t -> Z.
   Axiom add : t -> t -> t.
   Axiom mul : t -> t -> t.
-End Int63.
+End UInt63.
 
 (* Axiom VSU : Type. *)
 (* Axiom int63_vsu : VSU. *)
 (* Axiom lift : forall {A : Type}, A -> VSU -> string -> A. *)
 
-Module FM <: Int63.
+Module FM <: UInt63.
   Definition t := {z : Z | 0 <= z < 2^63}%Z.
   Definition from_Z (z : Z) : t.
     exists (Z.modulo z (2^63)).
@@ -133,7 +153,7 @@ Module FM <: Int63.
   Defined.
 End FM.
 
-Module C : Int63.
+Module C : UInt63.
   Axiom t : Type.
   Axiom from_Z : Z -> t.
   Axiom to_Z : t -> Z.
@@ -141,7 +161,9 @@ Module C : Int63.
   Axiom mul : t -> t -> t.
 End C.
 
-Module Int63_Proofs.
+
+
+Module UInt63_Proofs.
   Definition Rep_Z : Rep Z. Admitted.
   Axiom Modelled_t : Modelled C.t FM.t.
 
@@ -190,32 +212,39 @@ Module Int63_Proofs.
   Axiom add_properties : model_spec add_ep.
   Axiom mul_properties : model_spec mul_ep.
 
-  Ltac eq_refl_match :=
-    match goal with
-    | [ |- context[match ?x with | eq_refl => _ end] ] => destruct x
-    (* | [ _ : context[match ?x with | eq_refl => _ end] |- _] => destruct x *)
-    end.
-
-  Ltac props x :=
-    let P := fresh in
-    pose proof x as P;
-    hnf in P;
-    simpl in P;
-    rewrite !P;
-    unfold id, eq_rect in *.
-
   Lemma seven : C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)) = 7%Z.
   Proof.
     props from_Z_properties.
     props to_Z_properties.
     props add_properties.
     repeat eq_refl_match.
-    repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
+    rewrite !prim_to_model_to_prim, !model_to_prim_to_model.
     unfold FM.to_Z, FM.add, FM.from_Z.
     simpl.
     rewrite Z.mod_small.
     auto.
     lia.
+  Qed.
+
+  Check Z.add_assoc.
+  Lemma add_assoc : forall (x y z : Z),
+    C.to_Z (C.add (C.from_Z x) (C.add (C.from_Z y) (C.from_Z z))) =
+    C.to_Z (C.add (C.add (C.from_Z x) (C.from_Z y)) (C.from_Z z)).
+  Proof.
+    intros x y z.
+    props from_Z_properties.
+    props to_Z_properties.
+    props add_properties.
+    repeat eq_refl_match.
+    rewrite !prim_to_model_to_prim, !model_to_prim_to_model.
+    unfold FM.add, FM.from_Z, FM.to_Z.
+    simpl.
+    rewrite <- !(Z.add_mod y z).
+    rewrite <- !(Z.add_mod x y).
+    rewrite <- !(Z.add_mod).
+    f_equal.
+    apply Z.add_assoc.
+    all: lia.
   Qed.
 
   Lemma mul_add_distr_l : forall (x y z : Z),
@@ -228,7 +257,7 @@ Module Int63_Proofs.
     props add_properties.
     props mul_properties.
     repeat eq_refl_match.
-    repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
+    rewrite !prim_to_model_to_prim, !model_to_prim_to_model.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
@@ -249,7 +278,7 @@ Module Int63_Proofs.
     props add_properties.
     props mul_properties.
     repeat eq_refl_match.
-    repeat rewrite prim_to_model_to_prim, model_to_prim_to_model.
+    rewrite !prim_to_model_to_prim, !model_to_prim_to_model.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (x' := Z.modulo y (Z.pow_pos 2 63)); fold x'.
@@ -261,4 +290,100 @@ Module Int63_Proofs.
     auto.
   Qed.
 
-End Int63_Proofs.
+End UInt63_Proofs.
+
+End IntVerification.
+
+Module ArrayVerification.
+
+Module Type Array.
+  Axiom ST : Type -> Type.
+  Axiom array : Type -> Type.
+  Axiom new : forall {A}, N -> A -> ST (array A).
+  Axiom set : forall {A}, array A -> N -> A -> ST unit.
+  Axiom get : forall {A}, array A -> N -> ST (option A).
+  Axiom delete : forall {A}, array A -> ST unit.
+End Array.
+
+Module FM <: Array.
+  Definition ST (A : Type) : Type. Admitted.
+  Definition array (A : Type) : Type := list A.
+  Definition new {A} (length : N) (fill : A) : ST (array A). Admitted.
+  Definition set {A} (arr : array A) (index : N) (elt : A) : ST unit. Admitted.
+  Definition get {A} (arr : array A) (index : N) : ST (option A). Admitted.
+  Definition delete {A} (arr : array A) : ST unit. Admitted.
+End FM.
+
+Module C : Array.
+  Axiom ST : Type -> Type.
+  Axiom array : Type -> Type.
+  Axiom new : forall {A}, N -> A -> ST (array A).
+  Axiom set : forall {A}, array A -> N -> A -> ST unit.
+  Axiom get : forall {A}, array A -> N -> ST (option A).
+  Axiom delete : forall {A}, array A -> ST unit.
+End C.
+
+Module Array_Proofs.
+  Definition Rep_N : Rep N. Admitted.
+  Axiom Modelled_array : forall {A A'}, Modelled A A' -> Modelled (C.array A) (FM.array A').
+  Axiom Modelled_ST : forall {A A'}, Modelled A A' -> Modelled (C.ST A) (FM.ST A').
+
+  Definition new_ep : extern_properties :=
+    {| type_desc :=
+      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+        @TRANSPARENT N Rep_N (Some (fun n =>
+          @TRANSPARENT A Rep_A (Some (fun a =>
+            @OPAQUE (C.ST (C.array A)) (FM.ST (FM.array A))
+                    (Modelled_ST (Modelled_array _)) None)))))
+     ; prim_fn := @C.new
+     ; model_fn := @FM.new
+     ; c_name := "array_new"
+     |}.
+
+  Definition set_ep : extern_properties :=
+    {| type_desc :=
+      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
+          @TRANSPARENT N Rep_N (Some (fun n =>
+             @TRANSPARENT A Rep_A (Some (fun a =>
+               @OPAQUE (C.ST unit) (FM.ST unit) (Modelled_ST _) None)))))))
+     ; prim_fn := @C.set
+     ; model_fn := @FM.set
+     ; c_name := "array_set"
+     |}.
+
+  Definition get_ep : extern_properties :=
+    {| type_desc :=
+      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
+          @TRANSPARENT N Rep_N (Some (fun n =>
+            @OPAQUE (C.ST (option A)) (FM.ST (option A)) (Modelled_ST _) None)))))
+     ; prim_fn := @C.get
+     ; model_fn := @FM.get
+     ; c_name := "array_get"
+     |}.
+
+  Definition delete_ep : extern_properties :=
+    {| type_desc :=
+      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
+          @OPAQUE (C.ST unit) (FM.ST unit) (Modelled_ST _) None)))
+     ; prim_fn := @C.delete
+     ; model_fn := @FM.delete
+     ; c_name := "array_delete"
+     |}.
+
+  Axiom new_properties : model_spec new_ep.
+  Axiom set_properties : model_spec set_ep.
+  Axiom get_properties : model_spec get_ep.
+  Axiom delete_properties : model_spec delete_ep.
+
+  Fail Lemma set_get :
+    forall {A : Type} (arr : C.array A) (n : N) (a : A),
+      bind (C.set arr n a) (fun _ => C.get arr n) = pure a.
+  (* Proof. *)
+  (* Abort. *)
+
+End Array_Proofs.
+
+End ArrayVerification.
