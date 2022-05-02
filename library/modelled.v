@@ -31,12 +31,19 @@ Instance Modelled_same {A : Type} : Modelled A A.
   refine (@Build_Modelled A A id id _ _); auto.
 Defined.
 
+
+Require Import Coq.Logic.FunctionalExtensionality.
+
 Instance Modelled_fn {A A' B B' : Type} :
   Modelled A A' -> Modelled B B' -> Modelled (A -> B) (A' -> B').
 Proof.
   intros ma mb.
-  refine (@Build_Modelled (A -> B) (A' -> B') _ _ _ _).
-Admitted.
+  pose (f1 (f : A -> B) := fun a' : A' => prim_to_model (f (model_to_prim a'))).
+  pose (f2 (f : A' -> B') := fun a : A => model_to_prim (f (prim_to_model a))).
+  refine (@Build_Modelled (A -> B) (A' -> B') f2 f1 _ _);
+  intros; unfold f1, f2; apply functional_extensionality;
+    intro; rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model; auto.
+Defined.
 
 Require Import VeriFFI.library.meta.
 
@@ -167,8 +174,6 @@ Module C : UInt63.
   Axiom add : t -> t -> t.
   Axiom mul : t -> t -> t.
 End C.
-
-
 
 Module UInt63_Proofs.
   Definition Rep_Z : Rep Z. Admitted.
@@ -303,48 +308,62 @@ End IntVerification.
 Module ArrayVerification.
 
 Module Type Array.
-  Axiom ST : Type -> Type.
-  Axiom pure : forall {A}, A -> ST A.
-  Axiom bind : forall {A B}, ST A -> (A -> ST B) -> ST B.
-  Axiom array : Type -> Type.
-  Axiom new : forall {A}, N -> A -> ST (array A).
-  Axiom set : forall {A}, array A -> N -> A -> ST unit.
-  Axiom get : forall {A}, array A -> N -> ST (option A).
-  Axiom delete : forall {A}, array A -> ST unit.
+  Axiom ST : Type -> Type -> Type.
+  Axiom pure : forall {S A}, A -> ST S A.
+  Axiom bind : forall {S A B}, ST S A -> (A -> ST S B) -> ST S B.
+  Axiom runST : forall {A}, (forall S, ST S A) -> A.
+  Axiom array : Type -> Type -> Type.
+  Axiom new : forall {S A}, nat -> A -> ST S (array S A).
+  Axiom set : forall {S A}, array S A -> nat -> A -> ST S unit.
+  Axiom get : forall {S A}, array S A -> nat -> ST S (option A).
+  Axiom delete : forall {S A}, array S A -> ST S unit.
 End Array.
 
 Module FM <: Array.
-  Definition ST (A : Type) : Type. Admitted.
-  Definition pure {A} (a : A) : ST A. Admitted.
-  Definition bind {A B} (m : ST A) (f : A -> ST B) : ST B. Admitted.
-  Definition array (A : Type) : Type := list A.
-  Definition new {A} (length : N) (fill : A) : ST (array A). Admitted.
-  Definition set {A} (arr : array A) (index : N) (elt : A) : ST unit. Admitted.
-  Definition get {A} (arr : array A) (index : N) : ST (option A). Admitted.
-  Definition delete {A} (arr : array A) : ST unit. Admitted.
+  Definition array (S : Type) (A : Type) : Type := nat.
+  Definition arrays := list (sigT (fun A => list A)).
+  Definition ST (S : Type) (A : Type) : Type := arrays -> A * arrays.
+  Definition pure {S A} (a : A) : ST S A := fun s => (a, s).
+  Definition bind {S A B} (m : ST S A) (f : A -> ST S B) : ST S B :=
+    fun s => let '(a, s') := m s in f a s'.
+  Definition runST {A} (f : forall S, ST S A) : A. Admitted.
+  Definition new {S A} (len : nat) (fill : A) : ST S (array S A) :=
+    let xs := repeat fill len in
+    fun s => (length s, s ++ [existT _ A xs]).
+  Definition set {S A} (arr : array S A) (index : nat) (elt : A) : ST S unit. Admitted.
+  Definition get {S A} (arr : array S A) (index : nat) : ST S (option A).
+    (* fun s => *)
+    (*   match nth_error s arr with *)
+    (*   | None => (None, s) *)
+    (*   | Some (existT _ l) => nth_error l index None *)
+    (*   end. *)
+  Admitted.
+  Definition delete {S A} (arr : array S A) : ST S unit. Admitted.
 End FM.
 
 Module C : Array.
-  Axiom ST : Type -> Type.
-  Axiom pure : forall {A}, A -> ST A.
-  Axiom bind : forall {A B}, ST A -> (A -> ST B) -> ST B.
-  Axiom array : Type -> Type.
-  Axiom new : forall {A}, N -> A -> ST (array A).
-  Axiom set : forall {A}, array A -> N -> A -> ST unit.
-  Axiom get : forall {A}, array A -> N -> ST (option A).
-  Axiom delete : forall {A}, array A -> ST unit.
+  Axiom ST : Type -> Type -> Type.
+  Axiom pure : forall {S A}, A -> ST S A.
+  Axiom bind : forall {S A B}, ST S A -> (A -> ST S B) -> ST S B.
+  Axiom runST : forall {A}, (forall S, ST S A) -> A.
+  Axiom array : Type -> Type -> Type.
+  Axiom new : forall {S A}, nat -> A -> ST S (array S A).
+  Axiom set : forall {S A}, array S A -> nat -> A -> ST S unit.
+  Axiom get : forall {S A}, array S A -> nat -> ST S (option A).
+  Axiom delete : forall {S A}, array S A -> ST S unit.
 End C.
 
 Module Array_Proofs.
-  Definition Rep_N : Rep N. Admitted.
-  Axiom Modelled_array : forall {A A'}, Modelled A A' -> Modelled (C.array A) (FM.array A').
-  Axiom Modelled_ST : forall {A A'}, Modelled A A' -> Modelled (C.ST A) (FM.ST A').
+  Definition Rep_nat : Rep nat. Admitted.
+  Axiom Modelled_array : forall {S A A'}, Modelled A A' -> Modelled (C.array S A) (FM.array S A').
+  Axiom Modelled_ST : forall {S A A'}, Modelled A A' -> Modelled (C.ST S A) (FM.ST S A').
 
   Definition pure_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @TRANSPARENT A Rep_A (Some (fun arr =>
-          @OPAQUE (C.ST A) (FM.ST A) (Modelled_ST _) None)))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @TRANSPARENT A Rep_A (Some (fun arr =>
+            @OPAQUE (C.ST S A) (FM.ST S A) (Modelled_ST _) None))))
      ; prim_fn := @C.pure
      ; model_fn := @FM.pure
      ; c_name := "st_pure"
@@ -352,11 +371,12 @@ Module Array_Proofs.
 
   Definition bind_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @TYPEPARAM (fun (B : Type) `{Rep_B : Rep B} =>
-          @OPAQUE (C.ST A) (FM.ST A) (Modelled_ST _) (Some (fun m =>
-            @OPAQUE (A -> C.ST B) (A -> FM.ST B) (Modelled_fn _ (Modelled_ST _)) (Some (fun f =>
-              @OPAQUE (C.ST B) (FM.ST B) (Modelled_ST _) None))))))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @TYPEPARAM (fun (B : Type) `{Rep_B : Rep B} =>
+            @OPAQUE (C.ST S A) (FM.ST S A) (Modelled_ST _) (Some (fun m =>
+              @OPAQUE (A -> C.ST S B) (A -> FM.ST S B) (Modelled_fn _ (Modelled_ST _)) (Some (fun f =>
+                @OPAQUE (C.ST S B) (FM.ST S B) (Modelled_ST _) None)))))))
      ; prim_fn := @C.bind
      ; model_fn := @FM.bind
      ; c_name := "st_bind"
@@ -364,11 +384,12 @@ Module Array_Proofs.
 
   Definition new_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @TRANSPARENT N Rep_N (Some (fun n =>
-          @TRANSPARENT A Rep_A (Some (fun a =>
-            @OPAQUE (C.ST (C.array A)) (FM.ST (FM.array A))
-                    (Modelled_ST (Modelled_array _)) None)))))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @TRANSPARENT nat Rep_nat (Some (fun n =>
+            @TRANSPARENT A Rep_A (Some (fun a =>
+              @OPAQUE (C.ST S (C.array S A)) (FM.ST S (FM.array S A))
+                      (Modelled_ST (Modelled_array _)) None))))))
      ; prim_fn := @C.new
      ; model_fn := @FM.new
      ; c_name := "array_new"
@@ -376,11 +397,12 @@ Module Array_Proofs.
 
   Definition set_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
-          @TRANSPARENT N Rep_N (Some (fun n =>
-             @TRANSPARENT A Rep_A (Some (fun a =>
-               @OPAQUE (C.ST unit) (FM.ST unit) (Modelled_ST _) None)))))))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
+            @TRANSPARENT nat Rep_nat (Some (fun n =>
+              @TRANSPARENT A Rep_A (Some (fun a =>
+                @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None))))))))
      ; prim_fn := @C.set
      ; model_fn := @FM.set
      ; c_name := "array_set"
@@ -388,10 +410,11 @@ Module Array_Proofs.
 
   Definition get_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
-          @TRANSPARENT N Rep_N (Some (fun n =>
-            @OPAQUE (C.ST (option A)) (FM.ST (option A)) (Modelled_ST _) None)))))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
+            @TRANSPARENT nat Rep_nat (Some (fun n =>
+              @OPAQUE (C.ST S (option A)) (FM.ST S (option A)) (Modelled_ST _) None))))))
      ; prim_fn := @C.get
      ; model_fn := @FM.get
      ; c_name := "array_get"
@@ -399,9 +422,10 @@ Module Array_Proofs.
 
   Definition delete_ep : extern_properties :=
     {| type_desc :=
-      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-        @OPAQUE (C.array A) (FM.array A) (Modelled_array _) (Some (fun arr =>
-          @OPAQUE (C.ST unit) (FM.ST unit) (Modelled_ST _) None)))
+      @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
+        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
+            @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None))))
      ; prim_fn := @C.delete
      ; model_fn := @FM.delete
      ; c_name := "array_delete"
@@ -415,9 +439,18 @@ Module Array_Proofs.
   Axiom delete_properties : model_spec delete_ep.
 
   Lemma set_get :
-    forall {A : Type} (arr : C.array A) (n : N) (a : A),
-      C.bind (C.set arr n a) (fun _ => C.get arr n) = C.pure (Some a).
+    forall {S A : Type} (n len : nat) (to_set to_fill : A),
+      C.bind (C.new len to_fill) (fun arr => C.bind (C.set arr n to_set) (fun _ => C.get arr n)) =
+      @C.pure S _ (Some to_set).
   Proof.
+    intros A n len to_set to_fill.
+    props pure_properties.
+    (* props bind_properties. *)
+    (* repeat eq_refl_match. *)
+    (* Fail unfold FM.pure, FM.bind. *)
+    (* rewrite !prim_to_model_to_prim, !model_to_prim_to_model. *)
+    (* props set_properties. (* OOPS, gotta rewrite under binders *) *)
+    (* props get_properties. *)
   Abort.
 
 End Array_Proofs.
