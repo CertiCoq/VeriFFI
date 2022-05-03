@@ -51,11 +51,21 @@ Instance Modelled_dep_fn {A A' : Type} {B : A -> Type} {B' : A' -> Type} :
   Modelled (forall (a : A), B a) (forall (a' : A'), B' a').
 Proof.
   intros ma f.
-  (* pose (f1 (f : forall a : A, B a) := fun (a' : A') => *)
-  (*                                       let m := f (model_to_prim a') a' ma in *)
-  (*                                       @prim_to_model f a'). *)
-  (* pose (f2 (f : forall a' : A', B' a') := fun (a : A) => model_to_prim (f (prim_to_model a) a)). *)
-Admitted.
+  econstructor.
+  Unshelve.
+  3: {intros g a; exact (model_to_prim (g (prim_to_model a))).}
+  3: {intros g a'; exact (prim_to_model (g (model_to_prim a'))).}
+  * intros x.
+    apply (functional_extensionality_dep _ x).
+    intro a.
+    rewrite !prim_to_model_to_prim.
+    auto.
+  * intros x.
+    apply (functional_extensionality_dep _ x).
+    intro a'.
+    rewrite !model_to_prim_to_model.
+    auto.
+Qed.
 
 Require Import VeriFFI.library.meta.
 
@@ -506,6 +516,7 @@ Module Array_Proofs.
     intros S n len to_set to_fill.
     props runST_properties.
     prim_rewrites.
+    unfold FM.runST.
     (* props pure_properties. *)
     (* props bind_properties. *)
     (* f_equal. *)
