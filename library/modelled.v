@@ -45,6 +45,18 @@ Proof.
     intro; rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model; auto.
 Defined.
 
+Instance Modelled_dep_fn {A A' : Type} {B : A -> Type} {B' : A' -> Type} :
+  Modelled A A' ->
+  (forall (a : A) (a' : A'), Modelled A A' -> Modelled (B a) (B' a')) ->
+  Modelled (forall (a : A), B a) (forall (a' : A'), B' a').
+Proof.
+  intros ma f.
+  (* pose (f1 (f : forall a : A, B a) := fun (a' : A') => *)
+  (*                                       let m := f (model_to_prim a') a' ma in *)
+  (*                                       @prim_to_model f a'). *)
+  (* pose (f2 (f : forall a' : A', B' a') := fun (a : A) => model_to_prim (f (prim_to_model a) a)). *)
+Admitted.
+
 Require Import VeriFFI.library.meta.
 
 (* opaque and transparent *)
@@ -307,55 +319,90 @@ End IntVerification.
 
 Module ArrayVerification.
 
-Module Type Array.
+Module Type Element.
+  Axiom t : Type.
+End Element.
+
+Module Type Array (E : Element).
   Axiom ST : Type -> Type -> Type.
   Axiom pure : forall {S A}, A -> ST S A.
   Axiom bind : forall {S A B}, ST S A -> (A -> ST S B) -> ST S B.
   Axiom runST : forall {A}, (forall S, ST S A) -> A.
-  Axiom array : Type -> Type -> Type.
-  Axiom new : forall {S A}, nat -> A -> ST S (array S A).
-  Axiom set : forall {S A}, array S A -> nat -> A -> ST S unit.
-  Axiom get : forall {S A}, array S A -> nat -> ST S (option A).
-  Axiom delete : forall {S A}, array S A -> ST S unit.
+  Axiom array : Type -> Type.
+  Axiom new : forall {S}, nat -> E.t -> ST S (array S).
+  Axiom set : forall {S}, array S -> nat -> E.t -> ST S unit.
+  Axiom get : forall {S}, array S -> nat -> ST S (option E.t).
+  Axiom delete : forall {S}, array S -> ST S unit.
 End Array.
 
-Module FM <: Array.
-  Definition array (S : Type) (A : Type) : Type := nat.
-  Definition arrays := list (sigT (fun A => list A)).
+Module FM (E : Element) <: Array E.
+  Definition array (S : Type) : Type := nat.
+  Definition arrays := list (list E.t).
   Definition ST (S : Type) (A : Type) : Type := arrays -> A * arrays.
   Definition pure {S A} (a : A) : ST S A := fun s => (a, s).
   Definition bind {S A B} (m : ST S A) (f : A -> ST S B) : ST S B :=
     fun s => let '(a, s') := m s in f a s'.
-  Definition runST {A} (f : forall S, ST S A) : A. Admitted.
-  Definition new {S A} (len : nat) (fill : A) : ST S (array S A) :=
+  Definition runST {A} (f : forall S, ST S A) : A :=
+    let '(a, _) := f unit nil in a.
+  Definition new {S} (len : nat) (fill : E.t) : ST S (array S) :=
     let xs := repeat fill len in
-    fun s => (length s, s ++ [existT _ A xs]).
-  Definition set {S A} (arr : array S A) (index : nat) (elt : A) : ST S unit. Admitted.
-  Definition get {S A} (arr : array S A) (index : nat) : ST S (option A).
-    (* fun s => *)
-    (*   match nth_error s arr with *)
-    (*   | None => (None, s) *)
-    (*   | Some (existT _ l) => nth_error l index None *)
-    (*   end. *)
-  Admitted.
-  Definition delete {S A} (arr : array S A) : ST S unit. Admitted.
+    fun s => (length s, s ++ [xs]).
+
+  (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
+  Definition set {S} (arr : array S) (index : nat) (elt : E.t) : ST S unit :=
+    let fix replace (index : nat) (l : list E.t) : list E.t :=
+      match index, l with
+      | _, nil => nil
+      | O, cons x xs => cons elt xs
+      | S n, cons x xs => cons x (replace n xs)
+      end in
+    let fix aux (s : arrays) (arr : array S) : arrays :=
+      match arr, s with
+      | _, nil => nil
+      | O, cons x xs => cons (replace index x) xs
+      | S n, cons x xs => cons x (aux xs n)
+      end
+    in fun s => (tt, aux s arr).
+
+  Definition get {S} (arr : array S) (index : nat) : ST S (option E.t) :=
+    fun s : arrays =>
+      match nth_error s arr with
+      | None => (None, s)
+      | Some l => (nth_error l index, s)
+      end.
+
+  Definition delete {S} (arr : array S) : ST S unit :=
+    let fix aux (s : arrays) (arr : array S) : arrays :=
+      match arr, s with
+      | _, nil => nil
+      | O, cons x xs => cons nil xs
+      | S n, cons x xs => cons x (aux xs n)
+      end
+    in fun s => (tt, aux s arr).
 End FM.
 
-Module C : Array.
+Module C (E : Element) : Array E.
   Axiom ST : Type -> Type -> Type.
   Axiom pure : forall {S A}, A -> ST S A.
   Axiom bind : forall {S A B}, ST S A -> (A -> ST S B) -> ST S B.
   Axiom runST : forall {A}, (forall S, ST S A) -> A.
-  Axiom array : Type -> Type -> Type.
-  Axiom new : forall {S A}, nat -> A -> ST S (array S A).
-  Axiom set : forall {S A}, array S A -> nat -> A -> ST S unit.
-  Axiom get : forall {S A}, array S A -> nat -> ST S (option A).
-  Axiom delete : forall {S A}, array S A -> ST S unit.
+  Axiom array : Type -> Type.
+  Axiom new : forall {S}, nat -> E.t -> ST S (array S).
+  Axiom set : forall {S}, array S -> nat -> E.t -> ST S unit.
+  Axiom get : forall {S}, array S -> nat -> ST S (option E.t).
+  Axiom delete : forall {S}, array S -> ST S unit.
 End C.
 
 Module Array_Proofs.
+  Module E.
+    Definition t := bool.
+  End E.
+  Module FM := FM E.
+  Module C := C E.
+
   Definition Rep_nat : Rep nat. Admitted.
-  Axiom Modelled_array : forall {S A A'}, Modelled A A' -> Modelled (C.array S A) (FM.array S A').
+  Definition Rep_t : Rep E.t. Admitted.
+  Axiom Modelled_array : forall {S}, Modelled (C.array S) (FM.array S).
   Axiom Modelled_ST : forall {S A A'}, Modelled A A' -> Modelled (C.ST S A) (FM.ST S A').
 
   Definition pure_ep : extern_properties :=
@@ -382,14 +429,25 @@ Module Array_Proofs.
      ; c_name := "st_bind"
      |}.
 
+  Definition runST_ep : extern_properties :=
+    {| type_desc :=
+      @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
+          @OPAQUE (forall (S : Type), C.ST S A) (forall (S : Type), FM.ST S A)
+                  (@Modelled_dep_fn Type Type (fun S => C.ST S A) (fun S => FM.ST S A) _
+                                    (fun s s' m => @Modelled_ST _ A A _)) (Some (fun f =>
+            @TRANSPARENT A Rep_A None)))
+     ; prim_fn := @C.runST
+     ; model_fn := @FM.runST
+     ; c_name := "st_runST"
+     |}.
+
   Definition new_ep : extern_properties :=
     {| type_desc :=
       @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TRANSPARENT nat Rep_nat (Some (fun n =>
-            @TRANSPARENT A Rep_A (Some (fun a =>
-              @OPAQUE (C.ST S (C.array S A)) (FM.ST S (FM.array S A))
-                      (Modelled_ST (Modelled_array _)) None))))))
+        @TRANSPARENT nat Rep_nat (Some (fun n =>
+          @TRANSPARENT E.t Rep_t (Some (fun a =>
+            @OPAQUE (C.ST S (C.array S)) (FM.ST S (FM.array S))
+                    (Modelled_ST Modelled_array) None)))))
      ; prim_fn := @C.new
      ; model_fn := @FM.new
      ; c_name := "array_new"
@@ -398,11 +456,10 @@ Module Array_Proofs.
   Definition set_ep : extern_properties :=
     {| type_desc :=
       @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
-            @TRANSPARENT nat Rep_nat (Some (fun n =>
-              @TRANSPARENT A Rep_A (Some (fun a =>
-                @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None))))))))
+        @OPAQUE (C.array S) (FM.array S) Modelled_array (Some (fun arr =>
+          @TRANSPARENT nat Rep_nat (Some (fun n =>
+            @TRANSPARENT E.t Rep_t (Some (fun a =>
+              @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None)))))))
      ; prim_fn := @C.set
      ; model_fn := @FM.set
      ; c_name := "array_set"
@@ -411,10 +468,9 @@ Module Array_Proofs.
   Definition get_ep : extern_properties :=
     {| type_desc :=
       @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
-            @TRANSPARENT nat Rep_nat (Some (fun n =>
-              @OPAQUE (C.ST S (option A)) (FM.ST S (option A)) (Modelled_ST _) None))))))
+        @OPAQUE (C.array S) (FM.array S) Modelled_array (Some (fun arr =>
+          @TRANSPARENT nat Rep_nat (Some (fun n =>
+            @OPAQUE (C.ST S (option E.t)) (FM.ST S (option E.t)) (Modelled_ST _) None)))))
      ; prim_fn := @C.get
      ; model_fn := @FM.get
      ; c_name := "array_get"
@@ -423,9 +479,8 @@ Module Array_Proofs.
   Definition delete_ep : extern_properties :=
     {| type_desc :=
       @TYPEPARAM (fun (S : Type) `{Rep_S : Rep S} =>
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @OPAQUE (C.array S A) (FM.array S A) (Modelled_array _) (Some (fun arr =>
-            @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None))))
+        @OPAQUE (C.array S) (FM.array S) Modelled_array (Some (fun arr =>
+          @OPAQUE (C.ST S unit) (FM.ST S unit) (Modelled_ST _) None)))
      ; prim_fn := @C.delete
      ; model_fn := @FM.delete
      ; c_name := "array_delete"
@@ -433,22 +488,28 @@ Module Array_Proofs.
 
   Axiom pure_properties : model_spec pure_ep.
   Axiom bind_properties : model_spec bind_ep.
+  Axiom runST_properties : model_spec runST_ep.
   Axiom new_properties : model_spec new_ep.
   Axiom set_properties : model_spec set_ep.
   Axiom get_properties : model_spec get_ep.
   Axiom delete_properties : model_spec delete_ep.
 
+  Ltac prim_rewrites :=
+    repeat eq_refl_match;
+    rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
+
   Lemma set_get :
-    forall {S A : Type} (n len : nat) (to_set to_fill : A),
-      C.bind (C.new len to_fill) (fun arr => C.bind (C.set arr n to_set) (fun _ => C.get arr n)) =
-      @C.pure S _ (Some to_set).
+    forall {S : Type} (n len : nat) (to_set to_fill : E.t),
+      C.runST (fun _ => C.bind (C.new len to_fill) (fun arr => C.bind (C.set arr n to_set) (fun _ => C.get arr n))) =
+      C.runST (fun _ => C.pure (Some to_set)).
   Proof.
-    intros A n len to_set to_fill.
-    props pure_properties.
+    intros S n len to_set to_fill.
+    props runST_properties.
+    prim_rewrites.
+    (* props pure_properties. *)
     (* props bind_properties. *)
-    (* repeat eq_refl_match. *)
-    (* Fail unfold FM.pure, FM.bind. *)
-    (* rewrite !prim_to_model_to_prim, !model_to_prim_to_model. *)
+    (* f_equal. *)
+    (* unfold FM.pure, FM.bind. *)
     (* props set_properties. (* OOPS, gotta rewrite under binders *) *)
     (* props get_properties. *)
   Abort.
