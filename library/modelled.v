@@ -1,4 +1,3 @@
-Require Import MetaCoq.Template.All.
 Require Import String.
 
 Require Import ZArith.
@@ -18,7 +17,8 @@ Ltac props x :=
   hnf in P;
   simpl in P;
   rewrite !P;
-  unfold id, eq_rect in *.
+  unfold id, eq_rect in *;
+  clear P.
 
 Class Modelled (prim_type model_type : Type) :=
   { model_to_prim : model_type -> prim_type
@@ -30,7 +30,6 @@ Class Modelled (prim_type model_type : Type) :=
 Instance Modelled_same {A : Type} : Modelled A A.
   refine (@Build_Modelled A A id id _ _); auto.
 Defined.
-
 
 Require Import Coq.Logic.FunctionalExtensionality.
 
@@ -65,7 +64,7 @@ Proof.
     intro a'.
     rewrite !model_to_prim_to_model.
     auto.
-Qed.
+Defined.
 
 Require Import VeriFFI.library.meta.
 
@@ -351,9 +350,10 @@ Module FM (E : Element) <: Array E.
   Definition ST (S : Type) (A : Type) : Type := arrays -> A * arrays.
   Definition pure {S A} (a : A) : ST S A := fun s => (a, s).
   Definition bind {S A B} (m : ST S A) (f : A -> ST S B) : ST S B :=
-    fun s => let '(a, s') := m s in f a s'.
+    fun s => f (fst (m s)) (snd (m s)).
+    (* fun s => let '(a, s') := m s in f a s'. *)
   Definition runST {A} (f : forall S, ST S A) : A :=
-    let '(a, _) := f unit nil in a.
+    fst (f unit nil).
   Definition new {S} (len : nat) (fill : E.t) : ST S (array S) :=
     let xs := repeat fill len in
     fun s => (length s, s ++ [xs]).
@@ -509,21 +509,82 @@ Module Array_Proofs.
     rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
 
   Lemma set_get :
-    forall {S : Type} (n len : nat) (to_set to_fill : E.t),
+    forall {S : Type} (n len : nat) (bound : n < len) (to_set to_fill : E.t),
       C.runST (fun _ => C.bind (C.new len to_fill) (fun arr => C.bind (C.set arr n to_set) (fun _ => C.get arr n))) =
       C.runST (fun _ => C.pure (Some to_set)).
   Proof.
-    intros S n len to_set to_fill.
+    intros S n len bound to_set to_fill.
     props runST_properties.
     prim_rewrites.
     unfold FM.runST.
-    (* props pure_properties. *)
-    (* props bind_properties. *)
-    (* f_equal. *)
-    (* unfold FM.pure, FM.bind. *)
-    (* props set_properties. (* OOPS, gotta rewrite under binders *) *)
-    (* props get_properties. *)
-  Abort.
+
+    props bind_properties.
+    props pure_properties.
+    props new_properties.
+    unfold FM.bind, FM.pure.
+    prim_rewrites.
+
+    props bind_properties.
+    props set_properties.
+    unfold FM.bind.
+    prim_rewrites.
+
+    props get_properties.
+    prim_rewrites.
+
+    (* rest of the proof is just about the functional model *)
+    Set Printing All.
+    Check (@FM.new unit len to_fill).
+    Check ((@model_to_prim (C.ST unit (C.array unit))
+                      (FM.ST unit (FM.array unit))
+                      (@Modelled_ST unit (C.array unit)
+                         (FM.array unit) (@Modelled_array unit))
+                      (@FM.new unit len to_fill))).
+    Check ((@prim_to_model (C.ST unit (C.array unit))
+                   (FM.ST unit (C.array unit))
+                   (@Modelled_ST unit (C.array unit)
+                      (C.array unit)
+                      (@Modelled_same (C.array unit)))
+                   (@model_to_prim (C.ST unit (C.array unit))
+                      (FM.ST unit (FM.array unit))
+                      (@Modelled_ST unit (C.array unit)
+                         (FM.array unit) (@Modelled_array unit))
+                      (@FM.new unit len to_fill))
+                   (@nil (list E.t)))).
+    Check (((@prim_to_model (C.array unit) (FM.array unit)
+             (@Modelled_array unit)
+             (@fst (C.array unit) FM.arrays
+                (@prim_to_model (C.ST unit (C.array unit))
+                   (FM.ST unit (C.array unit))
+                   (@Modelled_ST unit (C.array unit)
+                      (C.array unit)
+                      (@Modelled_same (C.array unit)))
+                   (@model_to_prim (C.ST unit (C.array unit))
+                      (FM.ST unit (FM.array unit))
+                      (@Modelled_ST unit (C.array unit)
+                         (FM.array unit) (@Modelled_array unit))
+                      (@FM.new unit len to_fill))
+                   (@nil (list E.t))))))).
+
+    rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
+    Check (@model_to_prim_to_model (C.ST unit (C.array unit)) (FM.ST unit (FM.array unit)) (@Modelled_ST unit (C.array unit) (FM.array unit) (@Modelled_array unit))).
+    unfold FM.new.
+    rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
+
+    unfold model_to_prim.
+
+    assert (forall (x : FM.ST S nat), prim_to_model (model_to_prim x) = x).
+    intros. prim_rewrites. auto.
+
+
+    rewrite (H (fun s : FM.arrays => (length s, s ++ [repeat to_fill len]))).
+    rewrite !model_to_prim_to_model.
+    unfold FM.get, FM.set, FM.new.
+    simpl.
+    prim_rewrites.
+
+
+  Qed.
 
 End Array_Proofs.
 

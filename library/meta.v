@@ -1,24 +1,23 @@
 Require Import Coq.ZArith.ZArith
                Coq.Program.Basics
-               Coq.Strings.String
                Coq.Lists.List
                Coq.Lists.ListSet.
 
 Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.OptionMonad
-               ExtLib.Data.Monads.StateMonad
-               ExtLib.Data.String.
-
-From MetaCoq.Template Require Import BasicAst.
-Require Import MetaCoq.Template.All.
+               ExtLib.Data.Monads.StateMonad.
 
 Require Import VeriFFI.library.base_representation.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
-  therefore don't expect ExtLib functions to work with TemplateMonad. *)
+   therefore don't expect ExtLib functions to work with TemplateMonad. *)
 Import ListNotations.
 
 From VeriFFI Require Export verification.graph_add.
+Require Import CertiGraph.CertiGC.GCGraph.
+
+Notation " ( x ; p ) " := (existT _ x p).
+
 (* From VeriFFI Require Export verification.example.glue. *)
 (* From VeriFFI Require Export verification.specs_library. *)
 
@@ -32,10 +31,20 @@ Class Rep (A : Type) : Type :=
       forall (g : graph) (n : A) (v : VType), is_in_graph g n (repNode v) -> graph_has_v g v
   ; is_monotone :
       forall (g : graph) (to : nat) (lb : raw_vertex_block)
-            (e : list (EType × VType × VType)) (n : A) (p : rep_type),
+            (e : list (EType * (VType * VType))) (n : A) (p : rep_type),
       add_node_compatible g (new_copied_v g to) e ->
       graph_has_gen g to -> is_in_graph g n p -> is_in_graph (add_node g to lb e) n p
   }.
+
+Instance InGraph_Prop : InGraph Prop :=
+  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
+Instance InGraph_Set : InGraph Set :=
+  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
+Instance InGraph_Type : InGraph Type :=
+  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
+Instance Rep_Prop : Rep Prop. Proof. apply (@Build_Rep _ InGraph_Prop). Admitted.
+Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
+Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
 
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
 
@@ -215,8 +224,9 @@ Check <%% vec %%>.
 *)
 
 (* GENERATION *)
+Require Import MetaCoq.Template.All.
 Record constructor_description :=
-{ ctor_name : BasicAst.ident;
+{ ctor_name : Kernames.ident;
   ctor_reific : reific Rep;
   ctor_real : reconstruct ctor_reific
 }.

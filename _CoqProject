@@ -3,13 +3,18 @@
 library/base_representation.v
 verification/graph_add.v
 library/meta.v
+library/modelled.v
 
 generator/gen_utils.v
 generator/InGraph.v
 generator/Rep.v
 generator/Desc.v
 
-verification/example/glue.v
 verification/specs_library.v
-verification/proofs_library_general.v
+# verification/proofs_library_general.v
 verification/specs_general.v
+
+prim/lift.v
+
+examples/verif/glue.v
+examples/int/uint63.v
