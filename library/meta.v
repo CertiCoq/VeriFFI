@@ -224,9 +224,10 @@ Check <%% vec %%>.
 *)
 
 (* GENERATION *)
-Require Import MetaCoq.Template.All.
+(* Require Import MetaCoq.Template.All. *)
+Require Import String.
 Record constructor_description :=
-{ ctor_name : Kernames.ident;
+{ ctor_name : string;
   ctor_reific : reific Rep;
   ctor_real : reconstruct ctor_reific
 }.
