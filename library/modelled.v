@@ -52,8 +52,10 @@ Proof.
   intros ma f.
   econstructor.
   Unshelve.
-  3: {intros g a; exact (model_to_prim (g (prim_to_model a))).}
-  3: {intros g a'; exact (prim_to_model (g (model_to_prim a'))).}
+  Focus 3. intros g a; exact (model_to_prim (g (prim_to_model a))).
+  Focus 3. intros g a'; exact (prim_to_model (g (model_to_prim a'))).
+  (* 3: {intros g a; exact (model_to_prim (g (prim_to_model a))).} *)
+  (* 3: {intros g a'; exact (prim_to_model (g (model_to_prim a'))).} *)
   * intros x.
     apply (functional_extensionality_dep _ x).
     intro a.
@@ -531,60 +533,62 @@ Module Array_Proofs.
 
     props get_properties.
     prim_rewrites.
+  Abort.
+
 
     (* rest of the proof is just about the functional model *)
-    Set Printing All.
-    Check (@FM.new unit len to_fill).
-    Check ((@model_to_prim (C.ST unit (C.array unit))
-                      (FM.ST unit (FM.array unit))
-                      (@Modelled_ST unit (C.array unit)
-                         (FM.array unit) (@Modelled_array unit))
-                      (@FM.new unit len to_fill))).
-    Check ((@prim_to_model (C.ST unit (C.array unit))
-                   (FM.ST unit (C.array unit))
-                   (@Modelled_ST unit (C.array unit)
-                      (C.array unit)
-                      (@Modelled_same (C.array unit)))
-                   (@model_to_prim (C.ST unit (C.array unit))
-                      (FM.ST unit (FM.array unit))
-                      (@Modelled_ST unit (C.array unit)
-                         (FM.array unit) (@Modelled_array unit))
-                      (@FM.new unit len to_fill))
-                   (@nil (list E.t)))).
-    Check (((@prim_to_model (C.array unit) (FM.array unit)
-             (@Modelled_array unit)
-             (@fst (C.array unit) FM.arrays
-                (@prim_to_model (C.ST unit (C.array unit))
-                   (FM.ST unit (C.array unit))
-                   (@Modelled_ST unit (C.array unit)
-                      (C.array unit)
-                      (@Modelled_same (C.array unit)))
-                   (@model_to_prim (C.ST unit (C.array unit))
-                      (FM.ST unit (FM.array unit))
-                      (@Modelled_ST unit (C.array unit)
-                         (FM.array unit) (@Modelled_array unit))
-                      (@FM.new unit len to_fill))
-                   (@nil (list E.t))))))).
+    (* Set Printing All. *)
+    (* Check (@FM.new unit len to_fill). *)
+    (* Check ((@model_to_prim (C.ST unit (C.array unit)) *)
+    (*                   (FM.ST unit (FM.array unit)) *)
+    (*                   (@Modelled_ST unit (C.array unit) *)
+    (*                      (FM.array unit) (@Modelled_array unit)) *)
+    (*                   (@FM.new unit len to_fill))). *)
+    (* Check ((@prim_to_model (C.ST unit (C.array unit)) *)
+    (*                (FM.ST unit (C.array unit)) *)
+    (*                (@Modelled_ST unit (C.array unit) *)
+    (*                   (C.array unit) *)
+    (*                   (@Modelled_same (C.array unit))) *)
+    (*                (@model_to_prim (C.ST unit (C.array unit)) *)
+    (*                   (FM.ST unit (FM.array unit)) *)
+    (*                   (@Modelled_ST unit (C.array unit) *)
+    (*                      (FM.array unit) (@Modelled_array unit)) *)
+    (*                   (@FM.new unit len to_fill)) *)
+    (*                (@nil (list E.t)))). *)
+    (* Check (((@prim_to_model (C.array unit) (FM.array unit) *)
+    (*          (@Modelled_array unit) *)
+    (*          (@fst (C.array unit) FM.arrays *)
+    (*             (@prim_to_model (C.ST unit (C.array unit)) *)
+    (*                (FM.ST unit (C.array unit)) *)
+    (*                (@Modelled_ST unit (C.array unit) *)
+    (*                   (C.array unit) *)
+    (*                   (@Modelled_same (C.array unit))) *)
+    (*                (@model_to_prim (C.ST unit (C.array unit)) *)
+    (*                   (FM.ST unit (FM.array unit)) *)
+    (*                   (@Modelled_ST unit (C.array unit) *)
+    (*                      (FM.array unit) (@Modelled_array unit)) *)
+    (*                   (@FM.new unit len to_fill)) *)
+    (*                (@nil (list E.t))))))). *)
 
-    rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
-    Check (@model_to_prim_to_model (C.ST unit (C.array unit)) (FM.ST unit (FM.array unit)) (@Modelled_ST unit (C.array unit) (FM.array unit) (@Modelled_array unit))).
-    unfold FM.new.
-    rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model.
+    (* rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model. *)
+    (* Check (@model_to_prim_to_model (C.ST unit (C.array unit)) (FM.ST unit (FM.array unit)) (@Modelled_ST unit (C.array unit) (FM.array unit) (@Modelled_array unit))). *)
+    (* unfold FM.new. *)
+    (* rewrite ?prim_to_model_to_prim, ?model_to_prim_to_model. *)
 
-    unfold model_to_prim.
+    (* unfold model_to_prim. *)
 
-    assert (forall (x : FM.ST S nat), prim_to_model (model_to_prim x) = x).
-    intros. prim_rewrites. auto.
-
-
-    rewrite (H (fun s : FM.arrays => (length s, s ++ [repeat to_fill len]))).
-    rewrite !model_to_prim_to_model.
-    unfold FM.get, FM.set, FM.new.
-    simpl.
-    prim_rewrites.
+    (* assert (forall (x : FM.ST S nat), prim_to_model (model_to_prim x) = x). *)
+    (* intros. prim_rewrites. auto. *)
 
 
-  Qed.
+    (* rewrite (H (fun s : FM.arrays => (length s, s ++ [repeat to_fill len]))). *)
+    (* rewrite !model_to_prim_to_model. *)
+    (* unfold FM.get, FM.set, FM.new. *)
+    (* simpl. *)
+    (* prim_rewrites. *)
+
+
+  (* Qed. *)
 
 End Array_Proofs.
 
