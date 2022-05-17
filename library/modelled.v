@@ -52,10 +52,8 @@ Proof.
   intros ma f.
   econstructor.
   Unshelve.
-  Focus 3. intros g a; exact (model_to_prim (g (prim_to_model a))).
-  Focus 3. intros g a'; exact (prim_to_model (g (model_to_prim a'))).
-  (* 3: {intros g a; exact (model_to_prim (g (prim_to_model a))).} *)
-  (* 3: {intros g a'; exact (prim_to_model (g (model_to_prim a'))).} *)
+  3: intros g a; exact (model_to_prim (g (prim_to_model a))).
+  3: intros g a'; exact (prim_to_model (g (model_to_prim a'))).
   * intros x.
     apply (functional_extensionality_dep _ x).
     intro a.

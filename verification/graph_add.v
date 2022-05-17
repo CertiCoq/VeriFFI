@@ -8,7 +8,7 @@ In the second part, we prove several compatibility properties for this augmented
 
 Require Export CertiGraph.CertiGC.gc_correct.
 From VeriFFI.library Require Export base_representation. 
-
+Import GCGraph graph_model gc_spec.
 
 (** ** 1. Definition of the function for adding a node to CertiCoq Graph with a given label. 
 
@@ -22,7 +22,7 @@ This vertex will be added automatically at the end of a generation to.. *)
 Definition pregraph_add_my_edge g (x : (EType * (VType * VType))) := pregraph_add_edge g (fst x) (fst (snd x)) (snd (snd x)). 
 
 Definition pregraph_add_v (g: LGraph) (new_v: VType) (xs : list (EType * (VType * VType))): PreGraph VType EType :=
-  fold_left pregraph_add_my_edge xs (pregraph_add_vertex g new_v). 
+  List.fold_left pregraph_add_my_edge xs (pregraph_add_vertex g new_v). 
 
 (** Function for actually adding a node in generation to to graph g with the node label lb. *) 
 Definition add_node (g : graph) (to : nat) (lb : raw_vertex_block) es : graph :=
