@@ -600,9 +600,9 @@ Module Array_Proofs.
     econstructor.
     Unshelve.
     3: { intros a x. specialize (a x).
-         exact (f (fst a), (snd a)).}
+         exact (f (fst a), (snd a)). }
     3: { intros a x. specialize (a x).
-         exact (t (fst a), (snd a)).}
+         exact (t (fst a), (snd a)). }
     simpl. intros. apply functional_extensionality. intros. rewrite ?ft, ?tf. destruct (x x0). auto.
     simpl. intros. apply functional_extensionality. intros. rewrite ?ft, ?tf. destruct (x x0). auto.
   Defined.
@@ -663,6 +663,7 @@ Module Array_Proofs.
 
 
     intros S n len bound to_set to_fill.
+(*
 
     erewrite runST_pf.
     instantiate (1 := fun _ => FM.bind (FM.new len to_fill) (fun arr => FM.bind (FM.set arr n to_set) (fun _ => FM.get arr n))).
@@ -682,16 +683,7 @@ Module Array_Proofs.
     apply jmeq_funext.
     intro A.
     admit.
-
-
-
-
-
-
-
-
-
-
+*)
     props runST_properties.
     prim_rewrites.
     unfold FM.runST.
@@ -716,6 +708,7 @@ Module Array_Proofs.
 
     rewrite !to_sym.
     rewrite !from_trans.
+(*
     rewrite from_eq.
     3: {
       Set Printing All.
@@ -771,9 +764,8 @@ Module Array_Proofs.
     unfold FM.get, FM.set, FM.new.
     simpl.
     prim_rewrites.
-
-
-  Qed.
+*)
+  Admitted.
 
 End Array_Proofs.
 
@@ -793,7 +785,7 @@ Require Import Coq.Program.Basics.
 Require Import Coq.Program.Combinators.
 Require Import Setoid.
 
-
+(*
 Inductive P {A : Type} : A -> Prop :=
 | MkP : forall a, P a.
 
@@ -1490,6 +1482,8 @@ Module Array_Proofs.
 
   Qed.
 
+
 End Array_Proofs.
 
 End ArrayVerification.
+*)
