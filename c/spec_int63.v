@@ -89,12 +89,16 @@ Definition certicoq_decode_int63_spec: ident * funspec :=
         SEP ( ).
 *)
 
+Definition tvalue := Tlong Signed noattr.
+Definition threadinfo := Tstruct _thread_info noattr.
+
+(*
 Definition certicoq_prim__int63_zero_spec: ident * funspec :=
     DECLARE _certicoq_prim__int63_zero
-    WITH u: unit
-    PRE [ ]
+    WITH tinfo: val
+    PRE [ tptr threadinfo ]
         PROP ()
-        PARAMS ()
+        PARAMS ( tinfo )
         GLOBALS()
         SEP ( )
     POST [ tlong ]
@@ -104,18 +108,16 @@ Definition certicoq_prim__int63_zero_spec: ident * funspec :=
 
 Definition certicoq_prim__int63_one_spec: ident * funspec :=
     DECLARE _certicoq_prim__int63_one
-    WITH u: unit
-    PRE [ ]
+    WITH tinfo: val
+    PRE [ tptr threadinfo ]
         PROP ()
-        PARAMS ()
+        PARAMS ( tinfo )
         GLOBALS()
         SEP ( )
     POST [ tlong ]
         PROP ( )
         RETURN (Vlong (Int64.repr 1))
         SEP ( ).
-
-(*
 
 Definition certicoq_prim__int63_neg_spec: ident * funspec :=
     DECLARE _certicoq_prim__int63_neg
@@ -156,6 +158,20 @@ Definition tag63 (x: FM.t) := Vlong (Int64.repr (2*(proj1_sig x)+1)).
 
 Definition certicoq_prim__int63_add_spec: ident * funspec :=
     DECLARE _certicoq_prim__int63_add
+    WITH tinfo: val, x: FM.t, y:FM.t
+    PRE [ tptr threadinfo, tlong, tlong ]
+        PROP ()
+        PARAMS (tinfo; tag63 x; tag63 y)
+        GLOBALS()
+        SEP ( )
+    POST [ tlong ]
+        PROP ( )
+        RETURN (tag63 (FM.add x y))
+        SEP ( ).
+
+(*
+Definition certicoq_prim__int63_sub_spec: ident * funspec :=
+    DECLARE _certicoq_prim__int63_add
     WITH x: FM.t, y:FM.t
     PRE [ tlong, tlong ]
         PROP ()
@@ -164,37 +180,16 @@ Definition certicoq_prim__int63_add_spec: ident * funspec :=
         SEP ( )
     POST [ tlong ]
         PROP ( )
-        RETURN (tag63 (FM.add x y))
-        SEP ( ).
-(*
-
-Definition certicoq_prim__int63_sub_spec: ident * funspec :=
-    DECLARE _certicoq_prim__int63_sub
-    WITH x: Z, y: Z, gv: globals
-    PRE [ tlong, tlong ]
-        PROP (
-            Int64.min_signed <= encode_Z x <= Int64.max_signed;
-            Int64.min_signed <= encode_Z y <= Int64.max_signed;
-            Int64.min_signed <= encode_Z (x - y) <= Int64.max_signed
-        )
-        PARAMS (
-            Vlong (Int64.repr (encode_Z x));
-            Vlong (Int64.repr (encode_Z y))
-        )
-        GLOBALS(gv)
-        SEP ( )
-    POST [ tlong ]
-        PROP ( )
-        RETURN (Vlong (Int64.repr (encode_Z (x - y))))
+        RETURN (tag63 (FMs.sub x y))
         SEP ( ).
 *)
 
 Definition certicoq_prim__int63_mul_spec: ident * funspec :=
     DECLARE _certicoq_prim__int63_mul
-    WITH x: FM.t, y:FM.t
-    PRE [ tlong, tlong ]
+    WITH tinfo: val, x: FM.t, y:FM.t
+    PRE [ tptr threadinfo, tlong, tlong ]
         PROP ()
-        PARAMS (tag63 x; tag63 y)
+        PARAMS (tinfo; tag63 x; tag63 y)
         GLOBALS()
         SEP ( )
     POST [ tlong ]
@@ -360,10 +355,8 @@ Definition ASI: funspecs := [
 (*
     certicoq_decode_int63_spec;
     certicoq_encode_int63_spec;
-*)
     certicoq_prim__int63_zero_spec;
     certicoq_prim__int63_one_spec;
-(*
     certicoq_prim__int63_neg_spec;
     certicoq_prim__int63_abs_spec;
 *)
