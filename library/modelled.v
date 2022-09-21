@@ -199,31 +199,26 @@ Module FM <: UInt63.
   Defined.
 
   Definition to_Z (z : t) : Z := proj1_sig z.
-  Definition add (x y : t) : t.
-    destruct x as [xz x_pf], y as [yz y_pf].
-    exists ((xz + yz) mod (2^63))%Z.
-    split.
-    * destruct x_pf as [x_pf1 _], y_pf as [y_pf1 _].
-      apply Z_mod_nonneg_nonneg.
-      apply Z.add_nonneg_nonneg.
-      assumption. assumption.
-      apply Pos2Z.is_nonneg.
-    * apply Z.mod_pos_bound.
-      constructor.
-  Defined.
 
-  Definition mul (x y : t) : t.
-    destruct x as [xz x_pf], y as [yz y_pf].
-    exists ((xz * yz) mod (2^63))%Z.
-    split.
-    * destruct x_pf as [x_pf1 _], y_pf as [y_pf1 _].
-      apply Z_mod_nonneg_nonneg.
-      apply Z.mul_nonneg_nonneg.
-      assumption. assumption.
-      apply Pos2Z.is_nonneg.
-    * apply Z.mod_pos_bound.
-      constructor.
-  Defined.
+  Lemma mod63_ok:
+    forall z, (0 <= z mod (2^63) < 2^63)%Z.
+  Proof.
+    intro. apply Z.mod_pos_bound.
+    apply Z.pow_pos_nonneg; lia.
+   Qed.
+
+  Definition add (x y: t) : t :=
+  let '(exist xz x_pf) := x in 
+  let '(exist yz y_pf) := y in 
+  let z := ((xz + yz) mod (2^63))%Z in
+  exist _ z (mod63_ok _).
+
+  Definition mul (x y: t) : t :=
+  let '(exist xz x_pf) := x in 
+  let '(exist yz y_pf) := y in 
+  let z := ((xz * yz) mod (2^63))%Z in
+  exist _ z (mod63_ok _).
+
 End FM.
 
 Module C : UInt63.
@@ -300,14 +295,6 @@ Module UInt63_Proofs.
 
     Print model_spec.
     Print model_spec_aux.
-
-  let P := fresh in
-  pose proof from_Z_properties as P;
-  hnf in P;
-  simpl in P;
-  rewrite !P;
-  unfold id, eq_rect in *.
-
     props from_Z_properties.
     props to_Z_properties.
     props add_properties.
