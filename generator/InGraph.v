@@ -48,14 +48,12 @@
 *)
 Require Import Coq.ZArith.ZArith
                Coq.Program.Basics
-               Coq.Strings.String
                Coq.Lists.List
                Coq.Lists.ListSet.
 
 Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.OptionMonad
-               ExtLib.Data.Monads.StateMonad
-               ExtLib.Data.String.
+               ExtLib.Data.Monads.StateMonad.
 
 From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
@@ -74,7 +72,7 @@ Notation "f >=> g" := (fun x => (f x) >>= g)
                       (at level 51, right associativity) : monad_scope.
 Notation "f <$> x" := (x' <- x%monad ;; ret (f x'))
                       (at level 52, right associativity) : monad_scope.
-Open Scope string.
+Open Scope bs.
 
 Instance InGraph_Prop : InGraph Prop :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
@@ -88,8 +86,8 @@ Instance InGraph_Type : InGraph Type :=
 Section Argumentation.
 
   Variant arg_variant : Type :=
-  | param_arg : forall (param_name : BasicAst.ident) (param_type : named_term), arg_variant
-  | value_arg : forall (arg_name exists_name : BasicAst.ident) (arg_type : named_term), arg_variant.
+  | param_arg : forall (param_name : ident) (param_type : named_term), arg_variant
+  | value_arg : forall (arg_name exists_name : ident) (arg_type : named_term), arg_variant.
 
   (* Takes the identifying information for a single inductive type
      in a mutual block, a constructor for that type,
@@ -109,9 +107,9 @@ Section Argumentation.
        - another to substitute those [ident]s into terms referring to those types,
          so that later when we encounter the [tInd] we know which [InGraph] instance to call.
      *)
-    let mut_names : list BasicAst.ident :=
+    let mut_names : list ident :=
         map (fun one => "$$$" ++ string_of_kername (mp, ind_name one)) (ind_bodies mut) in
-    let mut_ind_terms : list (BasicAst.ident * global_term) :=
+    let mut_ind_terms : list (ident * global_term) :=
         mapi (fun i one =>
                 let id := "$$$" ++ string_of_kername (mp, ind_name one) in
                 let ind := mkInd kn i in
@@ -120,7 +118,7 @@ Section Argumentation.
 
     let fix aux (params : nat) (* number of parameters left *)
                 (arg_count : nat) (* number of args seen *)
-                (ctx : list BasicAst.ident) (* names of params and args to be used *)
+                (ctx : list ident) (* names of params and args to be used *)
                 (t : term) (* what is left from the constructor type *)
                 {struct t}
                 : TemplateMonad (list arg_variant * named_term) :=
@@ -139,8 +137,8 @@ Section Argumentation.
 
       (* Other arguments *)
       | O , tProd n t b =>
-        let arg_name : BasicAst.ident := "arg" ++ string_of_nat arg_count in
-        let exists_name : BasicAst.ident := "p" ++ string_of_nat arg_count in
+        let arg_name : ident := "arg" ++ string_of_nat arg_count in
+        let exists_name : ident := "p" ++ string_of_nat arg_count in
         '(args, rest) <- aux O (S arg_count) (arg_name :: ctx) b ;;
         t' <- DB.undeBruijn' (map nNamed ctx) t ;;
         let t' := Substitution.named_subst_all mut_ind_terms t' in
@@ -172,7 +170,7 @@ Definition generate_instance_type
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (type_quantifier : BasicAst.ident -> named_term -> named_term)
+           (type_quantifier : ident -> named_term -> named_term)
            (replacer : named_term -> named_term) : TemplateMonad named_term :=
   (* Convert the type of the type to explicitly named representation *)
   ty <- DB.undeBruijn (ind_type one) ;;
@@ -182,7 +180,7 @@ Definition generate_instance_type
      It also builds a function to replace the part after the π-binders. *)
   let fix collect
           (t : named_term) (remaining_params : nat) (count : nat) (replacer : named_term -> named_term)
-          : list (BasicAst.ident * is_param * is_sort) * (named_term -> named_term) :=
+          : list (ident * is_param * is_sort) * (named_term -> named_term) :=
     match t with
     | tProd (mkBindAnn nAnon rel) ty rest =>
         let '(idents, f) := collect rest (pred remaining_params) (S count) replacer in
@@ -249,11 +247,11 @@ Definition find_missing_instance
   generate_InGraph_instance_type ind mut one >>=
   DB.deBruijn >>= tmUnquoteTyped Type >>= has_instance.
 
-(* Take in a [global_env], which is a list of declarations,
+(* Take in a [global_declarations], which is a list of declarations,
    and find the inductive declarations in that list
    that do not have [InGraph] instances. *)
 Fixpoint find_missing_instances
-        (env : global_env) : TemplateMonad (list kername) :=
+        (env : global_declarations) : TemplateMonad (list kername) :=
     match env with
     | (kn, InductiveDecl mut) :: env' =>
       rest <- find_missing_instances env' ;;
@@ -377,7 +375,7 @@ Fixpoint strip_n_lambdas (n : nat) (t : named_term) : named_term :=
 (* Get binder names and binding types for all
    initial consecutive π-type quantifiers in a [named_term]. *)
 Fixpoint get_quantifiers
-         (modify : BasicAst.ident -> BasicAst.ident)
+         (modify : ident -> ident)
          (t : named_term) : list (aname * named_term) :=
   match t with
   | tProd (mkBindAnn nAnon rel) ty rest =>
@@ -434,9 +432,9 @@ Definition build_method_call
   res <-
     match InGraph_call with
     | tApp (tVar n) rest =>
-      if prefix "___InGraph" n
+      if bytestring.String.prefix "___InGraph" n
       then
-        let num : string := substring 10 13 n in
+        let num : string := bytestring.String.substring 10 13 n in
         ret (tApp (tVar ("is_in_graph" ++ num)) (map make_arg quantifiers))
         (* ret (tVar ("is_in_graph" ++ num)) *)
       else
@@ -547,6 +545,7 @@ Fixpoint count_quantifiers_to_skip (xs : context) : nat :=
   | nil => 0
   end.
 
+Check <% fun A => fun xs : list A => match xs with nil => true | cons y ys => false end %>.
 (* Generates a reified match expression *)
 Definition matchmaker
     (all_single_rep_tys : list (aname * named_term))
@@ -572,13 +571,28 @@ Definition matchmaker
       skipn to_skip quantifiers in
   tmMsg "QUANT WITHOUT PARAMS:" ;;
   tmEval all quantifiers_without_params >>= tmPrint ;;
-  ret (tCase (ind, O, Relevant)
+  ret (tCase {| ci_ind := ind
+              ; ci_npar := 0
+              ; ci_relevance := Relevant
+              |}
+             {| puinst := [];
+              ; pparams := [tRel 1]
+              ; pcontext := [{| binder_name := nNamed "xs"; binder_relevance := Relevant |}]
+              ; preturn := <% Prop %>
+              |}
+             (tVar "x")
              (* TODO only quantify over the indices, not parameters *)
              (build_quantifiers tLambda quantifiers_without_params
                                 (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>))
              (* (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>) *)
-             (tVar "x")
              branches).
+  (* ret (tCase (ind, O, Relevant) *)
+  (*            (* TODO only quantify over the indices, not parameters *) *)
+  (*            (build_quantifiers tLambda quantifiers_without_params *)
+  (*                               (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>)) *)
+  (*            (* (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>) *) *)
+  (*            (tVar "x") *)
+  (*            branches). *)
 
 (* Make a single record to use in a [tFix].
    For mutually inductive types, we want to build them all once,
@@ -743,7 +757,7 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
    and the types its definition depends on. *)
 Definition in_graph_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   '(env, tau) <- tmQuoteRec Tau ;;
-  missing <- find_missing_instances env ;;
+  missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
 (* Playground: *)

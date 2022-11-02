@@ -29,8 +29,7 @@ Section Names.
     split_aux EmptyString c s.
 
  Definition qualifying_prefix := modpath.
- Definition base_name := string.
- Definition sanitized_name := string.
+ Definition base_name := ident.
 
  (* takes a fully qualified name and removes the base name,
     leaving behind the qualifying prefix.
@@ -50,40 +49,22 @@ Section Names.
     | base :: rest => base
     end. *)
 
-  Definition sanitize_dirpath (dp : dirpath) : string :=
-    String.concat "_" (List.rev dp).
-
-  Fixpoint sanitize_modpath (mp : modpath) : string :=
-    match mp with
-    | MPfile dp => sanitize_dirpath dp
-    | MPbound dp id _ => (sanitize_dirpath dp ++ "_" ++ id)%string
-    | MPdot mp0 id => (sanitize_modpath mp0 ++ "_" ++ id)%string
-    end.
-
-  (* Takes in "M1.M2.tau" and returns "M1_M2_tau". *)
-  Definition sanitize_qualified (n : kername) : sanitized_name :=
-    let (mp, id) := n in
-    (sanitize_modpath mp ++ "_" ++ id)%string.
-
-  Definition sanitize_string (s : string) : sanitized_name :=
-    String.concat "_" (split "." s).
-
 End Names.
 
 (* A record that holds L1 information about Coq types. *)
 Record ty_info : Type :=
   Build_ty_info
     { ty_name      : kername
-    ; ty_body      : Ast.one_inductive_body
+    ; ty_body      : Ast.Env.one_inductive_body
     ; ty_inductive : inductive
-    ; ty_params    : list string
+    ; ty_params    : list ident
     }.
 
 (* A record that holds information about Coq constructors.
    This may be redesigned in the future to hold info about
    the [dissected_type] etc, like a one-stop shop for constructors? *)
 Record ctor_info : Type :=
-  { ctor_name    : BasicAst.ident
+  { ctor_name    : ident
   ; ctor_arity   : nat
   ; ctor_ordinal : nat
   ; ctor_type    : Ast.term
@@ -95,7 +76,7 @@ Section L1Constructors.
   | dInd : inductive -> dissected_type
   | dApp : dissected_type -> list dissected_type -> dissected_type
   | dFun : dissected_type (* for higher-order arguments to constructor *)
-  | dParam : string -> dissected_type (* for argument of the parametrized types *)
+  | dParam : ident -> dissected_type (* for argument of the parametrized types *)
   | dSort : dissected_type (* for type arguments to the ctor *)
   | dInvalid : dissected_type (* used for variables that could not be found *).
 
@@ -194,7 +175,7 @@ Section Ctor_Info.
   Variant ctor_box : Type := unboxed | boxed.
 
   (* Can be used [if unbox_check c then ... else ...] *)
-  Definition unbox_check (ctor : BasicAst.ident * Ast.term * nat) : ctor_box :=
+  Definition unbox_check (ctor : ident * Ast.term * nat) : ctor_box :=
     let '(_, _, arity) := ctor in
     match arity with
     | O => unboxed
@@ -203,11 +184,11 @@ Section Ctor_Info.
 
   (* A function to calculate the ordinals of a type's constructors. *)
   Definition process_ctors
-             (ctors : list (BasicAst.ident * Ast.term * nat)) : list ctor_info :=
+             (ctors : list (ident * Ast.term * nat)) : list ctor_info :=
     let fix aux
             (unboxed_count : nat)
             (boxed_count : nat)
-            (ctors : list (BasicAst.ident * Ast.term * nat)) : list ctor_info :=
+            (ctors : list (ident * Ast.term * nat)) : list ctor_info :=
       match ctors with
       | nil => nil
       | (name, t, ar) :: ctors' =>
@@ -279,18 +260,23 @@ Definition global_term : Type := term.
    either [term], [named_term] or [global_term]. *)
 Definition any_term : Type := term.
 
+Definition ident_eq (x y : ident) : bool :=
+  match compare_ident x y with
+  | Eq => true
+  | _ => false
+  end.
+
 Module DB.
   (* Inspired by code written by John Li but changed slightly.
      We should eventually consider making a MetaCoq_utils module. *)
-
   (* Takes a named representation and converts it into the de Bruijn representation. *)
   Definition deBruijn' (ctx : list name) (t : named_term) : TemplateMonad term :=
-    let fix find_in_ctx (count : nat) (id : BasicAst.ident) (ctx : list name) : option nat :=
+    let fix find_in_ctx (count : nat) (id : ident) (ctx : list name) : option nat :=
       match ctx with
       | nil => None
       | nAnon :: ns => find_in_ctx (S count) id ns
       | (nNamed id') :: ns =>
-        if BasicAst.ident_eq id id' then Some count else find_in_ctx (S count) id ns
+        if ident_eq id id' then Some count else find_in_ctx (S count) id ns
       end in
     let fix go (ctx : list name) (t : named_term) : TemplateMonad term :=
         let go_mfix (mf : mfixpoint named_term) : TemplateMonad (mfixpoint term) :=
@@ -298,8 +284,12 @@ Module DB.
           monad_map (fun def =>
                        dtype' <- go ctx def.(dtype) ;;
                        dbody' <- go (rev ctx' ++ ctx) def.(dbody) ;;
-                       ret (mkdef _ def.(dname) dtype' dbody' def.(rarg))) mf
-        in
+                       ret (mkdef _ def.(dname) dtype' dbody' def.(rarg))) mf in
+        let go_branches (branches : list (branch named_term))
+                        : TemplateMonad (list (branch term)):=
+          monad_map (fun br =>
+              t' <- go (map binder_name (bcontext br) ++ ctx) (bbody br) ;;
+              ret {| bcontext := bcontext br; bbody := t' |}) branches in
         match t with
         | tRel n => ret t
         | tVar id =>
@@ -337,9 +327,15 @@ Module DB.
         | tInd ind u => ret t
         | tConstruct ind idx u => ret t
         | tCase ind_nbparams_relevance type_info discr branches =>
-            type_info' <- go ctx type_info ;;
+            preturn' <- go ctx (preturn type_info) ;;
+            let type_info' :=
+              {| puinst := puinst type_info
+               ; pparams := pparams type_info
+               ; pcontext := pcontext type_info
+               ; preturn := preturn'
+               |} in
             discr' <- go ctx discr ;;
-            branches' <- monad_map (fun '(n, t) => t' <- go ctx t ;; ret (n, t')) branches ;;
+            branches' <- go_branches branches ;;
             ret (tCase ind_nbparams_relevance type_info' discr' branches')
         | tProj proj t =>
             t' <- go ctx t ;;
@@ -365,13 +361,17 @@ Module DB.
           monad_map (fun def =>
                        dtype' <- go ctx def.(dtype) ;;
                        dbody' <- go (rev ctx' ++ ctx) def.(dbody) ;;
-                       ret (mkdef _ def.(dname) dtype' dbody' def.(rarg))) mf
-        in
+                       ret (mkdef _ def.(dname) dtype' dbody' def.(rarg))) mf in
+        let go_branches (branches : list (branch term))
+                        : TemplateMonad (list (branch named_term)):=
+          monad_map (fun br =>
+              t' <- go (map binder_name (bcontext br) ++ ctx) (bbody br) ;;
+              ret {| bcontext := bcontext br; bbody := t' |}) branches in
         match t with
         | tRel n =>
             match nth_error ctx n with
             | None => ret t
-            | Some nAnon => tmFail "Reference to anonymous binding"
+            | Some nAnon => tmFail "Reference to anonymous binding"%bs
             | Some (nNamed id) => ret (tVar id)
             end
         | tVar id => ret t
@@ -405,9 +405,15 @@ Module DB.
         | tInd ind u => ret t
         | tConstruct ind idx u => ret t
         | tCase ind_nbparams_relevance type_info discr branches =>
-            type_info' <- go ctx type_info ;;
+            preturn' <- go ctx (preturn type_info) ;;
+            let type_info' :=
+              {| puinst := puinst type_info
+               ; pparams := pparams type_info
+               ; pcontext := pcontext type_info
+               ; preturn := preturn'
+               |} in
             discr' <- go ctx discr ;;
-            branches' <- monad_map (fun '(n, t) => t' <- go ctx t ;; ret (n, t')) branches ;;
+            branches' <- go_branches branches ;;
             ret (tCase ind_nbparams_relevance type_info' discr' branches')
         | tProj proj t =>
             t' <- go ctx t ;;
@@ -455,30 +461,35 @@ End DB.
 
 Module Substitution.
   (* Capturing substitution for named terms, only use for global terms. *)
-  Fixpoint named_subst (t : global_term) (x : BasicAst.ident) (u : named_term) {struct u} : named_term :=
+  Fixpoint named_subst (t : global_term) (x : ident) (u : named_term) {struct u} : named_term :=
     match u with
-    | tVar id => if eq_string id x then t else u
+    | tVar id => if ident_eq id x then t else u
     | tEvar ev args => tEvar ev (map (named_subst t x) args)
     | tCast c kind ty => tCast (named_subst t x c) kind (named_subst t x ty)
     | tProd (mkBindAnn (nNamed id) rel) A B =>
-      if eq_string x id
+      if ident_eq x id
       then tProd (mkBindAnn (nNamed id) rel) (named_subst t x A) B
       else tProd (mkBindAnn (nNamed id) rel) (named_subst t x A) (named_subst t x B)
     | tProd na A B => tProd na (named_subst t x A) (named_subst t x B)
     | tLambda (mkBindAnn (nNamed id) rel) T M =>
-      if eq_string x id
+      if ident_eq x id
       then tLambda (mkBindAnn (nNamed id) rel) (named_subst t x T) M
       else tLambda (mkBindAnn (nNamed id) rel) (named_subst t x T) (named_subst t x M)
     | tLambda na T M => tLambda na (named_subst t x T) (named_subst t x M)
     | tLetIn (mkBindAnn (nNamed id) rel) b ty b' =>
-      if eq_string x id
+      if ident_eq x id
       then tLetIn (mkBindAnn (nNamed id) rel) (named_subst t x b) (named_subst t x ty) b'
       else tLetIn (mkBindAnn (nNamed id) rel) (named_subst t x b) (named_subst t x ty) (named_subst t x b')
     | tLetIn na b ty b' => tLetIn na (named_subst t x b) (named_subst t x ty) (named_subst t x b')
     | tApp u0 v => mkApps (named_subst t x u0) (map (named_subst t x) v)
     | tCase ind p c brs =>
-        let brs' := map (on_snd (named_subst t x)) brs in
-        tCase ind (named_subst t x p) (named_subst t x c) brs'
+        let p' := {| puinst := puinst p
+                   ; pparams := pparams p
+                   ; pcontext := pcontext p
+                   ; preturn := named_subst t x (preturn p)
+                   |} in
+        let brs' := map (fun br => {| bcontext := bcontext br ; bbody := named_subst t x (bbody br) |} ) brs in
+        tCase ind p' (named_subst t x c) brs'
     | tProj p c => tProj p (named_subst t x c)
     | tFix mfix idx => (* FIXME *)
       let mfix' := map (map_def (named_subst t x) (named_subst t x)) mfix in
@@ -490,7 +501,7 @@ Module Substitution.
     end.
 
   (* Substitute multiple [named_term]s into a [named_term]. *)
-  Fixpoint named_subst_all (l : list (BasicAst.ident * named_term)) (u : named_term) : named_term :=
+  Fixpoint named_subst_all (l : list (ident * named_term)) (u : named_term) : named_term :=
     match l with
     | nil => u
     | (id, t) :: l' => named_subst_all l' (named_subst t id u)
@@ -515,8 +526,13 @@ Module ConstSubstitution.
     | tLetIn na b ty b' => tLetIn na (named_subst t x b) (named_subst t x ty) (named_subst t x b')
     | tApp u0 v => mkApps (named_subst t x u0) (map (named_subst t x) v)
     | tCase ind p c brs =>
-        let brs' := map (on_snd (named_subst t x)) brs in
-        tCase ind (named_subst t x p) (named_subst t x c) brs'
+        let p' := {| puinst := puinst p
+                   ; pparams := pparams p
+                   ; pcontext := pcontext p
+                   ; preturn := named_subst t x (preturn p)
+                   |} in
+        let brs' := map (fun br => {| bcontext := bcontext br ; bbody := named_subst t x (bbody br) |} ) brs in
+        tCase ind p' (named_subst t x c) brs'
     | tProj p c => tProj p (named_subst t x c)
     | tFix mfix idx => (* FIXME *)
       let mfix' := map (map_def (named_subst t x) (named_subst t x)) mfix in

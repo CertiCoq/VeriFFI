@@ -1,8 +1,21 @@
--Q ../CertiGraph CertiGraph -Q . VeriFFI
+-Q . VeriFFI
 
 library/base_representation.v
 verification/graph_add.v
 library/meta.v
+
+generator/gen_utils.v
+generator/InGraph.v
+generator/Rep.v
+generator/Desc.v
+
 library/modelled.v
-c/int63.v
-c/spec_int63.v
+
+verification/specs_library.v
+# verification/proofs_library_general.v
+verification/specs_general.v
+
+prim/lift.v
+
+examples/verif/glue.v
+examples/int/uint63.v
