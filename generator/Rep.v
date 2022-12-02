@@ -50,10 +50,9 @@ Ltac prove_monotone_with_IH' :=
     eapply IH; simpl; eauto
   end.
 
-
 Axiom graph_cRep_add_node : forall g to lb e p ts ps,
-  add_node_compatible g (new_copied_v g to) e
-   -> graph_has_gen g to
+  add_node_compatible g (GCGraph.new_copied_v g to) e
+   -> GCGraph.graph_has_gen g to
    -> graph_cRep g p ts ps
    -> graph_cRep (add_node g to lb e) p ts ps.
 

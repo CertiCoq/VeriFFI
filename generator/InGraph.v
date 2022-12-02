@@ -310,6 +310,16 @@ Fixpoint make_lambdas
   | _ => fun x => x
   end.
 
+Fixpoint make_bcontext
+         (args : list arg_variant)
+         : list aname :=
+  match args with
+  | value_arg arg_name _ nt :: args' =>
+    (mkBindAnn (nNamed arg_name) Relevant) :: make_bcontext args'
+  | _ :: args' => make_bcontext args'
+  | _ => []
+  end.
+
 Fixpoint make_exists
          (args : list arg_variant)
          : named_term -> named_term :=
@@ -515,7 +525,7 @@ Definition ctor_to_branch
       (* reified term of the type we're generating for *)
     (ctor : ctor_info)
       (* a single constructor to generate for *)
-    : TemplateMonad (nat * named_term) :=
+    : TemplateMonad (branch named_term) :=
   let kn : kername := inductive_mind ind in
   mut <- tmQuoteInductive kn ;;
   let ctx : list dissected_type :=
@@ -530,10 +540,11 @@ Definition ctor_to_branch
 
   (* TODO these are the quantifiers for the entire type? not just this branch *)
   prop <- make_prop all_single_rep_tys quantifiers ind one ctor args ;;
-  let t := make_lambdas args (make_exists args prop) in
   (* tmMsg "PROP:" ;; *)
   (* tmEval all t >>= tmPrint ;; *)
-  ret (ctor_arity ctor, t).
+  ret {| bcontext := make_bcontext args
+       ; bbody := make_exists args prop
+       |}.
 
 (* For sort parameters we have to skip 2 quantifiers,
    one for the param itself, one for the [InGraph] instance.
@@ -545,7 +556,7 @@ Fixpoint count_quantifiers_to_skip (xs : context) : nat :=
   | nil => 0
   end.
 
-Check <% fun A => fun xs : list A => match xs with nil => true | cons y ys => false end %>.
+(* Check <% fun A => fun xs : list A => match xs with nil => true | cons y ys => false end %>. *)
 (* Generates a reified match expression *)
 Definition matchmaker
     (all_single_rep_tys : list (aname * named_term))
@@ -575,24 +586,13 @@ Definition matchmaker
               ; ci_npar := 0
               ; ci_relevance := Relevant
               |}
-             {| puinst := [];
+             {| puinst := []
               ; pparams := [tRel 1]
               ; pcontext := [{| binder_name := nNamed "xs"; binder_relevance := Relevant |}]
               ; preturn := <% Prop %>
               |}
              (tVar "x")
-             (* TODO only quantify over the indices, not parameters *)
-             (build_quantifiers tLambda quantifiers_without_params
-                                (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>))
-             (* (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>) *)
              branches).
-  (* ret (tCase (ind, O, Relevant) *)
-  (*            (* TODO only quantify over the indices, not parameters *) *)
-  (*            (build_quantifiers tLambda quantifiers_without_params *)
-  (*                               (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>)) *)
-  (*            (* (tLambda (mkBindAnn (nNamed "y") Relevant) tau <% Prop %>) *) *)
-  (*            (tVar "x") *)
-  (*            branches). *)
 
 (* Make a single record to use in a [tFix].
    For mutually inductive types, we want to build them all once,
@@ -727,7 +727,7 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
 
        (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
        (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("InGraph_" ++ ind_name one)%string ;;
+       name <- tmFreshName =<< tmEval all ("InGraph_" ++ ind_name one)%bs ;;
 
        (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above
           because of a mysterious type error. (Coq's type errors in monadic

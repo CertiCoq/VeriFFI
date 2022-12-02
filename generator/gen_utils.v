@@ -184,24 +184,26 @@ Section Ctor_Info.
 
   (* A function to calculate the ordinals of a type's constructors. *)
   Definition process_ctors
-             (ctors : list (ident * Ast.term * nat)) : list ctor_info :=
+             (* (ctors : list (ident * Ast.term * nat)) : list ctor_info := *)
+             (ctors : list Ast.Env.constructor_body) : list ctor_info :=
     let fix aux
             (unboxed_count : nat)
             (boxed_count : nat)
-            (ctors : list (ident * Ast.term * nat)) : list ctor_info :=
+            (ctors : list Ast.Env.constructor_body) : list ctor_info :=
       match ctors with
       | nil => nil
-      | (name, t, ar) :: ctors' =>
+      (* | (name, t, ar) :: ctors' => *)
+      | c :: ctors' =>
         let '(ord, rest) :=
-            match ar with
+            match Ast.Env.cstr_arity c with
             | O   => (unboxed_count, aux (S unboxed_count) boxed_count ctors')
             | S _ => (boxed_count, aux unboxed_count (S boxed_count) ctors')
             end
         in
-          {| ctor_name := name
-           ; ctor_arity := ar
+          {| ctor_name := Ast.Env.cstr_name c
+           ; ctor_arity := Ast.Env.cstr_arity c
            ; ctor_ordinal := ord
-           ; ctor_type := t
+           ; ctor_type := Ast.Env.cstr_type c
            |} :: rest
       end
     in aux O O ctors.

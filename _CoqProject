@@ -1,4 +1,5 @@
 -Q . VeriFFI
+-Q /home/opam/CertiGraph CertiGraph
 
 library/base_representation.v
 verification/graph_add.v
@@ -15,7 +16,7 @@ verification/specs_library.v
 # verification/proofs_library_general.v
 verification/specs_general.v
 
-prim/lift.v
+# prim/lift.v
 
-examples/verif/glue.v
-examples/int/uint63.v
+# examples/verif/glue.v
+# examples/int/uint63.v

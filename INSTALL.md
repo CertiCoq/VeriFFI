@@ -9,8 +9,7 @@ Here are the necessary steps:
 1. [Install Docker on your machine.](https://docs.docker.com/get-docker/)
 2. Start the Docker engine.
 3. Download our image by running `docker pull certicoq/veriffi` in your terminal.
-   This image currently has Opam 2.0.10, OCaml 4.07.1, Coq 8.13.2, CompCert 3.9, VST 2.8, MetaCoq's branch for Coq 8.12, coq-ext-lib 0.11.5, the latest CertiGraph.
-   It doesn't yet have CertiCoq because it is not compatible with the software listed here. It will once CertiCoq is updated to work with them. (MetaCoq is the main showstopper here.)
+   This image currently has Opam 2.0.10, OCaml 4.09.1, Coq 8.15.2, CompCert 3.11, VST 2.1, MetaCoq's branch for Coq 8.15, coq-ext-lib 0.11.5, the latest CertiGraph, and 8.15 branch of CertiCoq.
 4. Create a workspace folder in which you will have the files you want to run in the container. 
 
    For these instructions, we will assume they are in `~/container`. Feel free to clone this repo into that folder by
@@ -59,7 +58,7 @@ Here are the necessary steps:
    ```lisp
    (defun set-coqtop-docker ()
     (if (string-prefix-p "/docker:vf:" (buffer-file-name))
-      (setq coq-prog-name "/home/opam/.opam/4.07.1/bin/coqtop")
+      (setq coq-prog-name "/home/opam/.opam/4.09.1/bin/coqtop")
       (setq coq-prog-name "coqtop")
      ))
 
@@ -90,7 +89,7 @@ Here are the necessary steps:
    ```
    docker build -t certicoq/veriffi .
    ```
-   This took around 2 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
+   This took around 3.5 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
    
 6. You can now continue with the instructions to use a prebuilt image, starting from step 4.
 

@@ -225,7 +225,7 @@ Check <%% vec %%>.
 
 (* GENERATION *)
 (* Require Import MetaCoq.Template.All. *)
-Require Import String.
+Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
 { ctor_name : string;
   ctor_reific : reific Rep;

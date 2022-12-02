@@ -33,7 +33,8 @@ Import monad_utils.MCMonadNotation
        ListNotations
        MetaCoqNotations.
 
-Fixpoint adjust_context (ctx : list (BasicAst.ident * Reppyish)) : TemplateMonad (list (BasicAst.ident * named_term)) :=
+Locate ident.
+Fixpoint adjust_context (ctx : list (Kernames.ident * Reppyish)) : TemplateMonad (list (Kernames.ident * named_term)) :=
   match ctx with
   | nil => ret nil
   | (id, None) :: xs => adjust_context xs
@@ -46,13 +47,13 @@ Fixpoint adjust_context (ctx : list (BasicAst.ident * Reppyish)) : TemplateMonad
 Definition kleisli_compose {m a b c} `{Monad m} : (b -> m c) -> (a -> m b) -> (a -> m c) :=
   fun g f x => f x >>= g.
 
-Definition fresh_aname (prefix : string) (a : aname) : TemplateMonad (BasicAst.ident * aname) :=
+Definition fresh_aname (prefix : string) (a : aname) : TemplateMonad (Kernames.ident * aname) :=
   let x := match binder_name a with | nAnon => prefix | nNamed i => prefix ++ i end in
   x' <- tmFreshName x ;;
   ret (x, {| binder_name := nNamed x'; binder_relevance := binder_relevance a |}).
 
 Definition fill_hole
-           (named_ctx : list (BasicAst.ident * named_term))
+           (named_ctx : list (Kernames.ident * named_term))
            (goal : named_term)
             : TemplateMonad named_term :=
   (* quantify all the free variables in the goal *)
@@ -75,10 +76,12 @@ Definition create_reific
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : (BasicAst.ident * term * nat)) : TemplateMonad (reific Rep) :=
-  let '(cn, t, arity) := ctor in
+           (ctor : constructor_body) : TemplateMonad (reific Rep) :=
+  let cn := cstr_name ctor in
+  let t := cstr_type ctor in
+  let arity := cstr_arity ctor in
   (* We convert the constructor type to the named representation *)
-  let init_index_ctx : list (BasicAst.ident  * named_term) :=
+  let init_index_ctx : list (Kernames.ident  * named_term) :=
       mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind
                                               ; inductive_ind := i |} []))
            (ind_bodies mut) in
@@ -88,15 +91,15 @@ Definition create_reific
            (* type of the constructor to be taken apart *)
              (t : named_term)
            (* the context kept for De Bruijn indices *)
-             (index_ctx : list (BasicAst.ident  * named_term))
+             (index_ctx : list (Kernames.ident  * named_term))
            (* the context kept for "lambda lifting" the holes *)
-             (named_ctx : list (BasicAst.ident * named_term))
+             (named_ctx : list (Kernames.ident * named_term))
            (* unprocessed number of parameters left on the type *)
              (num_params : nat) : TemplateMonad named_term :=
       match t, num_params with
       | tProd n (tSort s as t) b , S n' =>
         '(h, H) <- fresh_aname "H" n ;;
-        let named_ctx' : list (BasicAst.ident * named_term) :=
+        let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
             | nNamed id => (h, tApp <% @Rep %> [tVar id]) :: (id, t) :: named_ctx
             | _ => named_ctx end in
@@ -105,7 +108,7 @@ Definition create_reific
         ret (tApp <% @TYPEPARAM Rep %> [f])
 
       | tProd n t b , O =>
-        let named_ctx' : list (BasicAst.ident * named_term) :=
+        let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
             | nNamed id => (id, t) :: named_ctx
             | _ => named_ctx end in
@@ -142,20 +145,20 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
     | Some one =>
       match (nth_error (ind_ctors one) ctor_tag) with
       | None => tmFail "Impossible constructor index"
-      | Some (ctor_name, ctor_type, ctor_arity) =>
-        reific <- create_reific ind mut one (ctor_name, ctor_type, ctor_arity) ;;
+      | Some ctor =>
+        reific <- create_reific ind mut one ctor ;;
         (* tmPrint "after create reific" ;; *)
         (* tmEval all reific >>= tmPrint ;; *)
 
-        newName <- tmFreshName "new"%string ;;
+        newName <- tmFreshName "new"%bs ;;
         actual <- tmLemma newName (@reconstructor Rep T ctor_val reific) ;;
 
-        let d := {| ctor_name := ctor_name
+        let d := {| ctor_name := cstr_name ctor
                   ; ctor_reific := reific
                   ; ctor_real := actual
                   |} in
 
-        name <- tmFreshName (ctor_name ++ "_desc") ;;
+        name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
         @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
         (* Declare the new definition a type class instance *)
         mp <- tmCurrentModPath tt ;;
@@ -172,7 +175,7 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
 (*   | (kn, InductiveDecl decl) :: _ => *)
 (*     let each_ctor (mut_type_count : nat) *)
 (*                   (ctor_count : nat) *)
-(*                   (ctor : BasicAst.ident * term * nat) : TemplateMonad unit := *)
+(*                   (ctor : Kernames.ident * term * nat) : TemplateMonad unit := *)
 (*       t <- tmUnquote (tConstruct {| inductive_mind := kn *)
 (*                                   ; inductive_ind := mut_type_count|} *)
 (*                                 ctor_count []) ;; *)
