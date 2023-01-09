@@ -330,9 +330,10 @@ Module DB.
         | tConstruct ind idx u => ret t
         | tCase ind_nbparams_relevance type_info discr branches =>
             preturn' <- go ctx (preturn type_info) ;;
+            pparams' <- monad_map (go ctx) (pparams type_info) ;;
             let type_info' :=
               {| puinst := puinst type_info
-               ; pparams := pparams type_info
+               ; pparams := pparams'
                ; pcontext := pcontext type_info
                ; preturn := preturn'
                |} in
@@ -408,9 +409,10 @@ Module DB.
         | tConstruct ind idx u => ret t
         | tCase ind_nbparams_relevance type_info discr branches =>
             preturn' <- go ctx (preturn type_info) ;;
+            pparams' <- monad_map (go ctx) (pparams type_info) ;;
             let type_info' :=
               {| puinst := puinst type_info
-               ; pparams := pparams type_info
+               ; pparams := pparams'
                ; pcontext := pcontext type_info
                ; preturn := preturn'
                |} in
@@ -486,7 +488,7 @@ Module Substitution.
     | tApp u0 v => mkApps (named_subst t x u0) (map (named_subst t x) v)
     | tCase ind p c brs =>
         let p' := {| puinst := puinst p
-                   ; pparams := pparams p
+                   ; pparams := map (named_subst t x) (pparams p)
                    ; pcontext := pcontext p
                    ; preturn := named_subst t x (preturn p)
                    |} in
@@ -529,7 +531,7 @@ Module ConstSubstitution.
     | tApp u0 v => mkApps (named_subst t x u0) (map (named_subst t x) v)
     | tCase ind p c brs =>
         let p' := {| puinst := puinst p
-                   ; pparams := pparams p
+                   ; pparams := map (named_subst t x) (pparams p)
                    ; pcontext := pcontext p
                    ; preturn := named_subst t x (preturn p)
                    |} in

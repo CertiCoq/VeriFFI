@@ -310,15 +310,19 @@ Fixpoint make_lambdas
   | _ => fun x => x
   end.
 
-Fixpoint make_bcontext
-         (args : list arg_variant)
-         : list aname :=
-  match args with
-  | value_arg arg_name _ nt :: args' =>
-    (mkBindAnn (nNamed arg_name) Relevant) :: make_bcontext args'
-  | _ :: args' => make_bcontext args'
-  | _ => []
-  end.
+(* MetaCoq's [bcontext] expects the context from last to first,
+   so we have to reverse it. *)
+Definition make_bcontext
+           (args : list arg_variant)
+           : list aname :=
+  let fix aux (args : list arg_variant) : list aname :=
+    match args with
+    | value_arg arg_name _ nt :: args' =>
+      (mkBindAnn (nNamed arg_name) Relevant) :: aux args'
+    | _ :: args' => aux args'
+    | _ => []
+    end
+  in rev (aux args).
 
 Fixpoint make_exists
          (args : list arg_variant)
@@ -575,20 +579,17 @@ Definition matchmaker
       (* constructors we're generating match branches for *)
     : TemplateMonad named_term :=
   branches <- monad_map (ctor_to_branch all_single_rep_tys quantifiers ind one tau) ctors ;;
-  let to_skip :=
-    (count_quantifiers_to_skip (ind_params mut)) in
-  tmMsg ("Will skip " ++ string_of_nat to_skip) ;;
-  let quantifiers_without_params :=
-      skipn to_skip quantifiers in
-  tmMsg "QUANT WITHOUT PARAMS:" ;;
-  tmEval all quantifiers_without_params >>= tmPrint ;;
+  let params : list named_term :=
+    @map _ _ (fun cd => match binder_name (decl_name cd) with
+                        | nAnon => hole | nNamed id => tVar id end)
+    (ind_params mut) in
   ret (tCase {| ci_ind := ind
               ; ci_npar := 0
               ; ci_relevance := Relevant
               |}
              {| puinst := []
-              ; pparams := [tRel 1]
-              ; pcontext := [{| binder_name := nNamed "xs"; binder_relevance := Relevant |}]
+              ; pparams := params
+              ; pcontext := [{| binder_name := nNamed "x"; binder_relevance := Relevant |}]
               ; preturn := <% Prop %>
               |}
              (tVar "x")
@@ -619,63 +620,66 @@ Definition make_fix_single
        ; dbody := build_quantifiers tLambda quantifiers body
        ; rarg := 1 + length quantifiers |}.
 
-Definition add_instances (kn : kername) : TemplateMonad unit :=
-  mut <- tmQuoteInductive kn ;;
-  singles_tys <- monad_map_i
-               (fun i one =>
-                  (* FIXME get rid of repeated computation here *)
-                  let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-                  quantified <- generate_instance_type ind mut one
-                                  (fun ty_name t =>
-                                    let n := "InGraph_" ++ ty_name in
-                                    tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
-                                  (fun t => apply_to_pi_base (fun t' => tApp <% InGraph %> [t']) t) ;;
-                  (* tmMsg "quantified:" ;; *)
-                  quantified <- tmEval all quantified ;;
-                  (* ___InGraph0, ___InGraph1 etc. are fake instances,
-                     gotta replace their usage with calls to is_in_graph0, is_in_graph1 etc later. *)
-                  let an := mkBindAnn (nNamed ("___InGraph" ++ string_of_nat i)) Relevant in
-                  ret (an, quantified))
-               (ind_bodies mut) ;;
-  (* Build the single function definitions for each of
-     the mutually recursive types. *)
-  singles <- monad_map_i
-               (fun i one =>
-                  (* FIXME get rid of repeated computation here *)
-                  let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-                  quantified <- generate_instance_type ind mut one
-                                  (fun ty_name t =>
-                                    let n := "InGraph_" ++ ty_name in
-                                    tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
-                                    id ;;
-                  (* tmMsg "quantified:" ;; *)
-                  (* tmEval all quantified >>= tmPrint ;; *)
-                  let quantifiers := get_quantifiers id quantified in
-                  let tau := strip_quantifiers quantified in
-                  make_fix_single singles_tys quantifiers tau {| inductive_mind := kn ; inductive_ind := i |} mut one)
-               (ind_bodies mut) ;;
-
-  (* Loop over each mutually recursive type again *)
+Definition singles_tys (kn : kername)
+                       (mut : mutual_inductive_body)
+                       : TemplateMonad (list (aname * named_term)) :=
   monad_map_i
     (fun i one =>
-       let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-       (* This gives us something like
-          [forall (A : Type) (n : nat), vec A n] *)
-       quantified <- generate_instance_type ind mut one
+      (* FIXME get rid of repeated computation here *)
+      let ind := {| inductive_mind := kn ; inductive_ind := i |} in
+      quantified <- generate_instance_type ind mut one
                       (fun ty_name t =>
                         let n := "InGraph_" ++ ty_name in
                         tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
-                      id ;;
-       (* tmMsg "quantified:" ;; *)
-       (* tmEval all quantified >>= tmPrint ;; *)
+                      (fun t => apply_to_pi_base (fun t' => tApp <% InGraph %> [t']) t) ;;
+      (* tmMsg "quantified:" ;; *)
+      quantified <- tmEval all quantified ;;
+      (* ___InGraph0, ___InGraph1 etc. are fake instances,
+          gotta replace their usage with calls to is_in_graph0, is_in_graph1 etc later. *)
+      let an := mkBindAnn (nNamed ("___InGraph" ++ string_of_nat i)) Relevant in
+      ret (an, quantified))
+    (ind_bodies mut).
 
-       (* Now what can we do with this?
-          Let's start by going to its named representation. *)
-       (* quantified_named <- DB.undeBruijn [] quantified ;; *)
+Definition singles (kn : kername)
+                   (mut : mutual_inductive_body)
+                   (singles_tys : list (aname * named_term))
+                   : TemplateMonad (list (def named_term)) :=
+  monad_map_i
+    (fun i one =>
+      (* FIXME get rid of repeated computation here *)
+      let ind := {| inductive_mind := kn ; inductive_ind := i |} in
+      quantified <- generate_instance_type ind mut one
+                      (fun ty_name t =>
+                        let n := "InGraph_" ++ ty_name in
+                        tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
+                        id ;;
+      (* tmMsg "quantified:" ;; *)
+      (* tmEval all quantified >>= tmPrint ;; *)
+      let quantifiers := get_quantifiers id quantified in
+      let tau := strip_quantifiers quantified in
+      make_fix_single singles_tys quantifiers tau {| inductive_mind := kn ; inductive_ind := i |} mut one)
+    (ind_bodies mut).
 
-       (* tmEval all quantified_named >>= tmPrint ;; *)
-       (* The reified type of the fully applied type constructor,
-          but with free variables! *)
+(* This gives us something like [forall (A : Type) (n : nat), vec A n] *)
+Definition quantified ind mut one :=
+  generate_instance_type ind mut one
+    (fun ty_name t =>
+      let n := "InGraph_" ++ ty_name in
+      tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
+    id.
+
+Definition add_instances_aux (kn : kername)
+                   (mut : mutual_inductive_body)
+                   (singles_tys : list (aname * named_term))
+                   (singles: list (def named_term)) : TemplateMonad _ :=
+  monad_map_i
+    (fun i one =>
+       let ind := {| inductive_mind := kn ; inductive_ind := i |} in
+       quantified <- quantified ind mut one ;;
+       (* Now what can we do with this? *)
+       (*    Let's start by going to its named representation. *)
+       (* The reified type of the fully applied type constructor, *)
+       (*    but with free variables! *)
        let tau := strip_quantifiers quantified in
        let fn_ty := tProd (mkBindAnn (nNamed "g") Relevant)
                           <% graph %>
@@ -691,7 +695,6 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
                                 | mkBindAnn (nNamed n) _ => ret (tVar n)
                                 | _ => tmFail "Unnamed parameter"
                                 end) quantifiers ;;
-       (* tmMsg "args_let: " ;; tmEval all args_let >>= tmPrint ;; *)
        let fn : named_term :=
            tLetIn (mkBindAnn (nNamed "f") Relevant)
                   (tFix singles i)
@@ -701,46 +704,34 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
            build_quantifiers tLambda quantifiers
                              (tApp <% @Build_InGraph %>
                                    [tau; fn]) in
-       (* tmMsg "" ;; *)
-       tmMsg "Final:" ;;
-       tmEval all prog_named >>= tmPrint ;;
-
-       (* Convert generated program from named to de Bruijn representation *)
        prog <- DB.deBruijn prog_named ;;
-       (* tmMsg "Final unnamed:" ;; *)
-       (* tmEval all prog >>= tmPrint ;; *)
-
        extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
                                                           (tApp <% InGraph %> [tau])) ;;
-       tmMsg "Instance ty before:" ;;
+       tmMsg "Extra Quantified:" ;;
        tmEval all extra_quantified >>= tmPrint ;;
-       (* If need be, here's the reified type of our [InGraph] instance: *)
        instance_ty <- tmUnquoteTyped Type extra_quantified ;;
-
-       tmMsg "Instance ty:" ;;
-       tmEval all instance_ty >>= tmPrint ;;
-
-       instance <- tmUnquote prog ;;
-
-       (* tmMsg "Instance:" ;; *)
-       (* tmEval all instance >>= tmPrint ;; *)
-
+       tmMsg "Prog" ;;
+       prog' <- tmEval all prog ;;
+       tmPrint prog';;
+       instance <- tmUnquote prog' ;;
+       (* tmMsg "Inst" ;; *)
+       (* tmPrint instance ;; *)
        (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
        (* https://github.com/MetaCoq/metacoq/issues/455 *)
        name <- tmFreshName =<< tmEval all ("InGraph_" ++ ind_name one)%bs ;;
 
-       (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above
-          because of a mysterious type error. (Coq's type errors in monadic
-          contexts are just wild.) Therefore I had to [tmUnquote] it to get
-          a Σ-type. But when you project the second field out of that,
-          the type doesn't get evaluated to [InGraph _], it stays as
-          [my_projT2 {| ... |}]. The same thing goes for the first projection,
-          which is the type of the second projection. When the user prints
-          their [InGraph] instance, Coq shows the unevaluated version.
-          But we don't want to evaluate it [all] the way, that would unfoldd
-          the references to other instances of [InGraph]. We only want to get
-          the head normal form with [hnf].
-          We have to do this both for the instance body and its type. *)
+       (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
+       (*    because of a mysterious type error. (Coq's type errors in monadic *)
+       (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
+       (*    a Σ-type. But when you project the second field out of that, *)
+       (*    the type doesn't get evaluated to [InGraph _], it stays as *)
+       (*    [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
+       (*    which is the type of the second projection. When the user prints *)
+       (*    their [InGraph] instance, Coq shows the unevaluated version. *)
+       (*    But we don't want to evaluate it [all] the way, that would unfoldd *)
+       (*    the references to other instances of [InGraph]. We only want to get *)
+       (*    the head normal form with [hnf]. *)
+       (*    We have to do this both for the instance body and its type. *) *)
        tmEval hnf (my_projT2 instance) >>=
          tmDefinitionRed_ false name (Some hnf) ;;
 
@@ -750,7 +741,15 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg ("Added InGraph instance for " ++ string_of_kername fake_kn) ;;
-       ret tt) (ind_bodies mut) ;;
+       ret tt) (ind_bodies mut).
+
+Definition add_instances (kn : kername) : TemplateMonad unit :=
+  mut <- tmQuoteInductive kn ;;
+  singles_tys <- singles_tys kn mut ;;
+  tmEval all singles_tys >>= tmPrint ;;
+  singles <- singles kn mut singles_tys ;;
+  tmEval all singles >>= tmPrint ;;
+  add_instances_aux kn mut singles_tys singles ;;
   ret tt.
 
 (* Derives a [InGraph] instance for the type constructor [Tau],
@@ -761,11 +760,11 @@ Definition in_graph_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   monad_iter add_instances (rev missing).
 
 (* Playground: *)
-
 (* MetaCoq Run (in_graph_gen unit). *)
 (* MetaCoq Run (in_graph_gen nat). *)
 (* MetaCoq Run (in_graph_gen option). *)
 (* MetaCoq Run (in_graph_gen list). *)
+
 
 (*
 
