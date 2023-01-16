@@ -9,6 +9,12 @@ From VeriFFI.verification Require Export graph_add.
 
 (** ** Library definitions for specifications *)
 
+Require Import VST.floyd.proofauto.
+From compcert Require Import export.Clightdefs.
+(* Defining a canonical ident for [thread_info] so that
+   we do not have to import a file compiled by Clightgen. *)
+Definition _thread_info : ident := ident_of_string "thread_info".
+
 (** Custom types for thread info *)
 Definition thread_info_type := Tstruct _thread_info noattr.
 Definition thread_info := tptr thread_info_type.
