@@ -16,6 +16,7 @@ Require Import VeriFFI.generator.gen_utils.
 Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
 Require Import VeriFFI.generator.InGraph.
+Require Import VeriFFI.generator.Rep.
 
 Unset Strict Unquote Universe Mode.
 
@@ -33,7 +34,6 @@ Import monad_utils.MCMonadNotation
        ListNotations
        MetaCoqNotations.
 
-Locate ident.
 Fixpoint adjust_context (ctx : list (Kernames.ident * Reppyish)) : TemplateMonad (list (Kernames.ident * named_term)) :=
   match ctx with
   | nil => ret nil
@@ -158,30 +158,36 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
                   ; ctor_real := actual
                   |} in
 
+        tmMsg "Before def" ;;
+        d' <- tmEval all d ;;
+        tmPrint d' ;;
         name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-        @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
+        @tmDefinition name (@Desc T ctor_val) {| desc := d' |} ;;
+        tmMsg "After def" ;;
         (* Declare the new definition a type class instance *)
         mp <- tmCurrentModPath tt ;;
-        tmExistingInstance (ConstRef (mp, name))
+        tmExistingInstance (ConstRef (mp, name)) ;;
+        tmMsg "After inst"
       end
     end
   | t' => tmPrint t' ;; tmFail "Not a constructor"
   end.
 
-
 (* Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit := *)
 (*   '(env, tau) <- tmQuoteRec Tau ;; *)
-(*   match env with *)
+(*   match declarations (env) with *)
 (*   | (kn, InductiveDecl decl) :: _ => *)
 (*     let each_ctor (mut_type_count : nat) *)
 (*                   (ctor_count : nat) *)
-(*                   (ctor : Kernames.ident * term * nat) : TemplateMonad unit := *)
+(*                   (ctor : constructor_body) : TemplateMonad unit := *)
 (*       t <- tmUnquote (tConstruct {| inductive_mind := kn *)
-(*                                   ; inductive_ind := mut_type_count|} *)
+(*                                   ; inductive_ind := mut_type_count |} *)
 (*                                 ctor_count []) ;; *)
 (*       t' <- tmEval all (my_projT2 t) ;; *)
-(*       let '(ctor_name, _, _) := ctor in *)
-(*       @desc_gen _ t' ctor_name *)
+(*       (* ty_t' <- tmEval all (my_projT1 t) ;; *) *)
+(*       (* let '(ctor_name, _, _) := ctor in *) *)
+(*       (* @desc_gen _ t' ctor_name *) *)
+(*       @desc_gen _ t' *)
 (*     in *)
 (*     let all_in_one (mut_type_count : nat) *)
 (*                   (one : one_inductive_body) : TemplateMonad unit := *)
@@ -195,10 +201,25 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
 (*   | _ => tmFail "Need an inductive type in the environment" *)
 (*   end. *)
 
+Obligation Tactic := reconstructing.
+
+(* Check <% tt %>. *)
+
+(* MetaCoq Run (in_graph_gen unit). *)
+(* MetaCoq Run (rep_gen unit). *)
+(* MetaCoq Run (desc_gen tt). *)
+
+(* (* Print new_obligation_1. *) *)
+(* MetaCoq Run (descs_gen unit). *)
 
 
+(* MetaCoq Run (in_graph_gen nat). *)
+(* Instance Rep_ *)
+(* (* MetaCoq Run (rep_gen nat). *) *)
+(* MetaCoq Run (descs_gen unit). *)
+(* MetaCoq Run (desc_gen O). *)
+(* Print O_desc. *)
 
-(* MetaCoq Run (create_desc O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
+(* MetaCoq Run (desc_gen O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
 (* Print S_desc. *)
 
-Obligation Tactic := reconstructing.

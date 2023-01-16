@@ -1,5 +1,5 @@
 (*
-  Author: Joomy Korkut (joomy@cs.princeton.edu), 2020
+  Author: Joomy Korkut (joomy@cs.princeton.edu), 2020-2022
 
   Generator for the [is_in_graph] relation for a given Coq type.
 
@@ -73,6 +73,17 @@ Notation "f >=> g" := (fun x => (f x) >>= g)
 Notation "f <$> x" := (x' <- x%monad ;; ret (f x'))
                       (at level 52, right associativity) : monad_scope.
 Open Scope bs.
+
+(* These lines below are for debugging. There are lines in the generator for
+   print debugging. We don't want to remove them all, but also we don't want them
+   to run when we are generating things as usual. So we overload the print
+   debugging functions with things that don't execute. *)
+Notation "'tmPrint!'" := (tmPrint).
+Notation "'tmMsg!'" := (tmMsg).
+(* Notation "'tmPrint'" := (tmPrint). *)
+(* Notation "'tmMsg'" := (tmMsg). *)
+Notation "'tmPrint'" := (fun _ => ret tt).
+Notation "'tmMsg'" := (fun _ => ret tt).
 
 Instance InGraph_Prop : InGraph Prop :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
@@ -243,7 +254,7 @@ Definition find_missing_instance
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body) : TemplateMonad bool :=
-  tmMsg ("Missing: " ++ string_of_inductive ind) ;;
+  tmMsg! ("Missing: " ++ string_of_inductive ind) ;;
   generate_InGraph_instance_type ind mut one >>=
   DB.deBruijn >>= tmUnquoteTyped Type >>= has_instance.
 
@@ -361,7 +372,8 @@ Definition instance_term (inst_ty : named_term) : TemplateMonad named_term :=
   opt_ins <- tmInferInstanceEval inst_ty' ;;
   match opt_ins with
   | my_Some x => tmQuote x >>= DB.undeBruijn
-  | _ =>
+  | _ => tmMsg! "No instance of type" ;;
+         tmEval all inst_ty >>= tmPrint! ;;
          tmFail "No such instance"
   end.
 
@@ -661,11 +673,11 @@ Definition singles (kn : kername)
     (ind_bodies mut).
 
 (* This gives us something like [forall (A : Type) (n : nat), vec A n] *)
-Definition quantified ind mut one :=
+Definition quantified ind mut one (inst_prefix: string) (inst: global_term) :=
   generate_instance_type ind mut one
     (fun ty_name t =>
-      let n := "InGraph_" ++ ty_name in
-      tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
+      let n := inst_prefix ++ ty_name in
+      tProd (mkBindAnn (nNamed n) Relevant) (tApp inst [tVar ty_name]) t)
     id.
 
 Definition add_instances_aux (kn : kername)
@@ -675,7 +687,7 @@ Definition add_instances_aux (kn : kername)
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-       quantified <- quantified ind mut one ;;
+       quantified <- quantified ind mut one "InGraph_" <% InGraph %> ;;
        (* Now what can we do with this? *)
        (*    Let's start by going to its named representation. *)
        (* The reified type of the fully applied type constructor, *)
@@ -740,7 +752,7 @@ Definition add_instances_aux (kn : kername)
        tmExistingInstance (ConstRef (mp, name)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
-       tmMsg ("Added InGraph instance for " ++ string_of_kername fake_kn) ;;
+       tmMsg! ("Added InGraph instance for " ++ string_of_kername fake_kn) ;;
        ret tt) (ind_bodies mut).
 
 Definition add_instances (kn : kername) : TemplateMonad unit :=
