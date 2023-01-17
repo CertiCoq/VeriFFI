@@ -201,9 +201,6 @@ Module UInt63_Proofs.
 
   Lemma seven : C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)) = 7%Z.
   Proof.
-
-    Print model_spec.
-    Print model_spec_aux.
     props from_Z_properties.
     props to_Z_properties.
     props add_properties.

@@ -172,8 +172,8 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
 
 Definition alloc_make_spec_general
            (c : constructor_description)
-           (n : nat) : ident * funspec :=
-  DECLARE _w (* FIXME to actual C fn names somehow? *)
+           (n : nat) : (* ident * *) funspec :=
+  (* DECLARE _w (* FIXME to actual C fn names somehow? *) *)
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reific c), roots : roots_t, sh : share,
          ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info

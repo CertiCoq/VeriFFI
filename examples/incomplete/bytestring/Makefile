@@ -34,4 +34,5 @@ tests: tests.v
 	coqc tests.v
 
 prog:
+	coqc prog.v
 	$(CCOMPILER) -g -o prog -Wno-everything -fomit-frame-pointer main.c gc_stack.c tests.prog.c glue.c io.c
