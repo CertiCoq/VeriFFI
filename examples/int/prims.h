@@ -1,7 +1,5 @@
 #include <stdio.h>
-/* #include "values.h" */
-#include "glue.prog.prog.h"
-typedef unsigned long long value;
+#include "glue.h"
 
 value uint63_from_Z(value z);
 

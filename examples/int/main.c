@@ -15,5 +15,6 @@ int main(int argc, char *argv[]) {
   body(tinfo);
 
   print_Coq_Numbers_BinNums_Z(tinfo->args[1]);
+  puts("");
   return 0;
 }

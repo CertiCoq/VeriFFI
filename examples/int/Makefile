@@ -1,8 +1,8 @@
 CCOMPILER=gcc
 
-default: copy prog
+default: copy coq c
 
-.PHONY: default clean prog
+.PHONY: default clean coq c
 
 copy:
 	cp /home/opam/certicoq/theories/Runtime/gc.c ./
@@ -31,7 +31,13 @@ clean:
 	rm -f ./*.vos
 	rm -f ./*.glob
 
-prog:
+coq:
 	coqc prog.v
-	$(CCOMPILER) -g -o prog main.c gc_stack.c prog.prog.c glue.prog.prog.c prims.c
-	# $(CCOMPILER) -g -o prog -Wno-everything -fomit-frame-pointer main.c gc_stack.c prog.prog.c glue.prog.prog.c prims.c
+
+c:
+	$(CCOMPILER) -g -o prog main.c gc_stack.c prog.prog.c glue.c prims.c
+	# $(CCOMPILER) -g -o prog -Wno-everything -fomit-frame-pointer main.c gc.c prog.prog.c glue.prog.prog.c prims.c
+
+clightgen:
+	clightgen -canonical-idents -normalize prims.c
+	clightgen -canonical-idents -normalize glue.c
