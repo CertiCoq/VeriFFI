@@ -27,7 +27,7 @@ value uint63_from_Z(value z) {
 }
 
 value uint63_to_Z(struct thread_info *tinfo, value t) {
-  if (t == 0) {
+  if (t == 1) {
     return make_Coq_Numbers_BinNums_Z_Z0();
   }
   value temp = 0;
@@ -50,7 +50,6 @@ value uint63_to_Z(struct thread_info *tinfo, value t) {
 }
 
 value uint63_add(value x, value y) {
-  /* printf("Adding %u and %u to %u\n", x >> 1, y >> 1, ((((x >> 1) + (y >> 1)) << 1) + 1) >> 1); */
   return (((x >> 1) + (y >> 1)) << 1) + 1;
 }
 

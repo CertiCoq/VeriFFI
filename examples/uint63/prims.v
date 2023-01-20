@@ -280,7 +280,7 @@ Definition f_uint63_to_Z := {|
                (_t'2, tulong) :: (_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
-  (Sifthenelse (Ebinop Oeq (Etempvar _t tlong) (Econst_int (Int.repr 0) tint)
+  (Sifthenelse (Ebinop Oeq (Etempvar _t tlong) (Econst_int (Int.repr 1) tint)
                  tint)
     (Ssequence
       (Scall (Some _t'1)
