@@ -1,13 +1,14 @@
 #include "values.h"
 #include "glue.h"
 
+typedef enum { O, S } nat;
 unsigned long long nat_to_ull(value n) {
   value temp = n;
   unsigned int i = 0;
 
   while(1) {
     unsigned int tag = get_Coq_Init_Datatypes_nat_tag(temp);
-    if(tag == 1) {
+    if(tag == S) {
       i++;
       temp = *((value *) temp);
     } else {
@@ -49,6 +50,6 @@ value array_runM(struct thread_info *tinfo, value a, value len, value init, valu
   tinfo->alloc = tinfo->alloc + size + 1LLU;
   arr = arr + 1LLU;
   // gc?
-  runM(tinfo, arr, m);
+  return runM(tinfo, arr, m);
 
 }

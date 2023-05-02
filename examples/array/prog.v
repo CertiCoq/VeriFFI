@@ -32,4 +32,8 @@ CertiCoq Compile -cps prog
     C.runM => "array_runM" with tinfo
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" -cps [ unit, nat, bool, pair, C.MI ].
+Inductive le (n : nat) : forall _ : nat, Type :=
+    le_n : le n n  | le_S : forall (m : nat) (_ : le n m), le n (S m).
+
+CertiCoq Generate Glue -file "glue" -cps [ le ].
+(* CertiCoq Generate Glue -file "glue" -cps [ unit, nat, bool, pair, C.MI, le ]. *)

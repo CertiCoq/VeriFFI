@@ -18,4 +18,8 @@ Definition gen_for {kind : Type} (Tau : kind) : TemplateMonad unit :=
 Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
   @Desc.desc_gen T ctor_val.
 
-Ltac gen := (try rep_gen_tac) || (try reconstructing).
+Ltac gen :=
+  match goal with
+  | [ |- @reconstructor _ _ ?C _ ] => reconstructing
+  | _ => rep_gen_tac
+  end.

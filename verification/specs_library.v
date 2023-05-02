@@ -5,6 +5,10 @@ Kathrin Stark, 2021.
 
 From VeriFFI.library Require Export base_representation.
 From VeriFFI.verification Require Export graph_add.
+Require Import CertiGraph.CertiGC.GCGraph.
+Require Import CertiGraph.CertiGC.spatial_gcgraph.
+Require Import VST.floyd.proofauto.
+Require Import VST.msl.iter_sepcon.
 (* TODO: Dependency. *)
 
 (** ** Library definitions for specifications *)
@@ -40,15 +44,15 @@ graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec t_in
 /\ graph_thread_info_compatible g t_info /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
 
-Definition space_rest_rep (sp: space): mpred :=
+Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
   if (Val.eq sp.(space_start) nullval)
   then emp
   else data_at_ (space_sh sp)
                 (tarray int_or_ptr_type (sp.(total_space) - sp.(used_space)))
                 (offset_val (WORD_SIZE * used_space sp) sp.(space_start)).
 
-Definition heap_rest_rep (hp: heap): mpred :=
-  iter_sepcon hp.(spaces) space_rest_rep.
+Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
+  iter_sepcon space_rest_rep hp.(spaces).
 
 (* Adapted from Shengyi to get the right GC *)
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=

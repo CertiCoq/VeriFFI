@@ -5,27 +5,27 @@ Require Import Psatz.
 
 Module Type UInt63.
   Axiom t : Type.
-  Axiom from_Z : Z -> t.
-  Axiom to_Z : t -> Z.
+  Axiom from_nat : nat -> t.
+  Axiom to_nat : t -> nat.
   Axiom add : t -> t -> t.
   Axiom mul : t -> t -> t.
 End UInt63.
 
+
 Module C : UInt63.
   Axiom t : Type.
-  Axiom from_Z : Z -> t.
-  Axiom to_Z : t -> Z.
+  Axiom from_nat : nat -> t.
+  Axiom to_nat : t -> nat.
   Axiom add : t -> t -> t.
   Axiom mul : t -> t -> t.
 End C.
 
-Definition prog := C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)).
-
+Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
 CertiCoq Compile -cps prog
   Extract Constants [
-    C.from_Z => "uint63_from_Z",
-    C.to_Z => "uint63_to_Z" with tinfo,
+    C.from_nat => "uint63_from_nat",
+    C.to_nat => "uint63_to_nat" with tinfo,
     C.add => "uint63_add"
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" [ Z ].
+CertiCoq Generate Glue -file "glue" [ nat ].
