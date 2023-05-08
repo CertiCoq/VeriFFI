@@ -46,6 +46,65 @@ Instance Rep_Prop : Rep Prop. Proof. apply (@Build_Rep _ InGraph_Prop). Admitted
 Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
 Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
 
+Instance InGraph_nat : InGraph nat := {|
+  is_in_graph :=
+    let f :=
+      fix is_in_graph0 (g : graph) (x : nat) (p : rep_type) {struct x} : Prop :=
+        match x with
+        | 0 => graph_cRep g p (enum 0) nil
+        | S arg0 =>
+            exists p0 : rep_type, is_in_graph0 g arg0 p0 /\ graph_cRep g p (boxed 0 1) (p0 :: nil)
+        end in
+    f
+|}.
+
+Axiom graph_cRep_add_node : forall g to lb e p ts ps,
+  add_node_compatible g (GCGraph.new_copied_v g to) e
+   -> GCGraph.graph_has_gen g to
+   -> graph_cRep g p ts ps
+   -> graph_cRep (add_node g to lb e) p ts ps.
+
+Instance Rep_nat : Rep nat := {|
+  in_graph := InGraph_nat;
+  has_v :=
+    fun (g : graph) (x : nat) (v : GCGraph.VType) =>
+    match x as n return (is_in_graph g n (repNode v) -> GCGraph.graph_has_v g v) with
+    | 0 => fun H : is_in_graph g 0 (repNode v) => False_ind (GCGraph.graph_has_v g v) H
+    | S n =>
+        fun H : is_in_graph g (S n) (repNode v) =>
+        match H with
+        | @ex_intro _ _ x0 (conj _ (conj _ (conj x6 _))) => x6
+        end
+    end;
+  is_monotone :=
+    fun (g : graph) (to : nat) (lb : GCGraph.raw_vertex_block)
+      (e : list (GCGraph.EType * (GCGraph.VType * GCGraph.VType))) (x : nat) 
+      (p : rep_type) (C : add_node_compatible g (GCGraph.new_copied_v g to) e)
+      (G : GCGraph.graph_has_gen g to) =>
+    nat_ind
+      (fun x0 : nat =>
+       forall p0 : rep_type, is_in_graph g x0 p0 -> is_in_graph (add_node g to lb e) x0 p0)
+      (fun (p0 : rep_type) (H : is_in_graph g 0 p0) => H)
+      (fun (x0 : nat)
+         (IHx : forall p0 : rep_type, is_in_graph g x0 p0 -> is_in_graph (add_node g to lb e) x0 p0)
+         (p0 : rep_type) (H : is_in_graph g (S x0) p0) =>
+       match H with
+       | @ex_intro _ _ x1 (conj x3 x4) =>
+           ex_intro
+             (fun p1 : rep_type =>
+              (fix is_in_graph0 (g0 : graph) (x5 : nat) (p2 : rep_type) {struct x5} : Prop :=
+                 match x5 with
+                 | 0 => graph_cRep g0 p2 (enum 0) nil
+                 | S arg0 =>
+                     exists p3 : rep_type,
+                       is_in_graph0 g0 arg0 p3 /\ graph_cRep g0 p2 (boxed 0 1) (p3 :: nil)
+                 end) (add_node g to lb e) x0 p1 /\
+              graph_cRep (add_node g to lb e) p0 (boxed 0 1) (p1 :: nil)) x1
+             (conj (IHx x1 x3) (graph_cRep_add_node g to lb e p0 (boxed 0 1) (x1 :: nil) C G x4))
+       end) x p
+|}.
+
+
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
 
 (* The type to represent a constructor in an inductive data type.
@@ -225,7 +284,8 @@ Check <%% vec %%>.
 
 (* GENERATION *)
 (* Require Import MetaCoq.Template.All. *)
-Require Import MetaCoq.Template.utils.MCString.
+(* Require Import MetaCoq.Template.utils.MCString. *)
+Require Import String.
 Record constructor_description :=
 { ctor_name : string;
   ctor_reific : reific Rep;
@@ -236,3 +296,15 @@ Class Desc {T : Type} (ctor_val : T) :=
   { desc : constructor_description }.
 
 Definition Reppyish := option ({A : Type & Rep A}).
+
+Instance S_desc : Desc S.
+  constructor.
+  refine {| ctor_name := "S" ;
+            ctor_reific := DEPARG Rep nat (fun _ : nat => RES Rep nat);
+            ctor_real := _ |}.
+  unfold reconstruct.
+  intro P.
+  destruct P, a.
+  simpl.
+  exact (S x).
+Defined.

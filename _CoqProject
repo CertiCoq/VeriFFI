@@ -5,30 +5,13 @@ library/base_representation.v
 verification/graph_add.v
 library/meta.v
 
-generator/gen_utils.v
-generator/InGraph.v
-generator/Rep.v
-generator/Desc.v
-generator/all.v
-
 library/isomorphism.v
 library/modelled.v
 
 verification/specs_library.v
 verification/specs_general.v
-# verification/proofs_library_general.v
 
-# prim/lift.v
-
-# examples/verif/glue.v
-# examples/int/uint63.v
-
-examples/uint63/prog.v
-examples/uint63/glue.v
-examples/uint63/model.v
 examples/uint63nat/prog.v
 examples/uint63nat/glue.v
 examples/uint63nat/model.v
-examples/array/prog.v
-examples/array/glue.v
-examples/array/model.v
+examples/uint63nat/Verif_prog.v
