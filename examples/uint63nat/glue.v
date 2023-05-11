@@ -10,9 +10,9 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "x86".
-  Definition model := "64".
-  Definition abi := "standard".
+  Definition arch := "aarch64".
+  Definition model := "default".
+  Definition abi := "apple".
   Definition bitsize := 64.
   Definition big_endian := false.
   Definition source_file := "glue.c".
@@ -35,13 +35,15 @@ Definition __v : ident := $"$v".
 Definition _Coq_Init_Datatypes_O_args : ident := $"Coq_Init_Datatypes_O_args".
 Definition _Coq_Init_Datatypes_S_arg_0 : ident := $"Coq_Init_Datatypes_S_arg_0".
 Definition _Coq_Init_Datatypes_S_args : ident := $"Coq_Init_Datatypes_S_args".
-Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
+Definition ___builtin_cls : ident := $"__builtin_cls".
+Definition ___builtin_clsl : ident := $"__builtin_clsl".
+Definition ___builtin_clsll : ident := $"__builtin_clsll".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
@@ -52,6 +54,7 @@ Definition ___builtin_debug : ident := $"__builtin_debug".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
+Definition ___builtin_fence : ident := $"__builtin_fence".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
 Definition ___builtin_fmax : ident := $"__builtin_fmax".
 Definition ___builtin_fmin : ident := $"__builtin_fmin".
@@ -61,8 +64,6 @@ Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
-Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
-Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
 Definition ___builtin_sel : ident := $"__builtin_sel".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
@@ -70,8 +71,6 @@ Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
 Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
-Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
-Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -256,13 +255,15 @@ Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
                 (__arg0, tulong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__argv, (tptr tulong)) :: (_t'1, (tptr tulong)) :: nil);
+  fn_temps := ((__argv, (tptr tulong)) ::
+               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
   fn_body :=
 (Ssequence
   (Sset __argv
     (Efield
       (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc (tptr tulong)))
+        (Tstruct _thread_info noattr)) _alloc
+      (tptr (talignas 3%N (tptr tvoid)))))
   (Ssequence
     (Sassign
       (Ederef
@@ -280,13 +281,16 @@ Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
           (Sset _t'1
             (Efield
               (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc (tptr tulong)))
+                (Tstruct _thread_info noattr)) _alloc
+              (tptr (talignas 3%N (tptr tvoid)))))
           (Sassign
             (Efield
               (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc (tptr tulong))
-            (Ebinop Oadd (Etempvar _t'1 (tptr tulong))
-              (Econst_long (Int64.repr 2) tulong) (tptr tulong))))
+                (Tstruct _thread_info noattr)) _alloc
+              (tptr (talignas 3%N (tptr tvoid))))
+            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
+              (Econst_long (Int64.repr 2) tulong)
+              (tptr (talignas 3%N (tptr tvoid))))))
         (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tulong))
                          (Econst_long (Int64.repr 1) tulong) (tptr tulong))))))))
 |}.
@@ -448,9 +452,10 @@ Definition f_halt := {|
         (Ecast
           (Efield
             (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-              (Tstruct _thread_info noattr)) _args (tarray tulong 1024))
-          (tptr tulong)) (Econst_long (Int64.repr 1) tulong) (tptr tulong))
-      tulong) (Etempvar __arg tulong))
+              (Tstruct _thread_info noattr)) _args
+            (tarray (talignas 3%N (tptr tvoid)) 1024)) (tptr tulong))
+        (Econst_long (Int64.repr 1) tulong) (tptr tulong)) tulong)
+    (Etempvar __arg tulong))
   (Sreturn None))
 |}.
 
@@ -498,16 +503,17 @@ Definition f_call := {|
                   (Ederef
                     (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
                     (Tstruct _thread_info noattr)) _args
-                  (tarray tulong 1024)) (tptr tulong))
+                  (tarray (talignas 3%N (tptr tvoid)) 1024)) (tptr tulong))
               (Econst_long (Int64.repr 1) tulong) (tptr tulong)) tulong))
         (Sreturn (Some (Etempvar _t'1 tulong)))))))
 |}.
 
 Definition composites : list composite_definition :=
 (Composite _thread_info Struct
-   (Member_plain _alloc (tptr tulong) :: Member_plain _limit (tptr tulong) ::
+   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
     Member_plain _heap (tptr (Tstruct _heap noattr)) ::
-    Member_plain _args (tarray tulong 1024) :: nil)
+    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) :: nil)
    noattr :: Composite _Coq_Init_Datatypes_O_args Struct nil noattr ::
  Composite _Coq_Init_Datatypes_S_args Struct
    (Member_plain _Coq_Init_Datatypes_S_arg_0 tulong :: nil)
@@ -600,12 +606,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tulong (Tcons tulong Tnil)) tulong
      cc_default)) ::
- (___builtin_ais_annot,
-   Gfun(External (EF_builtin "__builtin_ais_annot"
-                   (mksignature (AST.Tlong :: nil) AST.Tvoid
-                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-     (Tcons (tptr tschar) Tnil) tvoid
-     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
                    (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
@@ -718,16 +718,22 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tlong (Tcons tlong Tnil)) tlong
      cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
-                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
-     tdouble cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
-                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
-     tdouble cc_default)) ::
+ (___builtin_fence,
+   Gfun(External (EF_builtin "__builtin_fence"
+                   (mksignature nil AST.Tvoid cc_default)) Tnil tvoid
+     cc_default)) ::
+ (___builtin_cls,
+   Gfun(External (EF_builtin "__builtin_cls"
+                   (mksignature (AST.Tint :: nil) AST.Tint cc_default))
+     (Tcons tint Tnil) tint cc_default)) ::
+ (___builtin_clsl,
+   Gfun(External (EF_builtin "__builtin_clsl"
+                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
+     (Tcons tlong Tnil) tint cc_default)) ::
+ (___builtin_clsll,
+   Gfun(External (EF_builtin "__builtin_clsll"
+                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
+     (Tcons tlong Tnil) tint cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
                    (mksignature
@@ -756,25 +762,16 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      AST.Tfloat cc_default))
      (Tcons tdouble (Tcons tdouble (Tcons tdouble Tnil))) tdouble
      cc_default)) ::
- (___builtin_read16_reversed,
-   Gfun(External (EF_builtin "__builtin_read16_reversed"
-                   (mksignature (AST.Tlong :: nil) AST.Tint16unsigned
-                     cc_default)) (Tcons (tptr tushort) Tnil) tushort
-     cc_default)) ::
- (___builtin_read32_reversed,
-   Gfun(External (EF_builtin "__builtin_read32_reversed"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (tptr tuint) Tnil) tuint cc_default)) ::
- (___builtin_write16_reversed,
-   Gfun(External (EF_builtin "__builtin_write16_reversed"
-                   (mksignature (AST.Tlong :: AST.Tint :: nil) AST.Tvoid
-                     cc_default)) (Tcons (tptr tushort) (Tcons tushort Tnil))
-     tvoid cc_default)) ::
- (___builtin_write32_reversed,
-   Gfun(External (EF_builtin "__builtin_write32_reversed"
-                   (mksignature (AST.Tlong :: AST.Tint :: nil) AST.Tvoid
-                     cc_default)) (Tcons (tptr tuint) (Tcons tuint Tnil))
-     tvoid cc_default)) ::
+ (___builtin_fmax,
+   Gfun(External (EF_builtin "__builtin_fmax"
+                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
+                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
+     tdouble cc_default)) ::
+ (___builtin_fmin,
+   Gfun(External (EF_builtin "__builtin_fmin"
+                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
+                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
+     tdouble cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
                    (mksignature (AST.Tint :: nil) AST.Tvoid
@@ -814,11 +811,10 @@ Definition public_idents : list ident :=
  _names_of_Coq_Init_Datatypes_nat :: _get_boxed_ordinal ::
  _get_unboxed_ordinal :: _prop_lit :: _unk_lit :: _type_lit :: _fun_lit ::
  _space_lit :: _rparen_lit :: _lparen_lit :: _is_ptr :: _printf ::
- ___builtin_debug :: ___builtin_write32_reversed ::
- ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
+ ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
+ ___builtin_fence :: ___builtin_expect :: ___builtin_unreachable ::
  ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
  ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
  ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
@@ -826,12 +822,12 @@ Definition public_idents : list ident :=
  ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
  ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
  ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
+ ___builtin_bswap64 :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
+ ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
+ ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
+ ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
+ ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
+ ___compcert_i64_dtos :: ___compcert_va_composite ::
  ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
  nil).
 

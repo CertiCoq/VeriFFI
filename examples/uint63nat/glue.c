@@ -1,12 +1,17 @@
+typedef void  * value
+#ifdef COMPCERT
+ __attribute((aligned(_Alignof(void *))))
+#endif
+ ;
 
 struct thread_info;
 struct Coq_Init_Datatypes_O_args;
 struct Coq_Init_Datatypes_S_args;
 struct thread_info {
-  unsigned long long *alloc;
-  unsigned long long *limit;
+  value *alloc;
+  value *limit;
   struct heap *heap;
-  unsigned long long args[1024];
+  value args[1024];
 };
 
 struct Coq_Init_Datatypes_O_args {

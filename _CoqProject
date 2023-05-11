@@ -1,5 +1,4 @@
 -Q . VeriFFI
--Q /home/opam/CertiGraph CertiGraph
 
 library/base_representation.v
 verification/graph_add.v

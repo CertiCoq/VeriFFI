@@ -65,6 +65,42 @@ Lemma separate_sigT_in_arg :
       (forall (p : {x : A & P x}), T p) -> (forall (a1 : A) (a2: P a1), T (a1; a2)).
 Proof. auto. Qed.
 
+#[export] Instance CCE1: change_composite_env env_graph_gc.CompSpecs CompSpecs.
+make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
+Defined.
+
+(* BEGIN patch simulating VST p.r. #681.
+  This patch can be deleted, even before merging the P.R., because its
+  only purpose is to diagnose when compspecs don't match, and our
+  current proof correctly does a change_compspecs to make them match. *)
+Ltac equal_pointers p q :=
+ lazymatch p with
+ | offset_val 0 ?p' => equal_pointers p' q
+ | _ => lazymatch q with offset_val 0 ?q' => equal_pointers p q'
+        | _ => unify p q
+        end
+ end.
+
+Ltac SEP_field_at_unify' gfs ::=
+  match goal with
+  | |- @field_at ?csl ?shl ?tl ?gfsl ?vl ?pl = @field_at ?csr ?shr ?tr ?gfsr ?vr ?pr =>
+      unify tl tr;
+      unify (Floyd_skipn (length gfs - length gfsl) gfs) gfsl;
+      unify gfsl gfsr;
+      unify shl shr;
+      unify vl vr;
+      equal_pointers pl pr;
+      constr_eq csl csr +
+      fail 12 "Two different compspecs present:" 
+         csl "and" csr 
+        ".  Try using change_compspecs, or use VSUs";
+
+      generalize vl; intro;
+      rewrite <- ?field_at_offset_zero;
+      f_equal; (* this line is important to prevent blow-ups *)
+      reflexivity
+  end.
+(* END patch simulating VST p.r. #681 *)
 
 Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
   semax_body Vprog Gprog
@@ -74,25 +110,20 @@ Proof.
   unfold alloc_make_Coq_Init_Datatypes_nat_S_spec.
   unfold alloc_make_spec_general.
   start_function1.
-  hnf in xs.
   repeat (simple apply intro_prop_through_close_precondition; intro).
-  pattern xs.
+  simpl in xs. destruct xs. destruct u.
+  simpl in H. clear H.
+  destruct ps; try contradiction.
+  destruct H0. simpl in H0. subst ps.
+  start_function2.
+  start_function3.
+  unfold full_gc. Intros.
+  unfold before_gc_thread_info_rep. Intros.
+  change_compspecs CompSpecs. 
+  forward.
+  entailer!.  admit.
+Fail  forward.
 
-  (* apply combined_sigT_in_arg. *)
-  (* pattern H. *)
-
-  (* destruct xs. *)
-  (* hnf in xs. *)
-  (* pattern ps. *)
-  (* destruct xs. *)
-  (* (* write a lemma and rewrite *) *)
-  (* destruct ps. *)
-  (* contradiction H0. *)
-  (* destruct a. *)
-
-  (* unfold in_graphs in H0. *)
-  (* destruct H0. *)
-  (* subst. *)
 
 
   (* erewrite compute_close_precondition_eq. *)
