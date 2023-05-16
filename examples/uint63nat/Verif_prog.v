@@ -137,6 +137,12 @@ Qed.
 
 
 Require Import VST.floyd.functional_base.
+
+
+Definition headroom (ti: GCGraph.thread_info) : Z :=
+    let g0 := heap_head (ti_heap ti) in
+       total_space g0 - used_space g0.
+
 Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
   semax_body Vprog Gprog
              f_alloc_make_Coq_Init_Datatypes_nat_S
@@ -145,6 +151,9 @@ Proof.
   unfold alloc_make_Coq_Init_Datatypes_nat_S_spec.
   unfold alloc_make_spec_general.
   start_function.
+  assert (2 <= headroom t_info) by admit.  (* This will come from precondition *)
+  rename H0 into HEADROOM.
+  unfold headroom in HEADROOM.
   unfold full_gc, before_gc_thread_info_rep. Intros.
   rename H0 into gc_cond.
 
@@ -169,19 +178,6 @@ Proof.
    (* rewrite MAX_SPACE_SIZE_eq in SP2. simpl in SP2. *)
    remember ( space_start g0) as s0. destruct s0; try contradiction.
 
-   (** Start of the proof *)
-
-   (* Joomy's note: the current version of the alloc_make_nat_S function does
-   not check each time if there's enough memory in the CertiCoq heap and does
-   not call the GC. Kathrin's version seems to do that. We can decide which one
-   we want to go with.
-   Since these glue functions are building blocks we want to build bigger
-   functions with, to me it makes more sense to call the GC once for the bigger
-   function, but that will mean the user will have to calculate how much memory
-   they'll need. Kathrin's way saves the user from that trouble, and possibly
-   makes verification of larger programs easier since the proofs will handle the
-   GC calls from the building blocks. But it may prevent some optimizations. I'm
-   leaving Kathrin's proof about the memory check below for reference. *)
 
    (*
    do 3 forward.
@@ -225,20 +221,46 @@ Proof.
    { rewrite H0 in isptr_g0. simpl in *. contradiction. }
    rewrite <- Heqalloc.
    assert (0 <= space) by lia.
-   replace int_or_ptr_type with tulong by admit. (* TODO: CHANGE THE SPECIFICATION. *)
-   (* OTHERWISE I CAN'T STEP FORWARD. *)
-
-   (** Continuing. *)
-
    change_compspecs CompSpecs.
    do 1 forward.
+   assert_PROP (force_val (sem_add_ptr_long tulong alloc (Vlong (Int64.repr 0))) = 
+                 field_address (tarray int_or_ptr_type (total_space g0 - used_space g0)) [ArraySubsc 0] alloc). { 
+     entailer!.
+     rewrite arr_field_address by (auto with field_compatible; rep_lia).
+     normalize.
+   }
+   forward.  (* fails here: 
+Tactic failure: unexpected failure in load/store_tac_with_hint. The expression
+((tptr tulong) __argv[(0)LL])%expr has type (Tlong Unsigned noattr)
+but is expected to have type
+(Tpointer Tvoid {| attr_volatile := false; attr_alignas := Some log2_sizeof_pointer |}) (level 996).
+*)
+
    (* originally: do 5 forward. *)
-   entailer!.
+Tactic failure: 
+It is not obvious how to move forward here.  One way:
+Find a SEP clause of the form [data_at _ _ _ 
+?p
+] (or field_at, data_at_, field_at_),
+then use assert_PROP to prove an equality of the form
+(force_val (sem_add_ptr_long tulong alloc (Vlong (Int64.repr 0))) = field_address ?t ?gfs ?p)
+or if this does not hold, prove an equality of the form (alloc = field_address ?t ?gfs ?p)
+, then try [forward] again. (level 992).
 
-   (*
+
+
+(* stuff copied from https://github.com/CertiCoq/VeriFFI/blob/9f04765f42a5f2f8637503187ff9e3fb9f48782b/verification/demo/proofs_nat_general.v *)
    assert (t_size : 0 <= 2 <= total_space (nth_space t_info 0) - used_space (nth_space t_info 0)).
-    { unfold nth_space. rewrite SPACE_NONEMPTY. simpl. rep_lia. }
+    { unfold nth_space. rewrite SPACE_NONEMPTY. simpl. admit. }
+replace (nth_space t_info 0) with g0 in * by admit.
+   Search data_at_ data_at.
+   rewrite data_at__eq.
 
+
+   assert (readable_share (space_sh g0)) by admit.
+   forward.
+
+(* in Kathrin's proof, by now we were already at the end of the function body *)
    pose (v := new_copied_v g 0).
    Exists (repNode v).
    assert (R1 : 0 <= 0 < 256) by lia.
