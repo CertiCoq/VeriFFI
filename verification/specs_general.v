@@ -92,6 +92,10 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
 
 Theorem Rep_any : forall {A : Type}, Rep A. Admitted.
 
+Definition headroom (ti: GCGraph.thread_info) : Z :=
+   let g0 := heap_head (ti_heap ti) in
+      total_space g0 - used_space g0.
+
 (*
 Definition alloc_make_nat_S : funspec :=
   WITH gv : globals, g : graph, p : rep_type,
@@ -120,6 +124,7 @@ Definition alloc_make_spec_general
     PRE  [[ thread_info :: repeat tulong n ]]
        PROP (n = get_size (ctor_reific c) xs ;
              in_graphs g _ xs ps ;
+             (Z.of_nat n) < headroom t_info ;
              writable_share sh)
        (PARAMSx (ti :: map (fun p => rep_type_val g p) ps)
        (GLOBALSx nil

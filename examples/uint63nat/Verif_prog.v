@@ -138,11 +138,6 @@ Qed.
 
 Require Import VST.floyd.functional_base.
 
-
-Definition headroom (ti: GCGraph.thread_info) : Z :=
-    let g0 := heap_head (ti_heap ti) in
-       total_space g0 - used_space g0.
-
 Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
   semax_body Vprog Gprog
              f_alloc_make_Coq_Init_Datatypes_nat_S
@@ -151,7 +146,7 @@ Proof.
   unfold alloc_make_Coq_Init_Datatypes_nat_S_spec.
   unfold alloc_make_spec_general.
   start_function.
-  assert (2 <= headroom t_info) by admit.  (* This will come from precondition *)
+  assert (2 <= headroom t_info) by lia.
   rename H0 into HEADROOM.
   unfold headroom in HEADROOM.
   unfold full_gc, before_gc_thread_info_rep. Intros.
