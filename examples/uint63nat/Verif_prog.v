@@ -147,8 +147,15 @@ Proof.
   unfold alloc_make_spec_general.
   start_function.
   assert (2 <= headroom t_info) by lia.
+  clear H1.
   rename H0 into HEADROOM.
   unfold headroom in HEADROOM.
+  assert (t_size: 0 <= 2 <= total_space (nth_space t_info 0) - used_space (nth_space t_info 0)). {
+    pose proof heap_head_cons.
+    destruct (heap_head_cons (ti_heap t_info)) as [s [l [H8 H9 ] ] ].
+    unfold nth_space.
+       rewrite H8 in *; subst s; simpl; lia.
+  }
   unfold full_gc, before_gc_thread_info_rep. Intros.
   rename H0 into gc_cond.
 
@@ -173,37 +180,6 @@ Proof.
    (* rewrite MAX_SPACE_SIZE_eq in SP2. simpl in SP2. *)
    remember ( space_start g0) as s0. destruct s0; try contradiction.
 
-
-   (*
-   do 3 forward.
-   (* GEN: 2 is the number of spaces. *)
-   forward_if  (2 <= total_space g0 - used_space g0).
-      { (** First condition if, denote_tc_samebase. *)
-       unfold denote_tc_samebase. cbn. entailer!. }
-      { forward_call (1). entailer!. }
-      { forward. entailer!.  rename H0 into H_tf.
-        (** Show the condition. *)
-        unfold typed_false, strict_bool_val, tint, force_val, both_int, sem_sub_pp, eq_block, peq in H_tf. simpl in H_tf.
-        destruct (Pos.eq_dec b b) eqn:?; try congruence; simpl in *.
-        unfold Val.of_bool in H_tf. destruct (Int.lt _ _) eqn:HHH; simpl in *; try congruence. apply lt_false_inv in HHH.
-        revert HHH. autorewrite with norm.
-
-        remember (heap_head (ti_heap t_info)) as g0.
-        remember WORD_SIZE as WS. clear HeqWS.
-        assert (WS = 8) by admit.
-        assert (Ptrofs.unsigned i = 0) by admit.
-        unfold Ptrofs.divs, Ptrofs.sub, Ptrofs.add. autorewrite with norm.
-        rewrite (Ptrofs.signed_repr 8); try rep_lia.
-        rewrite !(Ptrofs.unsigned_repr (WS * _)); try rep_lia.
-        rewrite !Ptrofs.unsigned_repr; try rep_lia.
-        assert (Ptrofs.unsigned i + WS * total_space g0 - (Ptrofs.unsigned i + WS * used_space g0) = (total_space g0 -  used_space g0) * WS) as -> by lia.
-        rewrite Ptrofs.signed_repr.
-        rewrite H0, Z.quot_mul; try rep_lia.
-        autorewrite with norm. lia.
-        clear H0. assert (WS = 4) as -> by admit. rep_lia.  }
-  *)
-
-(** After the if. *)
    Intros.
    rewrite !Heqs0 in *.
    remember (offset_val (WORD_SIZE * used_space g0) (space_start g0)) as alloc.
@@ -224,38 +200,12 @@ Proof.
      rewrite arr_field_address by (auto with field_compatible; rep_lia).
      normalize.
    }
-   forward.  (* fails here: 
-Tactic failure: unexpected failure in load/store_tac_with_hint. The expression
-((tptr tulong) __argv[(0)LL])%expr has type (Tlong Unsigned noattr)
-but is expected to have type
-(Tpointer Tvoid {| attr_volatile := false; attr_alignas := Some log2_sizeof_pointer |}) (level 996).
-*)
-
-   (* originally: do 5 forward. *)
-Tactic failure: 
-It is not obvious how to move forward here.  One way:
-Find a SEP clause of the form [data_at _ _ _ 
-?p
-] (or field_at, data_at_, field_at_),
-then use assert_PROP to prove an equality of the form
-(force_val (sem_add_ptr_long tulong alloc (Vlong (Int64.repr 0))) = field_address ?t ?gfs ?p)
-or if this does not hold, prove an equality of the form (alloc = field_address ?t ?gfs ?p)
-, then try [forward] again. (level 992).
-
-
-
-(* stuff copied from https://github.com/CertiCoq/VeriFFI/blob/9f04765f42a5f2f8637503187ff9e3fb9f48782b/verification/demo/proofs_nat_general.v *)
-   assert (t_size : 0 <= 2 <= total_space (nth_space t_info 0) - used_space (nth_space t_info 0)).
-    { unfold nth_space. rewrite SPACE_NONEMPTY. simpl. admit. }
-replace (nth_space t_info 0) with g0 in * by admit.
-   Search data_at_ data_at.
-   rewrite data_at__eq.
-
-
-   assert (readable_share (space_sh g0)) by admit.
    forward.
-
-(* in Kathrin's proof, by now we were already at the end of the function body *)
+   forward.
+   forward.
+   forward.
+   forward.
+   
    pose (v := new_copied_v g 0).
    Exists (repNode v).
    assert (R1 : 0 <= 0 < 256) by lia.
@@ -271,18 +221,24 @@ replace (nth_space t_info 0) with g0 in * by admit.
     pose (t_info' := graph_add.add_node_ti 0 t_info _ t_size).
     Exists t_info'.
 assert (add_node_compatible g (new_copied_v g 0) es).
-    { unfold add_node_compatible. intros. subst es. destruct p; inversion H9.
-    - injection H10. intros. subst. simpl.  intuition eauto.
+    { unfold add_node_compatible. intros. subst es. destruct p; inversion H10.
+    - injection H11. intros. subst. simpl.  intuition eauto.
       + eauto using has_v.
       + rep_lia.
       + repeat constructor. eauto.
-       - inversion H10. }
+       - inversion H11. }
 
     entailer!.
   - split3.
     + (** In this new graph, we have (S n) at position v with our predicate. *)
-      exists p. intuition (try congruence).
-      * apply is_monotone; eauto.
+      exists p. 
+      change (is_in_graph (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) x p /\
+       graph_cRep (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) (repNode v) (boxed 0 1) [p]).
+
+       intuition (try congruence).
+      *
+(* FAILS HERE *)
+ apply is_monotone; eauto.
       * unfold graph_cRep, tag_nat. intuition.
         -- split.
            ++ rewrite add_node_graph_has_gen; eauto.

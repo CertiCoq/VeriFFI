@@ -18,22 +18,22 @@ struct Coq_Init_Datatypes_O_args {
 };
 
 struct Coq_Init_Datatypes_S_args {
-  unsigned long long Coq_Init_Datatypes_S_arg_0;
+  value Coq_Init_Datatypes_S_arg_0;
 };
 
 extern int printf(signed char *);
-extern _Bool is_ptr(unsigned long long);
-unsigned int get_unboxed_ordinal(unsigned long long);
-unsigned int get_boxed_ordinal(unsigned long long);
-unsigned long long make_Coq_Init_Datatypes_nat_O(void);
-unsigned long long make_Coq_Init_Datatypes_nat_S(unsigned long long, unsigned long long *);
-unsigned long long alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, unsigned long long);
-unsigned int get_Coq_Init_Datatypes_nat_tag(unsigned long long);
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(unsigned long long);
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(unsigned long long);
-void print_Coq_Init_Datatypes_nat(unsigned long long);
-void halt(struct thread_info *, unsigned long long, unsigned long long);
-unsigned long long call(struct thread_info *, unsigned long long, unsigned long long);
+extern _Bool is_ptr(value);
+unsigned int get_unboxed_ordinal(value);
+unsigned int get_boxed_ordinal(value);
+value make_Coq_Init_Datatypes_nat_O(void);
+value make_Coq_Init_Datatypes_nat_S(value, value *);
+value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, value);
+unsigned int get_Coq_Init_Datatypes_nat_tag(value);
+struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(value);
+struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(value);
+void print_Coq_Init_Datatypes_nat(value);
+void halt(struct thread_info *, value, value);
+value call(struct thread_info *, value, value);
 signed char const lparen_lit[2] = { 40, 0, };
 
 signed char const rparen_lit[2] = { 41, 0, };
@@ -48,42 +48,42 @@ signed char const unk_lit[6] = { 60, 117, 110, 107, 62, 0, };
 
 signed char const prop_lit[7] = { 60, 112, 114, 111, 112, 62, 0, };
 
-unsigned int get_unboxed_ordinal(unsigned long long $v)
+unsigned int get_unboxed_ordinal(value $v)
 {
-  return $v >> 1LLU;
+  return (unsigned long long)$v >> 1LLU;
 }
 
-unsigned int get_boxed_ordinal(unsigned long long $v)
+unsigned int get_boxed_ordinal(value $v)
 {
-  return *((unsigned long long *) $v + 18446744073709551615LLU) & 255LLU;
+  return (unsigned long long)(*((value*) $v + 18446744073709551615LLU)) & 255LLU;
 }
 
 signed char const names_of_Coq_Init_Datatypes_nat[2][2] = { 79, 0, 83, 0,
   /* skip 0 */ };
 
-unsigned long long make_Coq_Init_Datatypes_nat_O(void)
+value make_Coq_Init_Datatypes_nat_O(void)
 {
   return 1;
 }
 
-unsigned long long make_Coq_Init_Datatypes_nat_S(unsigned long long $arg0, unsigned long long *$argv)
+value make_Coq_Init_Datatypes_nat_S(value $arg0, value *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 1024LLU;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *((value *) $argv + 0LLU) = 1024LLU;
+  *((value *) $argv + 1LLU) = $arg0;
   return $argv + 1LLU;
 }
 
-unsigned long long alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, unsigned long long $arg0)
+value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, value $arg0)
 {
-  register unsigned long long *$argv;
+  register value *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 1024LLU;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *((value *) $argv + 0LLU) = 1024LLU;
+  *((value *) $argv + 1LLU) = $arg0;
   (*$tinfo).alloc = (*$tinfo).alloc + 2LLU;
   return $argv + 1LLU;
 }
 
-unsigned int get_Coq_Init_Datatypes_nat_tag(unsigned long long $v)
+unsigned int get_Coq_Init_Datatypes_nat_tag(value $v)
 {
   register _Bool $b;
   register unsigned int $t;
@@ -105,17 +105,17 @@ unsigned int get_Coq_Init_Datatypes_nat_tag(unsigned long long $v)
   }
 }
 
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(unsigned long long $v)
+struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(value $v)
 {
   return (struct Coq_Init_Datatypes_O_args *) 0;
 }
 
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(unsigned long long $v)
+struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(value $v)
 {
   return (struct Coq_Init_Datatypes_S_args *) $v;
 }
 
-void print_Coq_Init_Datatypes_nat(unsigned long long $v)
+void print_Coq_Init_Datatypes_nat(value $v)
 {
   register unsigned int $tag;
   register void *$args;
@@ -129,31 +129,31 @@ void print_Coq_Init_Datatypes_nat(unsigned long long $v)
       printf(lparen_lit);
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       printf(space_lit);
-      print_Coq_Init_Datatypes_nat(*((unsigned long long *) $args + 0));
+      print_Coq_Init_Datatypes_nat(*((value *) $args + 0));
       printf(rparen_lit);
       break;
     
   }
 }
 
-void halt(struct thread_info *$tinfo, unsigned long long $env, unsigned long long $arg)
+void halt(struct thread_info *$tinfo, value $env, value $arg)
 {
-  *((unsigned long long *) (*$tinfo).args + 1LLU) = $arg;
+  *((value *) (*$tinfo).args + 1LLU) = $arg;
   return;
 }
 
-unsigned long long const halt_clo[2] = { &halt, 1LL, };
+value const halt_clo[2] = { &halt, 1LL, };
 
-unsigned long long call(struct thread_info *$tinfo, unsigned long long $clo, unsigned long long $arg)
+value call(struct thread_info *$tinfo, value $clo, value $arg)
 {
-  register unsigned long long *$f;
-  register unsigned long long *$envi;
-  $f = *((unsigned long long *) $clo + 0LLU);
-  $envi = *((unsigned long long *) $clo + 1LLU);
-  ((void (*)(struct thread_info *, unsigned long long, unsigned long long)) 
+  register value *$f;
+  register value *$envi;
+  $f = *((value *) $clo + 0LLU);
+  $envi = *((value *) $clo + 1LLU);
+  ((void (*)(struct thread_info *, value, value)) 
     $f)
     ($tinfo, $envi, $arg);
-  return *((unsigned long long *) (*$tinfo).args + 1LLU);
+  return *((value *) (*$tinfo).args + 1LLU);
 }
 
 
