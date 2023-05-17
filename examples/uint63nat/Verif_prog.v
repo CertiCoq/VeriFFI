@@ -135,8 +135,40 @@ Proof.
     split3; eauto; congruence.
 Qed.
 
-
-Require Import VST.floyd.functional_base.
+Set Nested Proofs Allowed. (* from proofs_library_general.v *)
+Lemma add_node_gc_condition_prop g p t_info roots outlier R1 R2 R3 t_size (H: graph_has_gen g 0) :
+  let v := new_copied_v g 0 in
+  let es :=  match p with
+             | repNode v' => [(v, Z.to_nat 0, (v, v'))]
+             | _ => []
+             end : list (VType * nat * (VType * VType)) in
+  let g' := add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es in
+  let t_info' := add_node_ti 0 t_info 2 t_size in
+  match p with
+  | repNode v' => graph_has_v g v' /\ v <> v'
+  | _ => True
+  end
+->
+gc_condition_prop g t_info roots outlier -> gc_condition_prop g' t_info' roots outlier.
+Proof.
+  intros. unfold gc_condition_prop in *. unfold g'.
+  assert ( add_node_compatible g (new_copied_v g 0) es).
+  { unfold add_node_compatible. intros. subst es. destruct p; inversion H2.
+    - injection H3. intros. subst. simpl. intuition.
+      repeat constructor. simpl. eauto.
+    - inversion H3. }
+  assert (  edge_compatible g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es).
+  { unfold edge_compatible. intros. simpl. destruct p; simpl; intuition eauto. }
+    intuition.
+  all: eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+  + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
+  + eapply add_node_outlier_compatible; eauto. (* Print rep_field. *)  simpl.
+    destruct p eqn:Hp; hnf; simpl; intros; try contradiction; eauto.
+    destruct H12; try contradiction; subst.
+    (* TODO: Not sure what to do with this outlier. *)
+    unfold outlier_compatible in H9.
+    admit. (* THIS IS WEIRD. Should probably not be right. Or is it a problem that I allow things which are not nodes? *)
+Admitted.
 
 Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
   semax_body Vprog Gprog
@@ -159,7 +191,7 @@ Proof.
   unfold full_gc, before_gc_thread_info_rep. Intros.
   rename H0 into gc_cond.
 
-  (* change_compspecs CompSpecs. *)
+  progress change_compspecs CompSpecs.
 
   (** General properties *)
   assert (graph_has_gen_0 := graph_has_gen_O g).
@@ -236,10 +268,8 @@ assert (add_node_compatible g (new_copied_v g 0) es).
        graph_cRep (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) (repNode v) (boxed 0 1) [p]).
 
        intuition (try congruence).
-      *
-(* FAILS HERE *)
- apply is_monotone; eauto.
-      * unfold graph_cRep, tag_nat. intuition.
+      * apply (@is_monotone _ Rep_nat); eauto.
+      * unfold graph_cRep. intuition.
         -- split.
            ++ rewrite add_node_graph_has_gen; eauto.
            ++ apply add_node_has_index_new; eauto.
@@ -256,9 +286,9 @@ assert (add_node_compatible g (new_copied_v g 0) es).
      (number_of_vertices (nth_gen g 0))) as ->.
         { unfold previous_vertices_size, vertex_size_accum. unfold vertex_size.
           apply fold_left_ext. intros. rewrite add_node_vlabel_old. reflexivity.
-          unfold nat_inc_list in H13. unfold new_copied_v.
-          rewrite nat_seq_In_iff in H13. intros A. injection A. rep_lia. }
-        assert (WORD_SIZE = 8) as -> by admit; rep_lia.
+          unfold GCGraph.nat_inc_list in H12. unfold new_copied_v.
+          rewrite nat_seq_In_iff in H12. intros A. injection A. rep_lia. }
+        assert (WORD_SIZE = 8) as -> by reflexivity; rep_lia.
       * rewrite add_node_gen_start; eauto.
         unfold gen_start. if_tac; try contradiction. eauto.
   - unfold full_gc.
@@ -271,15 +301,18 @@ assert (add_node_compatible g (new_copied_v g 0) es).
     remember (offset_val (WORD_SIZE * total_space g0) (space_start g0)) as limit.
 
     unfold before_gc_thread_info_rep. Intros.
-    cancel.
-    unfold heap_rest_rep. simpl. cancel.
+
+    change_compspecs CompSpecs.
+    unfold heap_rest_rep.
+    simpl. cancel.
     rewrite !sepcon_assoc.
     apply sepcon_derives.
     { apply derives_refl'. f_equal.
       - f_equal.
         + simpl. f_equal.
           * rewrite add_node_heap_used_space0.
-            replace WORD_SIZE with 8 by admit. rewrite <- Heqheap. rewrite <- Heqg0. rep_lia.
+            replace WORD_SIZE with 8 by reflexivity.
+            rewrite <- Heqheap. rewrite <- Heqg0. rep_lia.
           * rewrite add_node_heap_start0. congruence.
         + f_equal.
           rewrite add_node_heap_start0. rewrite Heqlimit.
@@ -301,43 +334,61 @@ assert (add_node_compatible g (new_copied_v g 0) es).
 
     unfold force_val.
     unfold default_val. simpl.
-
-    assert (exists al, Z.to_nat (total_space g0 - used_space g0) = S (S al)) as (al&alloc_succ).
-    {  apply Z_to_nat_monotone in H0.
-       simpl in H0. destruct (Z.to_nat (total_space g0 - used_space g0)) as [|[]]; try lia; eauto. }
-
-    rewrite alloc_succ.
-    simpl.
-    rewrite upd_Znth0.
-    rewrite (upd_Znth_app2 [Vlong (Int64.repr 1024)] (Vundef :: list_repeat al Vundef)).
-    2 : { pose (Zlength_nonneg (Vundef :: list_repeat al Vundef)).
-          unfold Zlength in *.  simpl. simpl in l. lia. }
-    simpl. rewrite upd_Znth0.
+    replace (upd_Znth _ _ _) with
+       (Vlong (Int64.repr 1024) :: rep_type_val g p :: Zrepeat Vundef (total_space g0 - used_space g0 - 2))
+       by list_solve.
     erewrite add_node_spatial; auto.
-    unfold sem_add_ptr_long, tulong, complete_type.
-    unfold thread_info_rep.
+     2: admit.
+     2: admit.
+    replace (upd_Znth 0 _ _)
+    with (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size
+            :: space_rest).
+    2:{ subst heap. rewrite upd_Znth0_old by list_solve. f_equal. 
+          rewrite SPACE_NONEMPTY. list_solve.
+     }
+     simpl. cancel.
+     change (field_at ?x ?y nil) with (data_at x y).
+     change (?a :: ?b :: ?c) with ([a;b]++c).
+     rewrite (split2_data_at_Tarray_app 2) by list_solve.
+     unfold space_rest_rep. if_tac.
+     { simpl in H12. contradiction H0. rewrite <- H12.
+       rewrite Heqg0. rewrite Heqheap.
+        admit. (* easy *)
+     }
+   simpl space_sh.
+   change_compspecs CompSpecs.
+   replace (nth 0 (spaces (ti_heap t_info)) null_space) with g0 by admit.
+   replace (total_space (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
+       with (total_space g0) by admit.
+   replace (used_space (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
+     with (used_space g0 + 2) by admit.
+   replace (space_sh (nth 0 (spaces (ti_heap t_info)) null_space)) with (space_sh g0) by admit.
+   rewrite Z.sub_add_distr.
+   replace (space_start (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
+       with (space_start g0) by admit.
+   replace (field_address0 (tarray int_or_ptr_type (total_space g0 - used_space g0)) 
+     (SUB 2) (offset_val (WORD_SIZE * used_space g0) (space_start g0)))
+     with (offset_val (WORD_SIZE * (used_space g0 + 2)) (space_start g0)).
 
-    unfold sem_cast_l2l.
-    assert (exists p_long, rep_type_val g p = Vlong p_long) as (p_long&PLONG) by admit. (* Just because of the sem_cast_l. Will disappear if we have the right type. *)
-    rewrite PLONG in *.
-    cancel.
-    assert (total_space g0 - used_space g0 = Zlength (Vlong (Int64.repr 1024) :: Vlong p_long :: list_repeat al Vundef)) as AL.
-    { rewrite !Zlength_cons. rewrite Zlength_list_repeat'. rewrite <- !Nat2Z.inj_succ.  rewrite <- alloc_succ. rewrite Z2Nat.id; rep_lia. }
-    rewrite AL.
-    assert (Zlength (Vlong (Int64.repr 1024) :: Vlong p_long :: list_repeat al Vundef) = Zlength (Vlong p_long :: list_repeat al Vundef) + 1) as ->.
-    { rewrite !Zlength_cons. rep_lia. }
+2:{ unfold field_address0. simpl. rewrite if_true by auto with field_compatible.
+    rewrite offset_offset_val.
+      f_equal. change WORD_SIZE with 8. lia.
+   }
+   cancel.
 
-    rewrite (@data_at_tarray_split_1 (space_sh g0) _ (Tlong Unsigned noattr) _ (Vlong p_long :: list_repeat al Vundef)); eauto.
-    rewrite Zlength_cons. unfold Z.succ.
-    rewrite data_at_tarray_split_1; eauto.
-   rewrite <- sepcon_assoc. rewrite sepcon_comm.
-     subst.
-     destruct t_info; simpl in *. destruct ti_heap; simpl in *. destruct spaces; try congruence.
-     rewrite upd_Znth0. simpl. cancel.
-     assert (spaces = space_rest) as -> by congruence.
-     cancel. unfold space_rest_rep. if_tac.
-     { simpl in *. exfalso. eauto. }
-     autorewrite with norm.
+(* DONE TO HERE, SORT OF *)
+   unfold spatial_gcgraph.vertex_at.
+
+   Search data_at data_at_.
+   rewrite <- data_at__tarray.
+   rewrite sepcon_comm. apply sepcon_derives.
+clear.
+{
+Set Printing Implicit.
+ apply derives_refl.
+   cancel.
+   
+Search 
      rewrite !Zlength_list_repeat'. simpl.
      remember (heap_head {| spaces := s :: space_rest; spaces_size := spaces_size |}) as g0.
      assert (s = g0)  as -> by congruence.
