@@ -278,7 +278,7 @@ Qed.
 
 (* Subpart of copy_compatible *) 
 Definition copied_vertex_existence g := 
-  forall x, graph_has_v g x -> graph_has_v g (copied_vertex (vlabel g x)).  
+  forall x, graph_has_v g x -> raw_mark (vlabel g x) = true -> graph_has_v g (copied_vertex (vlabel g x)).  
 
 Hint Unfold copied_vertex_existence : graph_add. 
 
@@ -292,7 +292,7 @@ Proof.
   destruct (raw_mark (vlabel g x)) eqn:? ; [f_equal | reflexivity].
   apply add_node_vertex_address_old; try assumption. 
   unfold no_dangling_dst in D. 
-  apply C. eauto. 
+  apply C; eauto. 
 Qed.
 
 Lemma add_node_generation_rep_not_eq: forall g to n lb e,
@@ -1041,7 +1041,8 @@ Proof.
     eapply add_node_graph_has_v in A; eauto. 
     destruct A; try congruence.  
     specialize (E _ H).  
-    rewrite add_node_vlabel_old; eauto. 
+    rewrite add_node_vlabel_old; eauto.
+    intros. specialize (E H0). 
     destruct E as (E1&E2). 
     split. 
     + rewrite add_node_graph_has_gen; eauto.

@@ -136,6 +136,39 @@ Proof.
 Qed.
 
 Set Nested Proofs Allowed. (* from proofs_library_general.v *)
+
+
+Lemma add_node_copy_compatible:
+ forall g (v := new_copied_v g 0 : VType) flds R1 R2 R3 es,
+ copy_compatible g ->
+ copy_compatible (add_node g 0 (newRaw v 0 flds R1 R2 R3) es).
+Proof.
+intros.
+hnf; intros.
+hnf in H.
+apply add_node_graph_has_v in H0; [ | apply graph_has_gen_O].
+destruct H0.
+-
+assert (v0 <> new_copied_v g 0). {
+ apply graph_has_v_not_eq; auto.
+}
+rewrite add_node_vlabel_old in *; auto.
+split.
+apply add_node_graph_has_v;  [apply graph_has_gen_O | ].
+destruct (H _ H0 H1).
+auto.
+apply H; auto.
+-
+subst.
+rewrite add_node_vlabel in *; auto.
+split.
+apply add_node_graph_has_v;  [apply graph_has_gen_O | ].
+right.
+simpl.
+reflexivity.
+inv H1.
+Qed.
+
 Lemma add_node_gc_condition_prop g p t_info roots outlier R1 R2 R3 t_size (H: graph_has_gen g 0) :
   let v := new_copied_v g 0 in
   let es :=  match p with
@@ -146,6 +179,7 @@ Lemma add_node_gc_condition_prop g p t_info roots outlier R1 R2 R3 t_size (H: gr
   let t_info' := add_node_ti 0 t_info 2 t_size in
   match p with
   | repNode v' => graph_has_v g v' /\ v <> v'
+  | repOut v' => In v' outlier
   | _ => True
   end
 ->
@@ -164,11 +198,9 @@ Proof.
   + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
   + eapply add_node_outlier_compatible; eauto. (* Print rep_field. *)  simpl.
     destruct p eqn:Hp; hnf; simpl; intros; try contradiction; eauto.
-    destruct H12; try contradiction; subst.
-    (* TODO: Not sure what to do with this outlier. *)
-    unfold outlier_compatible in H9.
-    admit. (* THIS IS WEIRD. Should probably not be right. Or is it a problem that I allow things which are not nodes? *)
-Admitted.
+    destruct H12; try contradiction; subst; auto.
+  + apply add_node_copy_compatible; auto.
+Qed.
 
 Lemma unfold_for_allocation:
  forall (g: graph) (t_info: GCGraph.thread_info) (roots: roots_t)
@@ -264,6 +296,77 @@ simpl in H1.
 destruct H1; auto.
 Qed.
 
+Lemma upd_first_n_app:
+ forall {A} `{INH: Inhabitant A} (al bl: list A),
+   Zlength al <= Zlength bl ->
+   upd_first_n al bl = al ++ sublist (Zlength al) (Zlength bl) bl.
+Proof.
+intros.
+unfold upd_first_n.
+rewrite <- (rev_involutive al) at 3.
+rewrite <- (Zlength_rev _ al) in H.
+rewrite <- rev_append_rev.
+rewrite <- Zlength_rev.
+rewrite Zlength_correct.
+set (al' := rev al) in *; clearbody al'; clear al; rename al' into al.
+revert bl H; induction al; intros.
+simpl.
+rewrite sublist_same by lia; auto.
+simpl Datatypes.length.
+rewrite Zlength_cons in H.
+rewrite inj_S.
+simpl.
+rewrite Z.pred_succ.
+rewrite IHal by lia; clear IHal.
+rewrite <- !Zlength_correct.
+rewrite !rev_append_rev.
+rewrite upd_Znth_app2.
+rewrite Zlength_rev. rewrite Z.sub_diag.
+f_equal.
+rewrite (sublist_split (Zlength al) (Z.succ (Zlength al))) by rep_lia.
+rewrite upd_Znth_app1 by list_solve.
+rewrite sublist_one by list_solve.
+simpl.
+reflexivity.
+rewrite !Zlength_rev.
+Zlength_solve.
+Qed.
+
+Lemma tl_sublist: forall {A} (al: list A),
+  tl al = sublist 1 (Zlength al) al.
+Proof.
+intros.
+unfold sublist.
+rewrite Zlength_correct, Nat2Z.id.
+destruct al; simpl; auto.
+rewrite firstn_exact_length; auto.
+Qed.
+
+
+Lemma data_at_int_or_ptr_long:
+ forall {CS: compspecs} sh i p,
+  data_at sh int_or_ptr_type (Vlong i) p
+  = data_at sh tulong (Vlong i) p.
+Proof.
+ intros.
+ unfold data_at, field_at.
+ simpl. f_equal.
+ f_equal.
+ unfold field_compatible.
+ f_equal.
+ f_equal.
+ f_equal.
+ f_equal.
+ unfold align_compatible.
+ destruct p; auto.
+ apply prop_ext; split; intro;
+  eapply align_compatible_rec_by_value_inv in H;
+   try reflexivity;
+  try (eapply align_compatible_rec_by_value; eauto).
+  reflexivity.
+  reflexivity.
+Qed.
+
 Lemma alloc_finish: forall
  (g : graph)
  (p : rep_type) 
@@ -274,6 +377,7 @@ Lemma alloc_finish: forall
  (outlier : outlier_t)
  (t_info : GCGraph.thread_info)
  (N : nat)
+ (vl: list val)
  (heap := ti_heap t_info : heap)
  (g0 := heap_head heap : space)
  (space := total_space g0 - used_space g0 : Z),
@@ -285,6 +389,7 @@ spaces heap = g0 :: tl (spaces heap) ->
 isptr (space_start g0) ->
 writable_share (space_sh g0) ->
 generation_space_compatible g (0%nat, nth_gen g 0, g0) ->
+Datatypes.length vl = S N ->
 spatial_gcgraph.outlier_rep outlier
 * (@data_at env_graph_gc.CompSpecs sh thread_info_type
        (offset_val (WORD_SIZE * used_space g0 + sizeof int_or_ptr_type * Z.of_nat (S N))
@@ -296,7 +401,7 @@ spatial_gcgraph.outlier_rep outlier
               (Vundef, offset_val (WORD_SIZE * total_space g0) (space_start g0)))
              :: map spatial_gcgraph.space_tri (tl (spaces heap))) (ti_heap_p t_info)
 * (@data_at env_graph_gc.CompSpecs (space_sh g0) (tarray int_or_ptr_type space)
-                 (upd_first_n (rev [rep_type_val g p; Vlong (Int64.repr (1024 * Z.of_nat N))])
+                 (upd_first_n vl
                     (default_val (tarray int_or_ptr_type space)))
                  (offset_val (WORD_SIZE * used_space g0) (space_start g0))
 * (msl.iter_sepcon.iter_sepcon (@space_rest_rep env_graph_gc.CompSpecs)
@@ -309,7 +414,15 @@ spatial_gcgraph.outlier_rep outlier
           (WORD_SIZE * used_space (heap_head (ti_heap t_info)) + sizeof int_or_ptr_type * 1)
           (space_start (heap_head (ti_heap t_info))) = rep_type_val a0 a) &&
     full_gc a0 a1 roots outlier ti sh.
-Admitted.
+Proof.
+intros.
+rewrite upd_first_n_app.
+assert (Zlength vl = Z.succ (Z.of_nat N)) by (rewrite Zlength_correct; lia).
+change (default_val (tarray int_or_ptr_type space))
+  with (Zrepeat Vundef space).
+rewrite (split2_data_at_Tarray_app (Zlength vl)) by list_simplify.
+rewrite Zlength_Zrepeat.
+Abort.
 
 Local Ltac entailer_for_return ::= idtac.
 
@@ -326,6 +439,7 @@ Ltac alloc_start :=
   set (g0 := heap_head heap) in *;
   set (space := total_space g0 - used_space g0) in *.
 
+(*
 Ltac alloc_finish N := 
   create_upd_first_n;
   repeat match goal with |- context [@data_at CompSpecs ?a ?b ?c] =>
@@ -346,6 +460,7 @@ Ltac alloc_finish N :=
 (*   clearbody N.*)
   repeat match goal with H := _ |- _ => subst H end;
   simple apply alloc_finish; auto.
+*)
 
 Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
   semax_body Vprog Gprog
@@ -354,41 +469,59 @@ Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
 Proof.
   alloc_start.
   repeat forward; [solve [entailer!] | ].
-  alloc_finish N.
-Qed. 
 
+(*  alloc_finish N. *)
 
-STOP HERE.
-(*  (full_gc g t_info roots outlier ti sh)
-*)
-
-  unfold full_gc, before_gc_thread_info_rep. Intros.
+  create_upd_first_n;
+  repeat match goal with |- context [@data_at CompSpecs ?a ?b ?c] =>
+        replace (@data_at CompSpecs a b c) with 
+                (@data_at env_graph_gc.CompSpecs a b c)
+       by (change_compspecs CompSpecs; reflexivity)
+  end;
+  assert_PROP (@field_compatible env_graph_gc.CompSpecs (tarray int_or_ptr_type space) []
+        (offset_val (WORD_SIZE * used_space g0) (space_start g0))) as FC 
+      by entailer!;
+  let Hz := constr:(Z.of_nat N * 1024) in let Hz := eval compute in Hz in 
+    change Hz with (1024 * (Z.of_nat N));
+  let Nz := constr:(Z.of_nat (S N)) in let Nz := eval compute in Nz in  
+  change (sem_add_ptr_long ?a ?b (Vlong (Int64.repr Nz))) with
+         (sem_add_ptr_long a b (Vlong (Int64.repr (Z.of_nat (S N)))));
+  rewrite !sem_add_pl_ptr_special by auto;
+  rewrite !offset_offset_val; unfold force_val;
+  change (Tpointer tvoid _) with int_or_ptr_type;
+  repeat simple apply delete_LOCAL_from_ENTAIL;
+  go_lower;
+(*   clearbody N.*)
+  repeat match goal with H := _ |- _ => subst H end.
+  match goal with |- context [upd_first_n ?vl'] => set (vl := vl') end.
+  
+(*  eapply alloc_finish; auto. *)
   rename H0 into gc_cond.
+  rename H1 into ROOTS_IN.
+  rename H3 into SPACE_NONEMPTY.
+  rename H4 into isptr_g0.
+  clear H5. (* wsh_g0 *)
+  rename H6 into comp_g0.
 
-  (** General properties *)
-(*  assert (graph_has_gen_0 := graph_has_gen_O g). *)
-  assert (~ In (inr (new_copied_v g 0)) roots)
-    as ROOTS_IN
-    by (eapply new_node_roots; eapply gc_cond).
-
-  destruct (heap_head_cons (ti_heap t_info))
-    as (g0&space_rest&SPACE_NONEMPTY&g0_eq).
-  subst g0.
-  set (g0 := heap_head (ti_heap t_info)) in *.
-  assert (space_rest = tl (spaces (ti_heap t_info))) by (rewrite SPACE_NONEMPTY; reflexivity).
-  subst space_rest.
-  assert (isptr (space_start g0) /\  writable_share (space_sh g0) /\ generation_space_compatible g (0%nat, nth_gen g 0, g0)) as (isptr_g0&wsh_g0&comp_g0) by (subst; eapply spaces_g0; eauto).
-
-   Intros.
-   set (alloc := offset_val (WORD_SIZE * used_space g0) (space_start g0)).
+  
+   set (heap := ti_heap t_info : heap) in *.
+   set (g0 := heap_head heap : space) in *.
+   set (space := total_space g0 - used_space g0 : Z) in *.
+   set (alloc := offset_val (WORD_SIZE * used_space g0) (space_start g0)) in *.
    set (limit := offset_val (WORD_SIZE * total_space g0) (space_start g0)).
-   set (space := total_space g0 - used_space g0) in *.
 
-   unfold heap_rest_rep. rewrite SPACE_NONEMPTY. simpl. Intros.
-   unfold space_rest_rep at 1.
-   rewrite if_false by (intro H0; rewrite H0 in isptr_g0; simpl in *; contradiction). 
-   set (heap := ti_heap t_info) in *.
-
+set (N := 1%nat) in HEADROOM,vl.
+change (Z.of_nat 2) with (Z.succ (Z.of_nat N)).
+change (?a * 1) with (a * Z.of_nat N).
+rewrite upd_first_n_app
+  by (unfold default_val; simpl; rewrite Zlength_Zrepeat by lia;
+       subst vl; simpl; list_solve).
+assert (Zlength vl = Z.succ (Z.of_nat N)) by reflexivity.
+change (default_val (tarray int_or_ptr_type space))
+  with (Zrepeat Vundef space).
+rewrite (split2_data_at_Tarray_app (Zlength vl)) by list_simplify.
+rewrite Zlength_Zrepeat by lia.
+rename H0 into LEN_N.
 (*
 gc_cond : gc_condition_prop g t_info roots outlier
 ROOTS_IN : ~In (inr (new_copied_v g 0)) roots
@@ -402,20 +535,8 @@ H_uneq : match p with
          | _ => True
          end
 *)
-
-*)
-(* AFTER THE CONVERSION *)
-   change_compspecs CompSpecs.
-   assert_PROP (force_val (sem_add_ptr_long tulong alloc (Vlong (Int64.repr 0))) = 
-                 field_address (tarray int_or_ptr_type (total_space g0 - used_space g0)) [ArraySubsc 0] alloc). { 
-     entailer!.
-     rewrite arr_field_address by (auto with field_compatible; rep_lia).
-     normalize.
-   }
-
-
-   do 6 forward.
-   
+  rewrite Z.mul_succ_r.
+  change (sizeof int_or_ptr_type) with WORD_SIZE.
   assert (match p with | repNode v => v <> new_copied_v g 0 | _ => True end) as H_uneq.
    { clear - H; destruct p; try reflexivity. intros ->. apply (@has_v nat _) in H.
         eapply graph_has_v_not_eq; eauto. }
@@ -435,19 +556,19 @@ H_uneq : match p with
     pose proof heap_head_cons.
     destruct (heap_head_cons (ti_heap t_info)) as [s [l [H8' H9' ] ] ].
     unfold nth_space.
-      subst s. rewrite H8'. simpl. fold heap. fold g0. lia.
+      subst s. rewrite H8'. simpl. fold heap. fold g0. subst space; lia.
   }
     pose (t_info' := graph_add.add_node_ti 0 t_info _ t_size).
     Exists t_info'.
-assert (add_node_compatible g (new_copied_v g 0) es).
-    { unfold add_node_compatible. intros. subst es. destruct p; inversion H8.
-    - injection H9. intros. subst. simpl.  intuition eauto.
+  assert (add_node_compatible g (new_copied_v g 0) es).
+    { unfold add_node_compatible. intros * Hx; subst es; destruct p; inversion Hx.
+    - injection H0. intros. subst. simpl.  intuition eauto.
       + eauto using has_v.
       + rep_lia.
       + repeat constructor. eauto.
-       - inversion H9. }
+       - inversion H0. }
 
-    entailer!.
+    entailer!;     clear H7 H8 H9 H6 H5 H4 H3.
   - split3.
     + (** In this new graph, we have (S n) at position v with our predicate. *)
       exists p. 
@@ -473,146 +594,124 @@ assert (add_node_compatible g (new_copied_v g 0) es).
      (number_of_vertices (nth_gen g 0))) as ->.
         { unfold previous_vertices_size, vertex_size_accum. unfold vertex_size.
           apply fold_left_ext. intros. rewrite add_node_vlabel_old. reflexivity.
-          unfold GCGraph.nat_inc_list in H10. unfold new_copied_v.
-          rewrite nat_seq_In_iff in H10. intros A. injection A. rep_lia. }
+          unfold GCGraph.nat_inc_list in H3. unfold new_copied_v.
+          rewrite nat_seq_In_iff in H3. intros A. injection A. rep_lia. }
         assert (WORD_SIZE = 8) as -> by reflexivity; rep_lia.
       * rewrite add_node_gen_start; eauto; try apply graph_has_gen_O.
-        unfold gen_start. if_tac. eauto. contradiction H10; apply graph_has_gen_O.
+        unfold gen_start. if_tac. eauto. contradiction H3; apply graph_has_gen_O.
   - unfold full_gc.
-    Intros. entailer!.
-    { eapply add_node_gc_condition_prop. eauto. destruct p; intuition (eauto using has_v). eauto. }
+    Intros. entailer!;     clear H7 H8 H9 H6 H5 H4 H3.
+    { eapply add_node_gc_condition_prop; try apply graph_has_gen_O; eauto. destruct p; 
+       intuition (eauto using has_v). 
+      admit. }
 
     (** Names *)
 
     unfold before_gc_thread_info_rep. Intros.
-
-    change_compspecs CompSpecs.
     unfold heap_rest_rep.
-    simpl. cancel.
-    rewrite !sepcon_assoc.
+    simpl.
+    progress fold heap.
+    rewrite add_node_heap_start0.
+    rewrite add_node_heap_used_space0.
+    rewrite add_node_heap_total0.
+    subst t_info'; rewrite add_node_heap_ti_token_rep
+           by (fold heap; rewrite SPACE_NONEMPTY; Zlength_solve).
+    progress fold g0.    
+    rewrite Z.mul_add_distr_l.
+    change 16 with (WORD_SIZE * 2).
+    change (upd_Znth _ _ _) with (upd_first_n [add_node_space 0 (nth 0 (spaces heap) null_space) 2 t_size] (spaces heap)).
+    rewrite upd_first_n_app by list_solve.
+    simpl tl.
+    fold limit.
+    change (Zlength [_]) with 1.
+    rewrite <- tl_sublist.
+    rewrite iter_sepcon.iter_sepcon_app.
+    simpl. 
+    rewrite add_node_spatial; [ | apply graph_has_gen_O | apply gc_cond | | ].
+    2: red; intros; apply gc_cond; auto.
+    2:{ unfold new_copied_v; red.
+        subst es. destruct p; intros; try contradiction.
+        destruct H3; try contradiction. inv H3. simpl.
+        subst v; simpl. split3; auto.
+        split. eapply has_v; eauto.
+        split3; auto. lia. repeat constructor; intro Hx ;inv Hx.
+    }
+    cancel.
+    rewrite sepcon_comm.
     apply sepcon_derives.
-    { apply derives_refl'. 
-      f_equal.
-      rewrite add_node_heap_start0.
-      rewrite add_node_heap_used_space0.
-      rewrite add_node_heap_total0.
-      fold heap. fold g0.
-      f_equal.
-      unfold alloc. rewrite offset_offset_val. f_equal. change WORD_SIZE with 8. lia.
-          }
-    { apply sepcon_derives.
-      - entailer!. apply derives_refl'.
-        rewrite add_node_heap_start0. rewrite add_node_heap_total0. f_equal. f_equal.
-        f_equal. clear - SPACE_NONEMPTY.
-       destruct t_info. simpl in *. destruct ti_heap; simpl in *.
-       destruct spaces; try congruence.
-       simpl in *. rewrite upd_Znth0. simpl. congruence.
-       (* Should be able to simplify this. *)
-    - unfold t_info'. erewrite  add_node_heap_ti_token_rep.
-      2 : { fold heap. rewrite SPACE_NONEMPTY. rewrite Zlength_cons. rep_lia. }
-      cancel.
-
-    unfold force_val.
-    unfold default_val. simpl.
-    replace (upd_Znth _ _ _) with
-       (Vlong (Int64.repr 1024) :: rep_type_val g p :: Zrepeat Vundef (total_space g0 - used_space g0 - 2))
-       by list_solve.
-    erewrite add_node_spatial; auto.
-     2: admit.
-     2: admit.
-    replace (upd_Znth 0 _ _)
-    with (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size
-            :: tl (spaces heap)).
-    2:{ subst heap. rewrite upd_Znth0_old by list_solve. f_equal. 
-          rewrite SPACE_NONEMPTY. simpl; list_solve.
-     }
-     simpl. cancel.
-     change (field_at ?x ?y nil) with (data_at x y).
-     change (?a :: ?b :: ?c) with ([a;b]++c).
-     rewrite (split2_data_at_Tarray_app 2) by list_solve.
-     unfold space_rest_rep. if_tac.
-     { simpl in H10. fold heap in H10. rewrite SPACE_NONEMPTY in H10. simpl in H10.
-       rewrite H10 in isptr_g0. contradiction.
-     }
-   simpl space_sh.
-   change_compspecs CompSpecs.
-   replace (nth 0 (spaces (ti_heap t_info)) null_space) with g0 by admit.
-   replace (total_space (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
-       with (total_space g0) by admit.
-   replace (used_space (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
-     with (used_space g0 + 2) by admit.
-   replace (space_sh (nth 0 (spaces (ti_heap t_info)) null_space)) with (space_sh g0) by admit.
-   rewrite Z.sub_add_distr.
-   replace (space_start (add_node_space 0 (nth 0 (spaces (ti_heap t_info)) null_space) 2 t_size))
-       with (space_start g0) by admit.
-   replace (field_address0 (tarray int_or_ptr_type (total_space g0 - used_space g0)) 
-     (SUB 2) (offset_val (WORD_SIZE * used_space g0) (space_start g0)))
-     with (offset_val (WORD_SIZE * (used_space g0 + 2)) (space_start g0)).
-
-2:{ unfold field_address0. simpl. rewrite if_true by auto with field_compatible.
-    rewrite offset_offset_val.
-      f_equal. change WORD_SIZE with 8. lia.
-   }
+    +
+      unfold space_rest_rep, add_node_space; simpl.
+      replace (nth 0 (spaces heap) null_space) with g0
+       by (rewrite SPACE_NONEMPTY; reflexivity).
+   rewrite if_false by (intro H0'; rewrite H0' in isptr_g0; simpl in *; contradiction).
+   rewrite Z.sub_add_distr. fold space. rewrite LEN_N in *. change (Z.succ _) with 2 in *.
+   unfold field_address0.
+   rewrite if_true by auto with field_compatible.
+   simpl.
+   unfold alloc.
+   rewrite offset_offset_val.
+   rewrite Z.mul_add_distr_l.
+   change (WORD_SIZE * 2)%Z with 16.
    cancel.
-
-(* DONE TO HERE, SORT OF *)
-   unfold spatial_gcgraph.vertex_at.
-
-   Search data_at data_at_.
-   rewrite <- data_at__tarray.
-   rewrite sepcon_comm. apply sepcon_derives.
-clear.
-{
-Set Printing Implicit.
- apply derives_refl.
-   cancel.
-   
-Search 
-     rewrite !Zlength_list_repeat'. simpl.
-     remember (heap_head {| spaces := s :: space_rest; spaces_size := spaces_size |}) as g0.
-     assert (s = g0)  as -> by congruence.
-     assert (total_space g0 - (used_space g0 + 2) = Z.of_nat al).
-     { rewrite !Zlength_cons in AL. rewrite Zlength_list_repeat' in AL. rep_lia. }
-     rewrite H14. rewrite sepcon_comm.
-     apply sepcon_derives.
-     + assert (int_or_ptr_type = Tlong Unsigned noattr) as -> by admit.
-       assert (WORD_SIZE * used_space g0 + 8 + 8 = WORD_SIZE * (used_space g0 + 2)) as ->.
-       { assert (WORD_SIZE = 8) as -> by admit. rep_lia. }
-       entailer!.
-      +  unfold vertex_at. rewrite sepcon_comm. apply cancel1_last.
-           --  (* Address *)
-             rewrite WORD_SIZE_eq.
-             rewrite add_node_vertex_address_new; eauto. simpl.
-             eapply derives_refl'.
-             assert (offset_val (4 * used_space g0) (space_start g0) = offset_val (-4) (vertex_address g (new_copied_v g 0))) as ->.
-             {  unfold vertex_address. destruct comp_g0 as (C1&C2&C3). unfold gen_start.   simpl. if_tac; try contradiction.
-                rewrite <- C1. rewrite offset_offset_val. f_equal.
-                unfold vertex_offset. simpl. rep_lia.  }
-             unfold header_new. simpl. destruct comp_g0 as (comp_start&comp_sh&comp_prev).
-             rewrite <- comp_sh. simpl.
-             (* TODO: Problem of different types *) admit.
-           -- unfold es. destruct p eqn: Hp; simpl in *; try congruence.
-              ++ subst. entailer!. admit. (*  entailer!.  *)
-              ++ entailer!.
-                 simpl. unfold fields_new. simpl. rewrite  add_node_vertex_address_new; eauto.
-                 unfold make_fields. simpl. unfold raw_fields. simpl.
-                 unfold update_vlabel. if_tac; try congruence. simpl.
-                 rewrite Zlength_cons.
-                 assert (Z.succ (Zlength (@nil val)) = Zlength (@nil val) + 1) as -> by rep_lia.
-                 replace (env_graph_gc.CompSpecs) with CompSpecs by admit. (* CompSpecs problem *)
-                 rewrite (data_at_tarray_split_1 (nth_sh g 0)).
-                 rewrite data_at_zero_array_eq. entailer!.
-                 all: eauto.
-                 ** destruct comp_g0 as (comp_start&comp_sh&comp_prev).
-             rewrite <- comp_sh. rewrite PLONG.
-             (* Again a type problem. *)
-             admit.
-             ** admit.
-             ++ (* TODO: SAME AS ABOVE *) admit.
-     + unfold gc_condition_prop in *. intuition eauto.
-     + unfold copied_vertex_existence. unfold gc_condition_prop in *.
-       intuition eauto. unfold gc_correct.sound_gc_graph in *.
-       unfold src_edge in *.
-*)
-
+  +
+    pattern vl at 2; replace vl with (sublist 0 1 vl ++ sublist 1 (Zlength vl) vl)
+              by list_solve.
+    rewrite (split2_data_at_Tarray_app 1) by list_solve.
+    unfold spatial_gcgraph.vertex_at.
+    destruct comp_g0 as [C1 [C2 C3 ] ].
+    replace (nth_sh g 0) with (space_sh g0)
+     by (unfold nth_sh; rewrite C2; auto).
+    apply sepcon_derives.
+   * unfold vertex_address, vertex_offset. rewrite offset_offset_val.
+     rewrite add_node_gen_start by apply graph_has_gen_O.
+     rewrite add_node_previous_vertices_size by apply Nat.le_refl.
+     unfold new_copied_v; simpl.
+     rewrite sublist_one by lia. 
+     unfold vl. simpl. rewrite Znth_0_cons.
+     unfold Z2val, header_new; simpl.
+     change (tarray ?t 1) with (tarray t (Zlength (@nil val) + 1)).
+     rewrite spatial_gcgraph.data_at_tarray_split_1 by reflexivity.
+     rewrite data_at_zero_array_eq by (auto; repeat apply isptr_offset_val'; auto).
+     rewrite C3. unfold alloc.
+     rewrite sepcon_emp.
+     change WORD_SIZE with 8.
+     replace (8 * (used_space g0 + 1) + -8) with (8 * used_space g0) by lia.
+      replace (gen_start g 0) with (space_start g0).
+     rewrite data_at_int_or_ptr_long; apply derives_refl.
+     rewrite <- C1.
+     unfold gen_start.
+     rewrite if_true by apply graph_has_gen_O; auto.
+   * unfold field_address0; rewrite if_true by auto with field_compatible.
+     simpl nested_field_offset.
+     unfold fields_new; simpl. rewrite Zlength_map.
+     rewrite add_node_vertex_address_new;  [ | apply graph_has_gen_O].
+     rewrite make_fields_eq_length. simpl.
+     unfold update_vlabel. rewrite if_true by reflexivity.
+     unfold newRaw at 1; simpl. rewrite Zlength_cons, Zlength_nil.
+     change (Z.succ 0) with 1.
+     rewrite <- tl_sublist. subst vl; simpl.
+     unfold new_copied_v, vertex_address, vertex_offset. simpl.
+     rewrite C3.
+     unfold alloc.
+      rewrite offset_offset_val.
+     rewrite Z.mul_add_distr_l. change (WORD_SIZE * 1) with 8.
+     unfold gen_start. rewrite C1.
+     rewrite if_true by apply graph_has_gen_O; auto.
+     apply derives_refl'. f_equal.
+     unfold make_fields, add_node at 2. simpl.
+     unfold update_vlabel. rewrite if_true by reflexivity.
+     subst v.
+     unfold rep_type_val.
+     destruct p; simpl; auto. f_equal.
+     unfold vertex_address; simpl.
+     unfold new_copied_v; simpl.
+      unfold vgeneration; simpl. unfold updateEdgeFunc; simpl.
+      rewrite if_true by reflexivity.
+     rewrite add_node_gen_start by apply graph_has_gen_O.
+     unfold vertex_offset.
+     rewrite add_node_previous_vertices_size.
+     reflexivity.
+     red. 
+     clear - H. apply has_v in H.
+     destruct H. red in H0. lia.
 Admitted.
