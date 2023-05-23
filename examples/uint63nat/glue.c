@@ -1,3 +1,4 @@
+typedef  void * __attribute((aligned(8))) value;  (* or int_or_ptr_type *)
 
 struct thread_info;
 struct Coq_Init_Datatypes_O_args;
@@ -12,17 +13,17 @@ struct prog_eif_args;
 struct Coq_Init_Datatypes_tt_args;
 struct prog_mkT_args;
 struct thread_info {
-  void * __attribute((aligned(8))) *alloc;
-  void * __attribute((aligned(8))) *limit;
+  value *alloc;
+  value *limit;
   struct heap *heap;
-  void * __attribute((aligned(8))) *args[1024];
+  value args[1024];
 };
 
 struct Coq_Init_Datatypes_O_args {
 };
 
 struct Coq_Init_Datatypes_S_args {
-  void * __attribute((aligned(8))) *Coq_Init_Datatypes_S_arg_0;
+  value Coq_Init_Datatypes_S_arg_0;
 };
 
 struct Coq_Init_Datatypes_true_args {
@@ -66,7 +67,7 @@ unsigned int get_unboxed_ordinal(void * __attribute((aligned(8))) *);
 unsigned int get_boxed_ordinal(void * __attribute((aligned(8))) *);
 void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_O(void);
 void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_S(void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8))) *alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, void * __attribute((aligned(8))) *);
+void * __attribute((aligned(8)))  alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, void * __attribute((aligned(8))));
 void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_true(void);
 void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_false(void);
 void * __attribute((aligned(8))) *make_prog_exp_etrue(void);
@@ -154,12 +155,12 @@ void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_S(void * __attribu
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$arg0)
+value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, value $arg0)
 {
-  register unsigned long long *$argv;
+  register value *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 1024LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LLU) = 1024LL;
+  *($argv + 1LLU) = $arg0;
   (*$tinfo).alloc = (*$tinfo).alloc + 2LL;
   return $argv + 1LL;
 }

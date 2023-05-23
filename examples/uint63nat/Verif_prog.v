@@ -20,9 +20,51 @@ Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
           (alloc_make_spec_general (@desc _ S _) 1).
 
-Instance CompSpecs : compspecs. make_compspecs prog. Defined.
+#[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [alloc_make_Coq_Init_Datatypes_nat_S_spec].
+
+(* BEGIN delete this in the next VST release that has Ltac prove_cs_preserve_type *)
+Ltac prove_cs_preserve_type := 
+reflexivity || 
+match goal with |- cs_preserve_type ?a ?b ?CCE ?t = true =>
+ tryif is_evar CCE 
+ then fail 3 "Before using change_compspecs, define an Instance of change_composite_env"
+ else tryif unify (cs_preserve_type a b CCE t) false
+ then fail 3 "change_compspecs fails because the two compspecs environments disagree on the definition of type" t "(that is," 
+a "versus" b ")"
+ else fail
+end.
+
+Ltac change_compspecs' cs cs' ::=
+  lazymatch goal with
+  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
+  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
+  | |- _ => 
+    match goal with 
+  | |- context [?A cs'] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs') with (A cs)
+  | |- context [?A cs' ?B] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B) with (A cs B)
+  | |- context [?A cs' ?B ?C] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C) with (A cs B C)
+  | |- context [?A cs' ?B ?C ?D] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D) with (A cs B C D)
+  | |- context [?A cs' ?B ?C ?D ?E] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D E) with (A cs B C D E)
+  | |- context [?A cs' ?B ?C ?D ?E ?F] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D E F) with (A cs B C D E F)
+   end
+ end.
+(* END delete this in the next VST release that has Ltac prove_cs_preserve_type *)
 
 Lemma intro_prop_through_close_precondition :
   forall {Espec : OracleKind} Delta (p1 : Prop) f ps LS sf c post,
@@ -221,11 +263,11 @@ full_gc g t_info roots outlier ti sh |--
      writable_share (space_sh g0) /\
      generation_space_compatible g (0%nat, nth_gen g 0, g0)) &&
 (spatial_gcgraph.outlier_rep outlier *
-   data_at sh thread_info_type (alloc, (limit, (ti_heap_p t_info, ti_args t_info))) ti *
+   @data_at env_graph_gc.CompSpecs sh thread_info_type (alloc, (limit, (ti_heap_p t_info, ti_args t_info))) ti *
    spatial_gcgraph.heap_struct_rep sh
      ((space_start g0, (Vundef, limit)) :: map spatial_gcgraph.space_tri (tl (spaces heap)))
      (ti_heap_p t_info) *
-   data_at_ (space_sh g0) (tarray int_or_ptr_type (total_space g0 - used_space g0))
+   @data_at_ env_graph_gc.CompSpecs (space_sh g0) (tarray int_or_ptr_type (total_space g0 - used_space g0))
      (offset_val (WORD_SIZE * used_space g0) (space_start g0)) *
    msl.iter_sepcon.iter_sepcon (@space_rest_rep env_graph_gc.CompSpecs) (tl (spaces heap)) *
    spatial_gcgraph.ti_token_rep t_info *
@@ -417,13 +459,12 @@ rewrite upd_first_n_app
  by (subst vl N;
       unfold default_val; simpl; rewrite Zlength_Zrepeat by lia;
        simpl; rewrite Zlength_cons, Zlength_map, Zlength_correct; lia).
-assert (Zlength vl = Z.succ (Z.of_nat N))
+assert (LEN_N: Zlength vl = Z.succ (Z.of_nat N))
   by (subst vl; rewrite Zlength_cons, Zlength_map, Zlength_correct; lia).
 change (default_val (tarray int_or_ptr_type space))
   with (Zrepeat Vundef space).
 rewrite (split2_data_at_Tarray_app (Zlength vl)) by list_simplify.
 rewrite Zlength_Zrepeat by lia.
-rename H0 into LEN_N.
   rewrite Z.mul_succ_r.
   change (sizeof int_or_ptr_type) with WORD_SIZE.
   assert (H_uneq: Forall (fun p => match p with | repNode v => v <> new_copied_v g 0 | _ => True end) pl). {
@@ -681,33 +722,8 @@ Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
              f_alloc_make_Coq_Init_Datatypes_nat_S
              alloc_make_Coq_Init_Datatypes_nat_S_spec.
 Proof.
-(*
-start_function'.
-
-
-Definition outlier_compatible_ptr (p: rep_type) (outlier: outlier_t) :
-match p with
-| repZ _ => True
-| repOut v' => In v' outlier
-| repNode v' => graph_has_v g v' /\ new_copied_v g 0 <> v'
-end.
-
-Search outlier_t.
-  match goal with H1 : Z.of_nat ?a < headroom _ |- _ => 
-    let HEADROOM := fresh "HEADROOM" in 
-    rename H1 into HEADROOM; set (N := a) in HEADROOM;
-    unfold headroom in HEADROOM
-  end.
-  let UFA := fresh "UFA" in assert (UFA := unfold_for_allocation);
-     cbv zeta in UFA; sep_apply UFA; clear UFA; Intros.
-  set(heap := ti_heap _) in *;
-  set (g0 := heap_head heap) in *;
-  set (space := total_space g0 - used_space g0) in *.
-repeat forward.
-*)
-
-
   alloc_start.
+  change_compspecs CompSpecs.
   repeat forward; [solve [entailer!] | ].
 
 
