@@ -30,4 +30,16 @@ CertiCoq Compile -cps prog
   ]
   Include [ "prims.h" ].
 CertiCoq Generate Glue -file "glue" [ nat ].
+
+Inductive exp : Type :=
+| etrue
+| efalse
+| eand : exp -> exp
+| eor : exp -> exp
+| eif : exp -> exp -> exp -> exp.
+
+Inductive T : Type :=
+| mkT : nat -> bool -> unit -> T.
+
+CertiCoq Generate Glue -file "glue" [ nat, bool, exp, T ].
 *)
