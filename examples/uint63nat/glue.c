@@ -1,6 +1,7 @@
-typedef  void * __attribute((aligned(8))) value;  (* or int_or_ptr_type *)
-
+typedef void * __attribute((aligned(4))) int_or_ptr32;
+typedef void * __attribute((aligned(8))) int_or_ptr64;
 struct thread_info;
+struct closure;
 struct Coq_Init_Datatypes_O_args;
 struct Coq_Init_Datatypes_S_args;
 struct Coq_Init_Datatypes_true_args;
@@ -13,17 +14,22 @@ struct prog_eif_args;
 struct Coq_Init_Datatypes_tt_args;
 struct prog_mkT_args;
 struct thread_info {
-  value *alloc;
-  value *limit;
+  int_or_ptr64 *alloc;
+  int_or_ptr64 *limit;
   struct heap *heap;
-  value args[1024];
+  int_or_ptr64 args[1024];
+};
+
+struct closure {
+  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
+  int_or_ptr64 env;
 };
 
 struct Coq_Init_Datatypes_O_args {
 };
 
 struct Coq_Init_Datatypes_S_args {
-  value Coq_Init_Datatypes_S_arg_0;
+  int_or_ptr64 Coq_Init_Datatypes_S_arg_0;
 };
 
 struct Coq_Init_Datatypes_true_args {
@@ -39,71 +45,71 @@ struct prog_efalse_args {
 };
 
 struct prog_eand_args {
-  void * __attribute((aligned(8))) *prog_eand_arg_0;
+  int_or_ptr64 prog_eand_arg_0;
 };
 
 struct prog_eor_args {
-  void * __attribute((aligned(8))) *prog_eor_arg_0;
+  int_or_ptr64 prog_eor_arg_0;
 };
 
 struct prog_eif_args {
-  void * __attribute((aligned(8))) *prog_eif_arg_0;
-  void * __attribute((aligned(8))) *prog_eif_arg_1;
-  void * __attribute((aligned(8))) *prog_eif_arg_2;
+  int_or_ptr64 prog_eif_arg_0;
+  int_or_ptr64 prog_eif_arg_1;
+  int_or_ptr64 prog_eif_arg_2;
 };
 
 struct Coq_Init_Datatypes_tt_args {
 };
 
 struct prog_mkT_args {
-  void * __attribute((aligned(8))) *prog_mkT_arg_0;
-  void * __attribute((aligned(8))) *prog_mkT_arg_1;
-  void * __attribute((aligned(8))) *prog_mkT_arg_2;
+  int_or_ptr64 prog_mkT_arg_0;
+  int_or_ptr64 prog_mkT_arg_1;
+  int_or_ptr64 prog_mkT_arg_2;
 };
 
 extern int printf(signed char *);
-extern _Bool is_ptr(void * __attribute((aligned(8))) *);
-unsigned int get_unboxed_ordinal(void * __attribute((aligned(8))) *);
-unsigned int get_boxed_ordinal(void * __attribute((aligned(8))) *);
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_O(void);
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_S(void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8)))  alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, void * __attribute((aligned(8))));
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_true(void);
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_false(void);
-void * __attribute((aligned(8))) *make_prog_exp_etrue(void);
-void * __attribute((aligned(8))) *make_prog_exp_efalse(void);
-void * __attribute((aligned(8))) *make_prog_exp_eand(void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eand(struct thread_info *, void * __attribute((aligned(8))) *);
-void * __attribute((aligned(8))) *make_prog_exp_eor(void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eor(struct thread_info *, void * __attribute((aligned(8))) *);
-void * __attribute((aligned(8))) *make_prog_exp_eif(void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eif(struct thread_info *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *);
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_unit_tt(void);
-void * __attribute((aligned(8))) *make_prog_T_mkT(void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, unsigned long long *);
-void * __attribute((aligned(8))) *alloc_make_prog_T_mkT(struct thread_info *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *);
-unsigned int get_Coq_Init_Datatypes_nat_tag(void * __attribute((aligned(8))) *);
-unsigned int get_Coq_Init_Datatypes_bool_tag(void * __attribute((aligned(8))) *);
-unsigned int get_prog_exp_tag(void * __attribute((aligned(8))) *);
-unsigned int get_Coq_Init_Datatypes_unit_tag(void * __attribute((aligned(8))) *);
-unsigned int get_prog_T_tag(void * __attribute((aligned(8))) *);
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(void * __attribute((aligned(8))) *);
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(void * __attribute((aligned(8))) *);
-struct Coq_Init_Datatypes_true_args *get_Coq_Init_Datatypes_true_args(void * __attribute((aligned(8))) *);
-struct Coq_Init_Datatypes_false_args *get_Coq_Init_Datatypes_false_args(void * __attribute((aligned(8))) *);
-struct prog_etrue_args *get_prog_etrue_args(void * __attribute((aligned(8))) *);
-struct prog_efalse_args *get_prog_efalse_args(void * __attribute((aligned(8))) *);
-struct prog_eand_args *get_prog_eand_args(void * __attribute((aligned(8))) *);
-struct prog_eor_args *get_prog_eor_args(void * __attribute((aligned(8))) *);
-struct prog_eif_args *get_prog_eif_args(void * __attribute((aligned(8))) *);
-struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(void * __attribute((aligned(8))) *);
-struct prog_mkT_args *get_prog_mkT_args(void * __attribute((aligned(8))) *);
-void print_Coq_Init_Datatypes_nat(void * __attribute((aligned(8))) *);
-void print_Coq_Init_Datatypes_bool(void * __attribute((aligned(8))) *);
-void print_prog_exp(void * __attribute((aligned(8))) *);
-void print_Coq_Init_Datatypes_unit(void * __attribute((aligned(8))) *);
-void print_prog_T(void * __attribute((aligned(8))) *);
-void halt(struct thread_info *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *);
-void * __attribute((aligned(8))) *call(struct thread_info *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *);
+extern _Bool is_ptr(int_or_ptr64);
+unsigned int get_unboxed_ordinal(int_or_ptr64);
+unsigned int get_boxed_ordinal(int_or_ptr64);
+int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void);
+int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, unsigned long long *);
+int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, int_or_ptr64);
+int_or_ptr64 make_Coq_Init_Datatypes_bool_true(void);
+int_or_ptr64 make_Coq_Init_Datatypes_bool_false(void);
+int_or_ptr64 make_prog_exp_etrue(void);
+int_or_ptr64 make_prog_exp_efalse(void);
+int_or_ptr64 make_prog_exp_eand(int_or_ptr64, unsigned long long *);
+int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *, int_or_ptr64);
+int_or_ptr64 make_prog_exp_eor(int_or_ptr64, unsigned long long *);
+int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *, int_or_ptr64);
+int_or_ptr64 make_prog_exp_eif(int_or_ptr64, int_or_ptr64, int_or_ptr64, unsigned long long *);
+int_or_ptr64 alloc_make_prog_exp_eif(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
+int_or_ptr64 make_Coq_Init_Datatypes_unit_tt(void);
+int_or_ptr64 make_prog_T_mkT(int_or_ptr64, int_or_ptr64, int_or_ptr64, unsigned long long *);
+int_or_ptr64 alloc_make_prog_T_mkT(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
+unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
+unsigned int get_Coq_Init_Datatypes_bool_tag(int_or_ptr64);
+unsigned int get_prog_exp_tag(int_or_ptr64);
+unsigned int get_Coq_Init_Datatypes_unit_tag(int_or_ptr64);
+unsigned int get_prog_T_tag(int_or_ptr64);
+struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64);
+struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64);
+struct Coq_Init_Datatypes_true_args *get_Coq_Init_Datatypes_true_args(int_or_ptr64);
+struct Coq_Init_Datatypes_false_args *get_Coq_Init_Datatypes_false_args(int_or_ptr64);
+struct prog_etrue_args *get_prog_etrue_args(int_or_ptr64);
+struct prog_efalse_args *get_prog_efalse_args(int_or_ptr64);
+struct prog_eand_args *get_prog_eand_args(int_or_ptr64);
+struct prog_eor_args *get_prog_eor_args(int_or_ptr64);
+struct prog_eif_args *get_prog_eif_args(int_or_ptr64);
+struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(int_or_ptr64);
+struct prog_mkT_args *get_prog_mkT_args(int_or_ptr64);
+void print_Coq_Init_Datatypes_nat(int_or_ptr64);
+void print_Coq_Init_Datatypes_bool(int_or_ptr64);
+void print_prog_exp(int_or_ptr64);
+void print_Coq_Init_Datatypes_unit(int_or_ptr64);
+void print_prog_T(int_or_ptr64);
+void halt(struct thread_info *, int_or_ptr64, int_or_ptr64);
+int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
 signed char const lparen_lit[2] = { 40, 0, };
 
 signed char const rparen_lit[2] = { 41, 0, };
@@ -118,14 +124,14 @@ signed char const unk_lit[6] = { 60, 117, 110, 107, 62, 0, };
 
 signed char const prop_lit[7] = { 60, 112, 114, 111, 112, 62, 0, };
 
-unsigned int get_unboxed_ordinal(void * __attribute((aligned(8))) *$v)
+unsigned int get_unboxed_ordinal(int_or_ptr64 $v)
 {
   return (unsigned long long) $v >> 1LL;
 }
 
-unsigned int get_boxed_ordinal(void * __attribute((aligned(8))) *$v)
+unsigned int get_boxed_ordinal(int_or_ptr64 $v)
 {
-  return *((unsigned long long *) $v + 18446744073709551615LLU) & 255LL;
+  return *((unsigned long long *) $v + -1LL) & 255LL;
 }
 
 signed char const names_of_Coq_Init_Datatypes_nat[2][2] = { 79, 0, 83, 0,
@@ -143,130 +149,130 @@ signed char const names_of_Coq_Init_Datatypes_unit[1][3] = { 116, 116, 0,
 
 signed char const names_of_prog_T[1][4] = { 109, 107, 84, 0, /* skip 0 */ };
 
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_O(void)
+int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void)
 {
   return 1;
 }
 
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_nat_S(void * __attribute((aligned(8))) *$arg0, unsigned long long *$argv)
+int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64 $arg0, unsigned long long *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 1024LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1024LL;
+  *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
-value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, value $arg0)
+int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
-  register value *$argv;
+  register unsigned long long *$argv;
   $argv = (*$tinfo).alloc;
-  *($argv + 0LLU) = 1024LL;
-  *($argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1024LL;
+  *($argv + 1LL) = $arg0;
   (*$tinfo).alloc = (*$tinfo).alloc + 2LL;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_true(void)
+int_or_ptr64 make_Coq_Init_Datatypes_bool_true(void)
 {
   return 1;
 }
 
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_bool_false(void)
+int_or_ptr64 make_Coq_Init_Datatypes_bool_false(void)
 {
   return 3;
 }
 
-void * __attribute((aligned(8))) *make_prog_exp_etrue(void)
+int_or_ptr64 make_prog_exp_etrue(void)
 {
   return 1;
 }
 
-void * __attribute((aligned(8))) *make_prog_exp_efalse(void)
+int_or_ptr64 make_prog_exp_efalse(void)
 {
   return 3;
 }
 
-void * __attribute((aligned(8))) *make_prog_exp_eand(void * __attribute((aligned(8))) *$arg0, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eand(int_or_ptr64 $arg0, unsigned long long *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 1024LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1024LL;
+  *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eand(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$arg0)
+int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
   register unsigned long long *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 1024LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1024LL;
+  *($argv + 1LL) = $arg0;
   (*$tinfo).alloc = (*$tinfo).alloc + 2LL;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *make_prog_exp_eor(void * __attribute((aligned(8))) *$arg0, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eor(int_or_ptr64 $arg0, unsigned long long *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 1025LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1025LL;
+  *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eor(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$arg0)
+int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
   register unsigned long long *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 1025LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
+  *($argv + 0LL) = 1025LL;
+  *($argv + 1LL) = $arg0;
   (*$tinfo).alloc = (*$tinfo).alloc + 2LL;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *make_prog_exp_eif(void * __attribute((aligned(8))) *$arg0, void * __attribute((aligned(8))) *$arg1, void * __attribute((aligned(8))) *$arg2, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eif(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, unsigned long long *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 3074LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
-  *((unsigned long long *) $argv + 2LLU) = $arg1;
-  *((unsigned long long *) $argv + 3LLU) = $arg2;
+  *($argv + 0LL) = 3074LL;
+  *($argv + 1LL) = $arg0;
+  *($argv + 2LL) = $arg1;
+  *($argv + 3LL) = $arg2;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *alloc_make_prog_exp_eif(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$arg0, void * __attribute((aligned(8))) *$arg1, void * __attribute((aligned(8))) *$arg2)
+int_or_ptr64 alloc_make_prog_exp_eif(struct thread_info *$tinfo, int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2)
 {
   register unsigned long long *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 3074LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
-  *((unsigned long long *) $argv + 2LLU) = $arg1;
-  *((unsigned long long *) $argv + 3LLU) = $arg2;
+  *($argv + 0LL) = 3074LL;
+  *($argv + 1LL) = $arg0;
+  *($argv + 2LL) = $arg1;
+  *($argv + 3LL) = $arg2;
   (*$tinfo).alloc = (*$tinfo).alloc + 4LL;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *make_Coq_Init_Datatypes_unit_tt(void)
+int_or_ptr64 make_Coq_Init_Datatypes_unit_tt(void)
 {
   return 1;
 }
 
-void * __attribute((aligned(8))) *make_prog_T_mkT(void * __attribute((aligned(8))) *$arg0, void * __attribute((aligned(8))) *$arg1, void * __attribute((aligned(8))) *$arg2, unsigned long long *$argv)
+int_or_ptr64 make_prog_T_mkT(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, unsigned long long *$argv)
 {
-  *((unsigned long long *) $argv + 0LLU) = 3072LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
-  *((unsigned long long *) $argv + 2LLU) = $arg1;
-  *((unsigned long long *) $argv + 3LLU) = $arg2;
+  *($argv + 0LL) = 3072LL;
+  *($argv + 1LL) = $arg0;
+  *($argv + 2LL) = $arg1;
+  *($argv + 3LL) = $arg2;
   return $argv + 1LL;
 }
 
-void * __attribute((aligned(8))) *alloc_make_prog_T_mkT(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$arg0, void * __attribute((aligned(8))) *$arg1, void * __attribute((aligned(8))) *$arg2)
+int_or_ptr64 alloc_make_prog_T_mkT(struct thread_info *$tinfo, int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2)
 {
   register unsigned long long *$argv;
   $argv = (*$tinfo).alloc;
-  *((unsigned long long *) $argv + 0LLU) = 3072LL;
-  *((unsigned long long *) $argv + 1LLU) = $arg0;
-  *((unsigned long long *) $argv + 2LLU) = $arg1;
-  *((unsigned long long *) $argv + 3LLU) = $arg2;
+  *($argv + 0LL) = 3072LL;
+  *($argv + 1LL) = $arg0;
+  *($argv + 2LL) = $arg1;
+  *($argv + 3LL) = $arg2;
   (*$tinfo).alloc = (*$tinfo).alloc + 4LL;
   return $argv + 1LL;
 }
 
-unsigned int get_Coq_Init_Datatypes_nat_tag(void * __attribute((aligned(8))) *$v)
+unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64 $v)
 {
   register _Bool $b;
   register unsigned int $t;
@@ -288,14 +294,14 @@ unsigned int get_Coq_Init_Datatypes_nat_tag(void * __attribute((aligned(8))) *$v
   }
 }
 
-unsigned int get_Coq_Init_Datatypes_bool_tag(void * __attribute((aligned(8))) *$v)
+unsigned int get_Coq_Init_Datatypes_bool_tag(int_or_ptr64 $v)
 {
   register unsigned int $t;
   $t = get_unboxed_ordinal($v);
   return $t;
 }
 
-unsigned int get_prog_exp_tag(void * __attribute((aligned(8))) *$v)
+unsigned int get_prog_exp_tag(int_or_ptr64 $v)
 {
   register _Bool $b;
   register unsigned int $t;
@@ -323,76 +329,76 @@ unsigned int get_prog_exp_tag(void * __attribute((aligned(8))) *$v)
   }
 }
 
-unsigned int get_Coq_Init_Datatypes_unit_tag(void * __attribute((aligned(8))) *$v)
+unsigned int get_Coq_Init_Datatypes_unit_tag(int_or_ptr64 $v)
 {
   register unsigned int $t;
   $t = get_unboxed_ordinal($v);
   return $t;
 }
 
-unsigned int get_prog_T_tag(void * __attribute((aligned(8))) *$v)
+unsigned int get_prog_T_tag(int_or_ptr64 $v)
 {
   register unsigned int $t;
   $t = get_boxed_ordinal($v);
   return $t;
 }
 
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(void * __attribute((aligned(8))) *$v)
+struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64 $v)
 {
   return (struct Coq_Init_Datatypes_O_args *) 0;
 }
 
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(void * __attribute((aligned(8))) *$v)
+struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64 $v)
 {
   return (struct Coq_Init_Datatypes_S_args *) $v;
 }
 
-struct Coq_Init_Datatypes_true_args *get_Coq_Init_Datatypes_true_args(void * __attribute((aligned(8))) *$v)
+struct Coq_Init_Datatypes_true_args *get_Coq_Init_Datatypes_true_args(int_or_ptr64 $v)
 {
   return (struct Coq_Init_Datatypes_true_args *) 0;
 }
 
-struct Coq_Init_Datatypes_false_args *get_Coq_Init_Datatypes_false_args(void * __attribute((aligned(8))) *$v)
+struct Coq_Init_Datatypes_false_args *get_Coq_Init_Datatypes_false_args(int_or_ptr64 $v)
 {
   return (struct Coq_Init_Datatypes_false_args *) 0;
 }
 
-struct prog_etrue_args *get_prog_etrue_args(void * __attribute((aligned(8))) *$v)
+struct prog_etrue_args *get_prog_etrue_args(int_or_ptr64 $v)
 {
   return (struct prog_etrue_args *) 0;
 }
 
-struct prog_efalse_args *get_prog_efalse_args(void * __attribute((aligned(8))) *$v)
+struct prog_efalse_args *get_prog_efalse_args(int_or_ptr64 $v)
 {
   return (struct prog_efalse_args *) 0;
 }
 
-struct prog_eand_args *get_prog_eand_args(void * __attribute((aligned(8))) *$v)
+struct prog_eand_args *get_prog_eand_args(int_or_ptr64 $v)
 {
   return (struct prog_eand_args *) $v;
 }
 
-struct prog_eor_args *get_prog_eor_args(void * __attribute((aligned(8))) *$v)
+struct prog_eor_args *get_prog_eor_args(int_or_ptr64 $v)
 {
   return (struct prog_eor_args *) $v;
 }
 
-struct prog_eif_args *get_prog_eif_args(void * __attribute((aligned(8))) *$v)
+struct prog_eif_args *get_prog_eif_args(int_or_ptr64 $v)
 {
   return (struct prog_eif_args *) $v;
 }
 
-struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(void * __attribute((aligned(8))) *$v)
+struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(int_or_ptr64 $v)
 {
   return (struct Coq_Init_Datatypes_tt_args *) 0;
 }
 
-struct prog_mkT_args *get_prog_mkT_args(void * __attribute((aligned(8))) *$v)
+struct prog_mkT_args *get_prog_mkT_args(int_or_ptr64 $v)
 {
   return (struct prog_mkT_args *) $v;
 }
 
-void print_Coq_Init_Datatypes_nat(void * __attribute((aligned(8))) *$v)
+void print_Coq_Init_Datatypes_nat(int_or_ptr64 $v)
 {
   register unsigned int $tag;
   register void *$args;
@@ -406,22 +412,21 @@ void print_Coq_Init_Datatypes_nat(void * __attribute((aligned(8))) *$v)
       printf(lparen_lit);
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       printf(space_lit);
-      print_Coq_Init_Datatypes_nat
-        (*((void * __attribute((aligned(8))) **) $args + 0));
+      print_Coq_Init_Datatypes_nat(*((int_or_ptr64 *) $args + 0));
       printf(rparen_lit);
       break;
     
   }
 }
 
-void print_Coq_Init_Datatypes_bool(void * __attribute((aligned(8))) *$v)
+void print_Coq_Init_Datatypes_bool(int_or_ptr64 $v)
 {
   register unsigned int $tag;
   $tag = get_Coq_Init_Datatypes_bool_tag($v);
   printf(*(names_of_Coq_Init_Datatypes_bool + $tag));
 }
 
-void print_prog_exp(void * __attribute((aligned(8))) *$v)
+void print_prog_exp(int_or_ptr64 $v)
 {
   register unsigned int $tag;
   register void *$args;
@@ -438,7 +443,7 @@ void print_prog_exp(void * __attribute((aligned(8))) *$v)
       printf(lparen_lit);
       printf(*(names_of_prog_exp + $tag));
       printf(space_lit);
-      print_prog_exp(*((void * __attribute((aligned(8))) **) $args + 0));
+      print_prog_exp(*((int_or_ptr64 *) $args + 0));
       printf(rparen_lit);
       break;
     case 3:
@@ -446,7 +451,7 @@ void print_prog_exp(void * __attribute((aligned(8))) *$v)
       printf(lparen_lit);
       printf(*(names_of_prog_exp + $tag));
       printf(space_lit);
-      print_prog_exp(*((void * __attribute((aligned(8))) **) $args + 0));
+      print_prog_exp(*((int_or_ptr64 *) $args + 0));
       printf(rparen_lit);
       break;
     case 4:
@@ -454,25 +459,25 @@ void print_prog_exp(void * __attribute((aligned(8))) *$v)
       printf(lparen_lit);
       printf(*(names_of_prog_exp + $tag));
       printf(space_lit);
-      print_prog_exp(*((void * __attribute((aligned(8))) **) $args + 0));
+      print_prog_exp(*((int_or_ptr64 *) $args + 0));
       printf(space_lit);
-      print_prog_exp(*((void * __attribute((aligned(8))) **) $args + 1));
+      print_prog_exp(*((int_or_ptr64 *) $args + 1));
       printf(space_lit);
-      print_prog_exp(*((void * __attribute((aligned(8))) **) $args + 2));
+      print_prog_exp(*((int_or_ptr64 *) $args + 2));
       printf(rparen_lit);
       break;
     
   }
 }
 
-void print_Coq_Init_Datatypes_unit(void * __attribute((aligned(8))) *$v)
+void print_Coq_Init_Datatypes_unit(int_or_ptr64 $v)
 {
   register unsigned int $tag;
   $tag = get_Coq_Init_Datatypes_unit_tag($v);
   printf(*(names_of_Coq_Init_Datatypes_unit + $tag));
 }
 
-void print_prog_T(void * __attribute((aligned(8))) *$v)
+void print_prog_T(int_or_ptr64 $v)
 {
   register unsigned int $tag;
   register void *$args;
@@ -483,38 +488,34 @@ void print_prog_T(void * __attribute((aligned(8))) *$v)
       printf(lparen_lit);
       printf(*(names_of_prog_T + $tag));
       printf(space_lit);
-      print_Coq_Init_Datatypes_nat
-        (*((void * __attribute((aligned(8))) **) $args + 0));
+      print_Coq_Init_Datatypes_nat(*((int_or_ptr64 *) $args + 0));
       printf(space_lit);
-      print_Coq_Init_Datatypes_bool
-        (*((void * __attribute((aligned(8))) **) $args + 1));
+      print_Coq_Init_Datatypes_bool(*((int_or_ptr64 *) $args + 1));
       printf(space_lit);
-      print_Coq_Init_Datatypes_unit
-        (*((void * __attribute((aligned(8))) **) $args + 2));
+      print_Coq_Init_Datatypes_unit(*((int_or_ptr64 *) $args + 2));
       printf(rparen_lit);
       break;
     
   }
 }
 
-void halt(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$env, void * __attribute((aligned(8))) *$arg)
+void halt(struct thread_info *$tinfo, int_or_ptr64 $env, int_or_ptr64 $arg)
 {
-  *((unsigned long long *) (*$tinfo).args + 1LLU) = $arg;
+  *((*$tinfo).args + 1LL) = $arg;
   return;
 }
 
-void * __attribute((aligned(8))) *const halt_clo[2] = { &halt, 1LL, };
+int_or_ptr64 const halt_clo[2] = { &halt, 1LL, };
 
-void * __attribute((aligned(8))) *call(struct thread_info *$tinfo, void * __attribute((aligned(8))) *$clo, void * __attribute((aligned(8))) *$arg)
+int_or_ptr64 call(struct thread_info *$tinfo, int_or_ptr64 $clo, int_or_ptr64 $arg)
 {
   register unsigned long long *$f;
   register unsigned long long *$envi;
-  $f = *((unsigned long long *) $clo + 0LLU);
-  $envi = *((unsigned long long *) $clo + 1LLU);
-  ((void (*)(struct thread_info *, void * __attribute((aligned(8))) *, void * __attribute((aligned(8))) *)) 
-    $f)
+  $f = (*((struct closure *) $clo)).func;
+  $envi = (*((struct closure *) $clo)).env;
+  ((void (*)(struct thread_info *, int_or_ptr64, int_or_ptr64)) $f)
     ($tinfo, $envi, $arg);
-  return *((unsigned long long *) (*$tinfo).args + 1LLU);
+  return *((*$tinfo).args + 1LL);
 }
 
 

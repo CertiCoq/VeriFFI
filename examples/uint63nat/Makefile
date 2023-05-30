@@ -40,4 +40,4 @@ c:
 
 clightgen:
 #	clightgen -DCOMPCERT -canonical-idents -normalize prims.c
-	clightgen -DCOMPCERT -canonical-idents -normalize glue.c
+	clightgen -DCOMPCERT -canonical-idents -normalize -fstruct-passing glue.c
