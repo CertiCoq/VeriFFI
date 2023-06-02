@@ -72,20 +72,20 @@ extern _Bool is_ptr(int_or_ptr64);
 unsigned int get_unboxed_ordinal(int_or_ptr64);
 unsigned int get_boxed_ordinal(int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void);
-int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, unsigned long long *);
+int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_bool_true(void);
 int_or_ptr64 make_Coq_Init_Datatypes_bool_false(void);
 int_or_ptr64 make_prog_exp_etrue(void);
 int_or_ptr64 make_prog_exp_efalse(void);
-int_or_ptr64 make_prog_exp_eand(int_or_ptr64, unsigned long long *);
+int_or_ptr64 make_prog_exp_eand(int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *, int_or_ptr64);
-int_or_ptr64 make_prog_exp_eor(int_or_ptr64, unsigned long long *);
+int_or_ptr64 make_prog_exp_eor(int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *, int_or_ptr64);
-int_or_ptr64 make_prog_exp_eif(int_or_ptr64, int_or_ptr64, int_or_ptr64, unsigned long long *);
+int_or_ptr64 make_prog_exp_eif(int_or_ptr64, int_or_ptr64, int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_prog_exp_eif(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_unit_tt(void);
-int_or_ptr64 make_prog_T_mkT(int_or_ptr64, int_or_ptr64, int_or_ptr64, unsigned long long *);
+int_or_ptr64 make_prog_T_mkT(int_or_ptr64, int_or_ptr64, int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_prog_T_mkT(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
 unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
 unsigned int get_Coq_Init_Datatypes_bool_tag(int_or_ptr64);
@@ -154,16 +154,16 @@ int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void)
   return 1;
 }
 
-int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64 $arg0, unsigned long long *$argv)
+int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64 $arg0, int_or_ptr64 *$argv)
 {
-  *($argv + 0LL) = 1024LL;
+  *($argv + 0LL) = (int_or_ptr64) 1024LL;
   *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
 int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
-  register unsigned long long *$argv;
+  register int_or_ptr64 *$argv;
   $argv = (*$tinfo).alloc;
   *($argv + 0LL) = 1024LL;
   *($argv + 1LL) = $arg0;
@@ -191,16 +191,16 @@ int_or_ptr64 make_prog_exp_efalse(void)
   return 3;
 }
 
-int_or_ptr64 make_prog_exp_eand(int_or_ptr64 $arg0, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eand(int_or_ptr64 $arg0, int_or_ptr64 *$argv)
 {
-  *($argv + 0LL) = 1024LL;
+  *($argv + 0LL) = (int_or_ptr64) 1024LL;
   *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
 int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
-  register unsigned long long *$argv;
+  register int_or_ptr64 *$argv;
   $argv = (*$tinfo).alloc;
   *($argv + 0LL) = 1024LL;
   *($argv + 1LL) = $arg0;
@@ -208,16 +208,16 @@ int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *$tinfo, int_or_ptr64 $
   return $argv + 1LL;
 }
 
-int_or_ptr64 make_prog_exp_eor(int_or_ptr64 $arg0, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eor(int_or_ptr64 $arg0, int_or_ptr64 *$argv)
 {
-  *($argv + 0LL) = 1025LL;
+  *($argv + 0LL) = (int_or_ptr64) 1025LL;
   *($argv + 1LL) = $arg0;
   return $argv + 1LL;
 }
 
 int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *$tinfo, int_or_ptr64 $arg0)
 {
-  register unsigned long long *$argv;
+  register int_or_ptr64 *$argv;
   $argv = (*$tinfo).alloc;
   *($argv + 0LL) = 1025LL;
   *($argv + 1LL) = $arg0;
@@ -225,9 +225,9 @@ int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *$tinfo, int_or_ptr64 $a
   return $argv + 1LL;
 }
 
-int_or_ptr64 make_prog_exp_eif(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, unsigned long long *$argv)
+int_or_ptr64 make_prog_exp_eif(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, int_or_ptr64 *$argv)
 {
-  *($argv + 0LL) = 3074LL;
+  *($argv + 0LL) = (int_or_ptr64) 3074LL;
   *($argv + 1LL) = $arg0;
   *($argv + 2LL) = $arg1;
   *($argv + 3LL) = $arg2;
@@ -236,7 +236,7 @@ int_or_ptr64 make_prog_exp_eif(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_pt
 
 int_or_ptr64 alloc_make_prog_exp_eif(struct thread_info *$tinfo, int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2)
 {
-  register unsigned long long *$argv;
+  register int_or_ptr64 *$argv;
   $argv = (*$tinfo).alloc;
   *($argv + 0LL) = 3074LL;
   *($argv + 1LL) = $arg0;
@@ -251,9 +251,9 @@ int_or_ptr64 make_Coq_Init_Datatypes_unit_tt(void)
   return 1;
 }
 
-int_or_ptr64 make_prog_T_mkT(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, unsigned long long *$argv)
+int_or_ptr64 make_prog_T_mkT(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2, int_or_ptr64 *$argv)
 {
-  *($argv + 0LL) = 3072LL;
+  *($argv + 0LL) = (int_or_ptr64) 3072LL;
   *($argv + 1LL) = $arg0;
   *($argv + 2LL) = $arg1;
   *($argv + 3LL) = $arg2;
@@ -262,7 +262,7 @@ int_or_ptr64 make_prog_T_mkT(int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr6
 
 int_or_ptr64 alloc_make_prog_T_mkT(struct thread_info *$tinfo, int_or_ptr64 $arg0, int_or_ptr64 $arg1, int_or_ptr64 $arg2)
 {
-  register unsigned long long *$argv;
+  register int_or_ptr64 *$argv;
   $argv = (*$tinfo).alloc;
   *($argv + 0LL) = 3072LL;
   *($argv + 1LL) = $arg0;
