@@ -1,0 +1,11 @@
+*prog.c
+*prog.h
+*prog.o
+prog
+
+gc.c
+gc.h
+gc_stack.c
+gc_stack.h
+values.h
+config.h
