@@ -7,13 +7,6 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
-Require Import VeriFFI.generator.all.
-Obligation Tactic := gen.
-MetaCoq Run (gen_for nat).
-MetaCoq Run (desc_gen S).
-
-Print S_desc.
-
 Require Import VeriFFI.examples.uint63nat.prog.
 
 Module FM <: UInt63.
