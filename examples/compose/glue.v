@@ -32,16 +32,9 @@ Definition __t : ident := $"$t".
 Definition __tag : ident := $"$tag".
 Definition __tinfo : ident := $"$tinfo".
 Definition __v : ident := $"$v".
-Definition _Coq_Numbers_BinNums_Z0_args : ident := $"Coq_Numbers_BinNums_Z0_args".
-Definition _Coq_Numbers_BinNums_Zneg_arg_0 : ident := $"Coq_Numbers_BinNums_Zneg_arg_0".
-Definition _Coq_Numbers_BinNums_Zneg_args : ident := $"Coq_Numbers_BinNums_Zneg_args".
-Definition _Coq_Numbers_BinNums_Zpos_arg_0 : ident := $"Coq_Numbers_BinNums_Zpos_arg_0".
-Definition _Coq_Numbers_BinNums_Zpos_args : ident := $"Coq_Numbers_BinNums_Zpos_args".
-Definition _Coq_Numbers_BinNums_xH_args : ident := $"Coq_Numbers_BinNums_xH_args".
-Definition _Coq_Numbers_BinNums_xI_arg_0 : ident := $"Coq_Numbers_BinNums_xI_arg_0".
-Definition _Coq_Numbers_BinNums_xI_args : ident := $"Coq_Numbers_BinNums_xI_args".
-Definition _Coq_Numbers_BinNums_xO_arg_0 : ident := $"Coq_Numbers_BinNums_xO_arg_0".
-Definition _Coq_Numbers_BinNums_xO_args : ident := $"Coq_Numbers_BinNums_xO_args".
+Definition _Coq_Init_Datatypes_O_args : ident := $"Coq_Init_Datatypes_O_args".
+Definition _Coq_Init_Datatypes_S_arg_0 : ident := $"Coq_Init_Datatypes_S_arg_0".
+Definition _Coq_Init_Datatypes_S_args : ident := $"Coq_Init_Datatypes_S_args".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -99,24 +92,16 @@ Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _alloc : ident := $"alloc".
-Definition _alloc_make_Coq_Numbers_BinNums_Z_Zneg : ident := $"alloc_make_Coq_Numbers_BinNums_Z_Zneg".
-Definition _alloc_make_Coq_Numbers_BinNums_Z_Zpos : ident := $"alloc_make_Coq_Numbers_BinNums_Z_Zpos".
-Definition _alloc_make_Coq_Numbers_BinNums_positive_xI : ident := $"alloc_make_Coq_Numbers_BinNums_positive_xI".
-Definition _alloc_make_Coq_Numbers_BinNums_positive_xO : ident := $"alloc_make_Coq_Numbers_BinNums_positive_xO".
+Definition _alloc_make_Coq_Init_Datatypes_nat_S : ident := $"alloc_make_Coq_Init_Datatypes_nat_S".
 Definition _args : ident := $"args".
 Definition _call : ident := $"call".
 Definition _closure : ident := $"closure".
 Definition _env : ident := $"env".
 Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
-Definition _get_Coq_Numbers_BinNums_Z0_args : ident := $"get_Coq_Numbers_BinNums_Z0_args".
-Definition _get_Coq_Numbers_BinNums_Z_tag : ident := $"get_Coq_Numbers_BinNums_Z_tag".
-Definition _get_Coq_Numbers_BinNums_Zneg_args : ident := $"get_Coq_Numbers_BinNums_Zneg_args".
-Definition _get_Coq_Numbers_BinNums_Zpos_args : ident := $"get_Coq_Numbers_BinNums_Zpos_args".
-Definition _get_Coq_Numbers_BinNums_positive_tag : ident := $"get_Coq_Numbers_BinNums_positive_tag".
-Definition _get_Coq_Numbers_BinNums_xH_args : ident := $"get_Coq_Numbers_BinNums_xH_args".
-Definition _get_Coq_Numbers_BinNums_xI_args : ident := $"get_Coq_Numbers_BinNums_xI_args".
-Definition _get_Coq_Numbers_BinNums_xO_args : ident := $"get_Coq_Numbers_BinNums_xO_args".
+Definition _get_Coq_Init_Datatypes_O_args : ident := $"get_Coq_Init_Datatypes_O_args".
+Definition _get_Coq_Init_Datatypes_S_args : ident := $"get_Coq_Init_Datatypes_S_args".
+Definition _get_Coq_Init_Datatypes_nat_tag : ident := $"get_Coq_Init_Datatypes_nat_tag".
 Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
 Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
 Definition _halt : ident := $"halt".
@@ -126,16 +111,10 @@ Definition _is_ptr : ident := $"is_ptr".
 Definition _limit : ident := $"limit".
 Definition _lparen_lit : ident := $"lparen_lit".
 Definition _main : ident := $"main".
-Definition _make_Coq_Numbers_BinNums_Z_Z0 : ident := $"make_Coq_Numbers_BinNums_Z_Z0".
-Definition _make_Coq_Numbers_BinNums_Z_Zneg : ident := $"make_Coq_Numbers_BinNums_Z_Zneg".
-Definition _make_Coq_Numbers_BinNums_Z_Zpos : ident := $"make_Coq_Numbers_BinNums_Z_Zpos".
-Definition _make_Coq_Numbers_BinNums_positive_xH : ident := $"make_Coq_Numbers_BinNums_positive_xH".
-Definition _make_Coq_Numbers_BinNums_positive_xI : ident := $"make_Coq_Numbers_BinNums_positive_xI".
-Definition _make_Coq_Numbers_BinNums_positive_xO : ident := $"make_Coq_Numbers_BinNums_positive_xO".
-Definition _names_of_Coq_Numbers_BinNums_Z : ident := $"names_of_Coq_Numbers_BinNums_Z".
-Definition _names_of_Coq_Numbers_BinNums_positive : ident := $"names_of_Coq_Numbers_BinNums_positive".
-Definition _print_Coq_Numbers_BinNums_Z : ident := $"print_Coq_Numbers_BinNums_Z".
-Definition _print_Coq_Numbers_BinNums_positive : ident := $"print_Coq_Numbers_BinNums_positive".
+Definition _make_Coq_Init_Datatypes_nat_O : ident := $"make_Coq_Init_Datatypes_nat_O".
+Definition _make_Coq_Init_Datatypes_nat_S : ident := $"make_Coq_Init_Datatypes_nat_S".
+Definition _names_of_Coq_Init_Datatypes_nat : ident := $"names_of_Coq_Init_Datatypes_nat".
+Definition _print_Coq_Init_Datatypes_nat : ident := $"print_Coq_Init_Datatypes_nat".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
 Definition _rparen_lit : ident := $"rparen_lit".
@@ -146,8 +125,6 @@ Definition _unk_lit : ident := $"unk_lit".
 Definition _t'1 : ident := 128%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
-Definition _t'4 : ident := 131%positive.
-Definition _t'5 : ident := 132%positive.
 
 Definition v_lparen_lit := {|
   gvar_info := (tarray tschar 2);
@@ -238,32 +215,25 @@ Definition f_get_boxed_ordinal := {|
                    (Econst_long (Int64.repr 255) tlong) tulong))))
 |}.
 
-Definition v_names_of_Coq_Numbers_BinNums_positive := {|
-  gvar_info := (tarray (tarray tschar 3) 3);
-  gvar_init := (Init_int8 (Int.repr 120) :: Init_int8 (Int.repr 73) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 120) ::
-                Init_int8 (Int.repr 79) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 120) :: Init_int8 (Int.repr 72) ::
-                Init_int8 (Int.repr 0) :: nil);
+Definition v_names_of_Coq_Init_Datatypes_nat := {|
+  gvar_info := (tarray (tarray tschar 2) 2);
+  gvar_init := (Init_int8 (Int.repr 79) :: Init_int8 (Int.repr 0) ::
+                Init_int8 (Int.repr 83) :: Init_int8 (Int.repr 0) :: nil);
   gvar_readonly := true;
   gvar_volatile := false
 |}.
 
-Definition v_names_of_Coq_Numbers_BinNums_Z := {|
-  gvar_info := (tarray (tarray tschar 5) 3);
-  gvar_init := (Init_int8 (Int.repr 90) :: Init_int8 (Int.repr 48) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 90) ::
-                Init_int8 (Int.repr 112) :: Init_int8 (Int.repr 111) ::
-                Init_int8 (Int.repr 115) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 90) :: Init_int8 (Int.repr 110) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 103) ::
-                Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
+Definition f_make_Coq_Init_Datatypes_nat_O := {|
+  fn_return := (talignas 3%N (tptr tvoid));
+  fn_callconv := cc_default;
+  fn_params := nil;
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Econst_int (Int.repr 1) tint)))
 |}.
 
-Definition f_make_Coq_Numbers_BinNums_positive_xI := {|
+Definition f_make_Coq_Init_Datatypes_nat_S := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
   fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
@@ -291,7 +261,7 @@ Definition f_make_Coq_Numbers_BinNums_positive_xI := {|
                      (tptr (talignas 3%N (tptr tvoid))))))))
 |}.
 
-Definition f_alloc_make_Coq_Numbers_BinNums_positive_xI := {|
+Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
@@ -341,305 +311,7 @@ Definition f_alloc_make_Coq_Numbers_BinNums_positive_xI := {|
                          (tptr (talignas 3%N (tptr tvoid))))))))))
 |}.
 
-Definition f_make_Coq_Numbers_BinNums_positive_xO := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1025) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
-|}.
-
-Definition f_alloc_make_Coq_Numbers_BinNums_positive_xO := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 1025) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Ssequence
-          (Sset _t'1
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_make_Coq_Numbers_BinNums_positive_xH := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Econst_int (Int.repr 1) tint)))
-|}.
-
-Definition f_make_Coq_Numbers_BinNums_Z_Z0 := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Econst_int (Int.repr 1) tint)))
-|}.
-
-Definition f_make_Coq_Numbers_BinNums_Z_Zpos := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1024) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
-|}.
-
-Definition f_alloc_make_Coq_Numbers_BinNums_Z_Zpos := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 1024) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Ssequence
-          (Sset _t'1
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_make_Coq_Numbers_BinNums_Z_Zneg := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1025) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
-|}.
-
-Definition f_alloc_make_Coq_Numbers_BinNums_Z_Zneg := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 1025) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Ssequence
-          (Sset _t'1
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_get_Coq_Numbers_BinNums_positive_tag := {|
-  fn_return := tuint;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
-               (_t'2, tuint) :: (_t'1, tbool) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _is_ptr (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil) tbool
-                      cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __b (Ecast (Etempvar _t'1 tbool) tbool)))
-  (Sifthenelse (Etempvar __b tbool)
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'2)
-          (Evar _get_boxed_ordinal (Tfunction
-                                     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'2 tuint)))
-      (Sswitch (Etempvar __t tuint)
-        (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 0) tuint)))
-          (LScons (Some 1)
-            (Sreturn (Some (Econst_int (Int.repr 1) tuint)))
-            LSnil))))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'3)
-          (Evar _get_unboxed_ordinal (Tfunction
-                                       (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'3 tuint)))
-      (Sswitch (Etempvar __t tuint)
-        (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 2) tuint)))
-          LSnil)))))
-|}.
-
-Definition f_get_Coq_Numbers_BinNums_Z_tag := {|
+Definition f_get_Coq_Init_Datatypes_nat_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
@@ -666,9 +338,7 @@ Definition f_get_Coq_Numbers_BinNums_Z_tag := {|
       (Sswitch (Etempvar __t tuint)
         (LScons (Some 0)
           (Sreturn (Some (Econst_int (Int.repr 1) tuint)))
-          (LScons (Some 1)
-            (Sreturn (Some (Econst_int (Int.repr 2) tuint)))
-            LSnil))))
+          LSnil)))
     (Ssequence
       (Ssequence
         (Scall (Some _t'3)
@@ -683,236 +353,44 @@ Definition f_get_Coq_Numbers_BinNums_Z_tag := {|
           LSnil)))))
 |}.
 
-Definition f_get_Coq_Numbers_BinNums_xI_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_xI_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _Coq_Numbers_BinNums_xI_args noattr)))))
-|}.
-
-Definition f_get_Coq_Numbers_BinNums_xO_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_xO_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _Coq_Numbers_BinNums_xO_args noattr)))))
-|}.
-
-Definition f_get_Coq_Numbers_BinNums_xH_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_xH_args noattr));
+Definition f_get_Coq_Init_Datatypes_O_args := {|
+  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_O_args noattr));
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
 (Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Numbers_BinNums_xH_args noattr)))))
+                 (tptr (Tstruct _Coq_Init_Datatypes_O_args noattr)))))
 |}.
 
-Definition f_get_Coq_Numbers_BinNums_Z0_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_Z0_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Numbers_BinNums_Z0_args noattr)))))
-|}.
-
-Definition f_get_Coq_Numbers_BinNums_Zpos_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_Zpos_args noattr));
+Definition f_get_Coq_Init_Datatypes_S_args := {|
+  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr));
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
 (Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _Coq_Numbers_BinNums_Zpos_args noattr)))))
+                 (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)))))
 |}.
 
-Definition f_get_Coq_Numbers_BinNums_Zneg_args := {|
-  fn_return := (tptr (Tstruct _Coq_Numbers_BinNums_Zneg_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _Coq_Numbers_BinNums_Zneg_args noattr)))))
-|}.
-
-Definition f_print_Coq_Numbers_BinNums_positive := {|
+Definition f_print_Coq_Init_Datatypes_nat := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'3, (tptr (Tstruct _Coq_Numbers_BinNums_xO_args noattr))) ::
-               (_t'2, (tptr (Tstruct _Coq_Numbers_BinNums_xI_args noattr))) ::
-               (_t'1, tuint) :: (_t'5, (talignas 3%N (tptr tvoid))) ::
-               (_t'4, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))) ::
+               (_t'1, tuint) :: (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_Coq_Numbers_BinNums_positive_tag (Tfunction
-                                                    (Tcons
-                                                      (talignas 3%N (tptr tvoid))
-                                                      Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
-  (Sswitch (Etempvar __tag tuint)
-    (LScons (Some 0)
-      (Ssequence
-        (Ssequence
-          (Scall (Some _t'2)
-            (Evar _get_Coq_Numbers_BinNums_xI_args (Tfunction
-                                                     (Tcons
-                                                       (talignas 3%N (tptr tvoid))
-                                                       Tnil)
-                                                     (tptr (Tstruct _Coq_Numbers_BinNums_xI_args noattr))
-                                                     cc_default))
-            ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-          (Sset __args
-            (Etempvar _t'2 (tptr (Tstruct _Coq_Numbers_BinNums_xI_args noattr)))))
-        (Ssequence
-          (Scall None
-            (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                            cc_default))
-            ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-          (Ssequence
-            (Scall None
-              (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                              cc_default))
-              ((Ederef
-                 (Ebinop Oadd
-                   (Evar _names_of_Coq_Numbers_BinNums_positive (tarray (tarray tschar 3) 3))
-                   (Etempvar __tag tuint) (tptr (tarray tschar 3)))
-                 (tarray tschar 3)) :: nil))
-            (Ssequence
-              (Scall None
-                (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                cc_default))
-                ((Evar _space_lit (tarray tschar 2)) :: nil))
-              (Ssequence
-                (Ssequence
-                  (Sset _t'5
-                    (Ederef
-                      (Ebinop Oadd
-                        (Ecast (Etempvar __args (tptr tvoid))
-                          (tptr (talignas 3%N (tptr tvoid))))
-                        (Econst_int (Int.repr 0) tint)
-                        (tptr (talignas 3%N (tptr tvoid))))
-                      (talignas 3%N (tptr tvoid))))
-                  (Scall None
-                    (Evar _print_Coq_Numbers_BinNums_positive (Tfunction
-                                                                (Tcons
-                                                                  (talignas 3%N (tptr tvoid))
-                                                                  Tnil) tvoid
-                                                                cc_default))
-                    ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) :: nil)))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    cc_default))
-                    ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                  Sbreak))))))
-      (LScons (Some 1)
-        (Ssequence
-          (Ssequence
-            (Scall (Some _t'3)
-              (Evar _get_Coq_Numbers_BinNums_xO_args (Tfunction
-                                                       (Tcons
-                                                         (talignas 3%N (tptr tvoid))
-                                                         Tnil)
-                                                       (tptr (Tstruct _Coq_Numbers_BinNums_xO_args noattr))
-                                                       cc_default))
-              ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-            (Sset __args
-              (Etempvar _t'3 (tptr (Tstruct _Coq_Numbers_BinNums_xO_args noattr)))))
-          (Ssequence
-            (Scall None
-              (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                              cc_default))
-              ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-            (Ssequence
-              (Scall None
-                (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                cc_default))
-                ((Ederef
-                   (Ebinop Oadd
-                     (Evar _names_of_Coq_Numbers_BinNums_positive (tarray (tarray tschar 3) 3))
-                     (Etempvar __tag tuint) (tptr (tarray tschar 3)))
-                   (tarray tschar 3)) :: nil))
-              (Ssequence
-                (Scall None
-                  (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                  cc_default))
-                  ((Evar _space_lit (tarray tschar 2)) :: nil))
-                (Ssequence
-                  (Ssequence
-                    (Sset _t'4
-                      (Ederef
-                        (Ebinop Oadd
-                          (Ecast (Etempvar __args (tptr tvoid))
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (Econst_int (Int.repr 0) tint)
-                          (tptr (talignas 3%N (tptr tvoid))))
-                        (talignas 3%N (tptr tvoid))))
-                    (Scall None
-                      (Evar _print_Coq_Numbers_BinNums_positive (Tfunction
-                                                                  (Tcons
-                                                                    (talignas 3%N (tptr tvoid))
-                                                                    Tnil)
-                                                                  tvoid
-                                                                  cc_default))
-                      ((Etempvar _t'4 (talignas 3%N (tptr tvoid))) :: nil)))
-                  (Ssequence
-                    (Scall None
-                      (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                      tint cc_default))
-                      ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                    Sbreak))))))
-        (LScons (Some 2)
-          (Ssequence
-            (Scall None
-              (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                              cc_default))
-              ((Ederef
-                 (Ebinop Oadd
-                   (Evar _names_of_Coq_Numbers_BinNums_positive (tarray (tarray tschar 3) 3))
-                   (Etempvar __tag tuint) (tptr (tarray tschar 3)))
-                 (tarray tschar 3)) :: nil))
-            Sbreak)
-          LSnil)))))
-|}.
-
-Definition f_print_Coq_Numbers_BinNums_Z := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'3, (tptr (Tstruct _Coq_Numbers_BinNums_Zneg_args noattr))) ::
-               (_t'2, (tptr (Tstruct _Coq_Numbers_BinNums_Zpos_args noattr))) ::
-               (_t'1, tuint) :: (_t'5, (talignas 3%N (tptr tvoid))) ::
-               (_t'4, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_Coq_Numbers_BinNums_Z_tag (Tfunction
-                                             (Tcons
-                                               (talignas 3%N (tptr tvoid))
-                                               Tnil) tuint cc_default))
+      (Evar _get_Coq_Init_Datatypes_nat_tag (Tfunction
+                                              (Tcons
+                                                (talignas 3%N (tptr tvoid))
+                                                Tnil) tuint cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Sswitch (Etempvar __tag tuint)
@@ -923,23 +401,23 @@ Definition f_print_Coq_Numbers_BinNums_Z := {|
                           cc_default))
           ((Ederef
              (Ebinop Oadd
-               (Evar _names_of_Coq_Numbers_BinNums_Z (tarray (tarray tschar 5) 3))
-               (Etempvar __tag tuint) (tptr (tarray tschar 5)))
-             (tarray tschar 5)) :: nil))
+               (Evar _names_of_Coq_Init_Datatypes_nat (tarray (tarray tschar 2) 2))
+               (Etempvar __tag tuint) (tptr (tarray tschar 2)))
+             (tarray tschar 2)) :: nil))
         Sbreak)
       (LScons (Some 1)
         (Ssequence
           (Ssequence
             (Scall (Some _t'2)
-              (Evar _get_Coq_Numbers_BinNums_Zpos_args (Tfunction
-                                                         (Tcons
-                                                           (talignas 3%N (tptr tvoid))
-                                                           Tnil)
-                                                         (tptr (Tstruct _Coq_Numbers_BinNums_Zpos_args noattr))
-                                                         cc_default))
+              (Evar _get_Coq_Init_Datatypes_S_args (Tfunction
+                                                     (Tcons
+                                                       (talignas 3%N (tptr tvoid))
+                                                       Tnil)
+                                                     (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))
+                                                     cc_default))
               ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
             (Sset __args
-              (Etempvar _t'2 (tptr (Tstruct _Coq_Numbers_BinNums_Zpos_args noattr)))))
+              (Etempvar _t'2 (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)))))
           (Ssequence
             (Scall None
               (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -951,9 +429,9 @@ Definition f_print_Coq_Numbers_BinNums_Z := {|
                                 cc_default))
                 ((Ederef
                    (Ebinop Oadd
-                     (Evar _names_of_Coq_Numbers_BinNums_Z (tarray (tarray tschar 5) 3))
-                     (Etempvar __tag tuint) (tptr (tarray tschar 5)))
-                   (tarray tschar 5)) :: nil))
+                     (Evar _names_of_Coq_Init_Datatypes_nat (tarray (tarray tschar 2) 2))
+                     (Etempvar __tag tuint) (tptr (tarray tschar 2)))
+                   (tarray tschar 2)) :: nil))
               (Ssequence
                 (Scall None
                   (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -961,7 +439,7 @@ Definition f_print_Coq_Numbers_BinNums_Z := {|
                   ((Evar _space_lit (tarray tschar 2)) :: nil))
                 (Ssequence
                   (Ssequence
-                    (Sset _t'5
+                    (Sset _t'3
                       (Ederef
                         (Ebinop Oadd
                           (Ecast (Etempvar __args (tptr tvoid))
@@ -970,76 +448,19 @@ Definition f_print_Coq_Numbers_BinNums_Z := {|
                           (tptr (talignas 3%N (tptr tvoid))))
                         (talignas 3%N (tptr tvoid))))
                     (Scall None
-                      (Evar _print_Coq_Numbers_BinNums_positive (Tfunction
-                                                                  (Tcons
-                                                                    (talignas 3%N (tptr tvoid))
-                                                                    Tnil)
-                                                                  tvoid
-                                                                  cc_default))
-                      ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) :: nil)))
+                      (Evar _print_Coq_Init_Datatypes_nat (Tfunction
+                                                            (Tcons
+                                                              (talignas 3%N (tptr tvoid))
+                                                              Tnil) tvoid
+                                                            cc_default))
+                      ((Etempvar _t'3 (talignas 3%N (tptr tvoid))) :: nil)))
                   (Ssequence
                     (Scall None
                       (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
                                       tint cc_default))
                       ((Evar _rparen_lit (tarray tschar 2)) :: nil))
                     Sbreak))))))
-        (LScons (Some 2)
-          (Ssequence
-            (Ssequence
-              (Scall (Some _t'3)
-                (Evar _get_Coq_Numbers_BinNums_Zneg_args (Tfunction
-                                                           (Tcons
-                                                             (talignas 3%N (tptr tvoid))
-                                                             Tnil)
-                                                           (tptr (Tstruct _Coq_Numbers_BinNums_Zneg_args noattr))
-                                                           cc_default))
-                ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-              (Sset __args
-                (Etempvar _t'3 (tptr (Tstruct _Coq_Numbers_BinNums_Zneg_args noattr)))))
-            (Ssequence
-              (Scall None
-                (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                cc_default))
-                ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-              (Ssequence
-                (Scall None
-                  (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                  cc_default))
-                  ((Ederef
-                     (Ebinop Oadd
-                       (Evar _names_of_Coq_Numbers_BinNums_Z (tarray (tarray tschar 5) 3))
-                       (Etempvar __tag tuint) (tptr (tarray tschar 5)))
-                     (tarray tschar 5)) :: nil))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    cc_default))
-                    ((Evar _space_lit (tarray tschar 2)) :: nil))
-                  (Ssequence
-                    (Ssequence
-                      (Sset _t'4
-                        (Ederef
-                          (Ebinop Oadd
-                            (Ecast (Etempvar __args (tptr tvoid))
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (Econst_int (Int.repr 0) tint)
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (talignas 3%N (tptr tvoid))))
-                      (Scall None
-                        (Evar _print_Coq_Numbers_BinNums_positive (Tfunction
-                                                                    (Tcons
-                                                                    (talignas 3%N (tptr tvoid))
-                                                                    Tnil)
-                                                                    tvoid
-                                                                    cc_default))
-                        ((Etempvar _t'4 (talignas 3%N (tptr tvoid))) :: nil)))
-                    (Ssequence
-                      (Scall None
-                        (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                        tint cc_default))
-                        ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                      Sbreak))))))
-          LSnil)))))
+        LSnil))))
 |}.
 
 Definition f_halt := {|
@@ -1144,22 +565,9 @@ Definition composites : list composite_definition :=
                   (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
               cc_default)) ::
     Member_plain _env (talignas 3%N (tptr tvoid)) :: nil)
-   noattr ::
- Composite _Coq_Numbers_BinNums_xI_args Struct
-   (Member_plain _Coq_Numbers_BinNums_xI_arg_0 (talignas 3%N (tptr tvoid)) ::
-    nil)
-   noattr ::
- Composite _Coq_Numbers_BinNums_xO_args Struct
-   (Member_plain _Coq_Numbers_BinNums_xO_arg_0 (talignas 3%N (tptr tvoid)) ::
-    nil)
-   noattr :: Composite _Coq_Numbers_BinNums_xH_args Struct nil noattr ::
- Composite _Coq_Numbers_BinNums_Z0_args Struct nil noattr ::
- Composite _Coq_Numbers_BinNums_Zpos_args Struct
-   (Member_plain _Coq_Numbers_BinNums_Zpos_arg_0 (talignas 3%N (tptr tvoid)) ::
-    nil)
-   noattr ::
- Composite _Coq_Numbers_BinNums_Zneg_args Struct
-   (Member_plain _Coq_Numbers_BinNums_Zneg_arg_0 (talignas 3%N (tptr tvoid)) ::
+   noattr :: Composite _Coq_Init_Datatypes_O_args Struct nil noattr ::
+ Composite _Coq_Init_Datatypes_S_args Struct
+   (Member_plain _Coq_Init_Datatypes_S_arg_0 (talignas 3%N (tptr tvoid)) ::
     nil)
    noattr :: nil).
 
@@ -1445,48 +853,23 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_unk_lit, Gvar v_unk_lit) :: (_prop_lit, Gvar v_prop_lit) ::
  (_get_unboxed_ordinal, Gfun(Internal f_get_unboxed_ordinal)) ::
  (_get_boxed_ordinal, Gfun(Internal f_get_boxed_ordinal)) ::
- (_names_of_Coq_Numbers_BinNums_positive, Gvar v_names_of_Coq_Numbers_BinNums_positive) ::
- (_names_of_Coq_Numbers_BinNums_Z, Gvar v_names_of_Coq_Numbers_BinNums_Z) ::
- (_make_Coq_Numbers_BinNums_positive_xI, Gfun(Internal f_make_Coq_Numbers_BinNums_positive_xI)) ::
- (_alloc_make_Coq_Numbers_BinNums_positive_xI, Gfun(Internal f_alloc_make_Coq_Numbers_BinNums_positive_xI)) ::
- (_make_Coq_Numbers_BinNums_positive_xO, Gfun(Internal f_make_Coq_Numbers_BinNums_positive_xO)) ::
- (_alloc_make_Coq_Numbers_BinNums_positive_xO, Gfun(Internal f_alloc_make_Coq_Numbers_BinNums_positive_xO)) ::
- (_make_Coq_Numbers_BinNums_positive_xH, Gfun(Internal f_make_Coq_Numbers_BinNums_positive_xH)) ::
- (_make_Coq_Numbers_BinNums_Z_Z0, Gfun(Internal f_make_Coq_Numbers_BinNums_Z_Z0)) ::
- (_make_Coq_Numbers_BinNums_Z_Zpos, Gfun(Internal f_make_Coq_Numbers_BinNums_Z_Zpos)) ::
- (_alloc_make_Coq_Numbers_BinNums_Z_Zpos, Gfun(Internal f_alloc_make_Coq_Numbers_BinNums_Z_Zpos)) ::
- (_make_Coq_Numbers_BinNums_Z_Zneg, Gfun(Internal f_make_Coq_Numbers_BinNums_Z_Zneg)) ::
- (_alloc_make_Coq_Numbers_BinNums_Z_Zneg, Gfun(Internal f_alloc_make_Coq_Numbers_BinNums_Z_Zneg)) ::
- (_get_Coq_Numbers_BinNums_positive_tag, Gfun(Internal f_get_Coq_Numbers_BinNums_positive_tag)) ::
- (_get_Coq_Numbers_BinNums_Z_tag, Gfun(Internal f_get_Coq_Numbers_BinNums_Z_tag)) ::
- (_get_Coq_Numbers_BinNums_xI_args, Gfun(Internal f_get_Coq_Numbers_BinNums_xI_args)) ::
- (_get_Coq_Numbers_BinNums_xO_args, Gfun(Internal f_get_Coq_Numbers_BinNums_xO_args)) ::
- (_get_Coq_Numbers_BinNums_xH_args, Gfun(Internal f_get_Coq_Numbers_BinNums_xH_args)) ::
- (_get_Coq_Numbers_BinNums_Z0_args, Gfun(Internal f_get_Coq_Numbers_BinNums_Z0_args)) ::
- (_get_Coq_Numbers_BinNums_Zpos_args, Gfun(Internal f_get_Coq_Numbers_BinNums_Zpos_args)) ::
- (_get_Coq_Numbers_BinNums_Zneg_args, Gfun(Internal f_get_Coq_Numbers_BinNums_Zneg_args)) ::
- (_print_Coq_Numbers_BinNums_positive, Gfun(Internal f_print_Coq_Numbers_BinNums_positive)) ::
- (_print_Coq_Numbers_BinNums_Z, Gfun(Internal f_print_Coq_Numbers_BinNums_Z)) ::
+ (_names_of_Coq_Init_Datatypes_nat, Gvar v_names_of_Coq_Init_Datatypes_nat) ::
+ (_make_Coq_Init_Datatypes_nat_O, Gfun(Internal f_make_Coq_Init_Datatypes_nat_O)) ::
+ (_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_make_Coq_Init_Datatypes_nat_S)) ::
+ (_alloc_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_alloc_make_Coq_Init_Datatypes_nat_S)) ::
+ (_get_Coq_Init_Datatypes_nat_tag, Gfun(Internal f_get_Coq_Init_Datatypes_nat_tag)) ::
+ (_get_Coq_Init_Datatypes_O_args, Gfun(Internal f_get_Coq_Init_Datatypes_O_args)) ::
+ (_get_Coq_Init_Datatypes_S_args, Gfun(Internal f_get_Coq_Init_Datatypes_S_args)) ::
+ (_print_Coq_Init_Datatypes_nat, Gfun(Internal f_print_Coq_Init_Datatypes_nat)) ::
  (_halt, Gfun(Internal f_halt)) :: (_halt_clo, Gvar v_halt_clo) ::
  (_call, Gfun(Internal f_call)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _halt_clo :: _halt :: _print_Coq_Numbers_BinNums_Z ::
- _print_Coq_Numbers_BinNums_positive :: _get_Coq_Numbers_BinNums_Zneg_args ::
- _get_Coq_Numbers_BinNums_Zpos_args :: _get_Coq_Numbers_BinNums_Z0_args ::
- _get_Coq_Numbers_BinNums_xH_args :: _get_Coq_Numbers_BinNums_xO_args ::
- _get_Coq_Numbers_BinNums_xI_args :: _get_Coq_Numbers_BinNums_Z_tag ::
- _get_Coq_Numbers_BinNums_positive_tag ::
- _alloc_make_Coq_Numbers_BinNums_Z_Zneg ::
- _make_Coq_Numbers_BinNums_Z_Zneg ::
- _alloc_make_Coq_Numbers_BinNums_Z_Zpos ::
- _make_Coq_Numbers_BinNums_Z_Zpos :: _make_Coq_Numbers_BinNums_Z_Z0 ::
- _make_Coq_Numbers_BinNums_positive_xH ::
- _alloc_make_Coq_Numbers_BinNums_positive_xO ::
- _make_Coq_Numbers_BinNums_positive_xO ::
- _alloc_make_Coq_Numbers_BinNums_positive_xI ::
- _make_Coq_Numbers_BinNums_positive_xI :: _names_of_Coq_Numbers_BinNums_Z ::
- _names_of_Coq_Numbers_BinNums_positive :: _get_boxed_ordinal ::
+(_call :: _halt_clo :: _halt :: _print_Coq_Init_Datatypes_nat ::
+ _get_Coq_Init_Datatypes_S_args :: _get_Coq_Init_Datatypes_O_args ::
+ _get_Coq_Init_Datatypes_nat_tag :: _alloc_make_Coq_Init_Datatypes_nat_S ::
+ _make_Coq_Init_Datatypes_nat_S :: _make_Coq_Init_Datatypes_nat_O ::
+ _names_of_Coq_Init_Datatypes_nat :: _get_boxed_ordinal ::
  _get_unboxed_ordinal :: _prop_lit :: _unk_lit :: _type_lit :: _fun_lit ::
  _space_lit :: _rparen_lit :: _lparen_lit :: _is_ptr :: _printf ::
  ___builtin_debug :: ___builtin_write32_reversed ::
