@@ -1,0 +1,6 @@
+[submodule "CertiGraph"]
+	path = CertiGraph
+	url = git@github.com:CertiGraph/CertiGraph.git
+[submodule "certicoq"]
+	path = certicoq
+	url = git@github.com:CertiCoq/certicoq.git
