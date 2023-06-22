@@ -18,7 +18,7 @@ Require Import VeriFFI.library.meta.
 Require Import VeriFFI.generator.InGraph.
 Require Import VeriFFI.generator.Rep.
 
-Unset Strict Unquote Universe Mode.
+(*Unset Strict Unquote Universe Mode.*) (* There is no flag or option with this name *)
 
 (* Require Import VeriFFI.generator.Rep. *)
 (* MetaCoq Run (in_graph_gen bool). *)

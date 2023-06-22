@@ -31,7 +31,7 @@ Definition add_node (g : graph) (to : nat) (lb : raw_vertex_block) es : graph :=
                      (update_vlabel (vlabel g) new_v lb)
                      (elabel g) (copy_v_update_glabel (glabel g) to).
 
-Hint Unfold pregraph_add_my_edge pregraph_add_v add_node : graph_add. 
+#[export] Hint Unfold pregraph_add_my_edge pregraph_add_v add_node : graph_add. 
 
 (** ** 2. Compatibility Proofs *) 
 
@@ -44,7 +44,7 @@ Hint Unfold pregraph_add_my_edge pregraph_add_v add_node : graph_add.
 Definition add_node_compatible (g: graph) (v: VType) (es: list (EType * (VType * VType))) :=
   forall e src trg, In (e, (src, trg)) es -> fst e = v /\ fst e = src /\ graph_has_v g trg /\ (fst src <= fst trg)%nat /\  NoDup (map fst es) /\ trg <> v. 
 
-Hint Unfold add_node_compatible : graph_add.
+#[export] Hint Unfold add_node_compatible : graph_add.
 
 (** Creates a raw_vertex_block in the initial state for garbage collection. *)
 Definition newRaw (v : VType) (raw_tag: Z) (raw_fields: list raw_field) (raw_tag_range : 0 <= raw_tag < 256)
@@ -94,7 +94,7 @@ Proof.
     + apply IHes; [apply NoDup_cons_1 in ND |]; assumption. 
 Qed.
 
-Hint Rewrite flcvae_dst_old add_node_dst add_node_dst_new : graph_add. 
+#[export] Hint Rewrite flcvae_dst_old add_node_dst add_node_dst_new : graph_add. 
 
 (** *** src *)
 Lemma flcvae_src_old: forall g  l e,
@@ -136,7 +136,7 @@ Proof.
     + apply IHes; [apply NoDup_cons_1 in ND |]; assumption. 
 Qed.
 
-Hint Rewrite flcvae_src_old add_node_src add_node_src_new : graph_add. 
+#[export] Hint Rewrite flcvae_src_old add_node_src add_node_src_new : graph_add. 
 
 (** The new node is contained in the graph. *)
 Lemma add_node_has_index_new g to r es: 
@@ -153,7 +153,7 @@ Proof.
   destruct (nth to g_gen null_info). simpl. rep_lia. 
 Qed.
 
-Hint Resolve add_node_has_index_new : graph_add. 
+#[export] Hint Resolve add_node_has_index_new : graph_add. 
 
 (** Looking up the new node, we actually get to the updated label. *) 
 Lemma add_node_vlabel g to r es :
@@ -175,7 +175,7 @@ Proof.
   apply cvmgil_not_eq; [|subst l]; assumption.
 Qed.
 
-Hint Rewrite add_node_vlabel add_node_nth_gen : graph_add. 
+#[export] Hint Rewrite add_node_vlabel add_node_nth_gen : graph_add. 
 
 (** graph-has_gen stays unchanged *) 
 Lemma add_node_graph_has_gen: forall g to n lb e,
@@ -186,7 +186,7 @@ Proof.
   rewrite cvmgil_length by assumption. reflexivity.
 Qed.
 
-Hint Resolve add_node_graph_has_gen: graph_add. 
+#[export] Hint Resolve add_node_graph_has_gen: graph_add. 
 
 (** The start of the generation stays unchanged. *) 
 Lemma add_node_gen_start: forall g to n lb e,
@@ -212,7 +212,7 @@ Proof.
   inversion S; reflexivity.
 Qed.
 
-Hint Rewrite add_node_gen_start add_node_vlabel_old : graph_add. 
+#[export] Hint Rewrite add_node_gen_start add_node_vlabel_old : graph_add. 
 
 (** The vertex address stays unchanged, as long as the generation of the vertex is contained in g, and the vertex is contained in the graph. 
 
@@ -245,7 +245,7 @@ Proof.
   intros. unfold make_header. rewrite add_node_vlabel_old by assumption. reflexivity.
 Qed.
 
-Hint Rewrite add_node_vertex_address add_node_vertex_address_old add_node_make_header_old : graph_add. 
+#[export] Hint Rewrite add_node_vertex_address add_node_vertex_address_old add_node_make_header_old : graph_add. 
 
 
 Lemma add_node_field2val_make_fields_old:  forall (g : LGraph) (to : nat) lb es x,
@@ -280,7 +280,7 @@ Qed.
 Definition copied_vertex_existence g := 
   forall x, graph_has_v g x -> raw_mark (vlabel g x) = true -> graph_has_v g (copied_vertex (vlabel g x)).  
 
-Hint Unfold copied_vertex_existence : graph_add. 
+#[export] Hint Unfold copied_vertex_existence : graph_add. 
 
 Lemma add_node_make_fields_vals_old: forall (g : LGraph) (to: nat) lb e x,
     add_node_compatible g (new_copied_v g to) e -> graph_has_v g x -> graph_has_gen g to ->  no_dangling_dst g ->  copied_vertex_existence g ->
@@ -342,7 +342,7 @@ Proof.
   red. simpl.  split; [assumption | apply Nat.le_refl].
 Qed. 
 
-Hint Rewrite add_node_nth_sh add_node_vertex_address_new : graph_add. 
+#[export] Hint Rewrite add_node_nth_sh add_node_vertex_address_new : graph_add. 
 
 Lemma add_node_generation_rep_eq: forall g to lb e,
     let v := new_copied_v g to in
@@ -441,7 +441,7 @@ Proof.
   unfold add_node_compatible in C. destruct (C _ _ _ A). simpl in *. congruence. 
  Qed. 
 
-Hint Resolve compatible_add_node : graph_add. 
+#[export] Hint Resolve compatible_add_node : graph_add. 
 
 Require Import Nat. 
 
@@ -459,7 +459,7 @@ unfold copy_v_mod_gen_info.  clear Heqxs.
     rewrite Nat.sub_diag. simpl. lia. 
 Qed.
 
-Hint Rewrite number_of_vertices_new : graph_add. 
+#[export] Hint Rewrite number_of_vertices_new : graph_add. 
 
 Lemma number_of_vertices_increases g gen to lb e: 
   graph_has_gen g to -> (number_of_vertices (nth_gen g gen) <= number_of_vertices (nth_gen (add_node g to lb e) gen))%nat. 
@@ -528,7 +528,7 @@ Proof.
   intros. rewrite <- add_node_graph_has_v; eauto. intuition.
 Qed.
 
-Hint Resolve add_node_gen_has_index_impl add_node_gen_has_index_old add_node_gen_has_index add_node_graph_has_v_impl add_node_graph_has_v add_node_graph_has_v_old : graph_add. 
+#[export] Hint Resolve add_node_gen_has_index_impl add_node_gen_has_index_old add_node_gen_has_index add_node_graph_has_v_impl add_node_graph_has_v add_node_graph_has_v_old : graph_add. 
 
 
 Definition edge_compatible g to lb (es: list (EType * (VType * VType))) :=
@@ -770,7 +770,7 @@ Proof.
     rewrite nat_inc_list_In_iff in H. red in A. lia.
 Qed.
 
-Hint Rewrite add_node_heap_start add_node_heap_start0 add_node_heap_total0 add_node_heap_sh0 add_node_heap_used_space0 add_node_heap_start_real add_node_heap_total_real add_node_heap_ti_token_rep add_node_previous_vertices_size: graph_add. 
+#[export] Hint Rewrite add_node_heap_start add_node_heap_start0 add_node_heap_total0 add_node_heap_sh0 add_node_heap_used_space0 add_node_heap_start_real add_node_heap_total_real add_node_heap_ti_token_rep add_node_previous_vertices_size: graph_add. 
 
 
 Lemma add_node_safe_to_copy0 g lb es : 

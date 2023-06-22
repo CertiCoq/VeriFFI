@@ -7,7 +7,7 @@ Class Isomorphism (A B : Type) :=
   ; to_from : forall (x : B), from (to x) = x
   }.
 
-Instance Isomorphism_refl {A : Type} : Isomorphism A A.
+#[export] Instance Isomorphism_refl {A : Type} : Isomorphism A A.
 Proof.
   refine {| from := id ; to := id ; from_to := _ ; to_from := _ |}; auto.
 Defined.

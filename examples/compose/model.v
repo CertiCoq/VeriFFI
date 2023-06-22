@@ -33,8 +33,9 @@ Module Compose_Proofs.
 
   Axiom compose_properties : model_spec compose_ep.
 
+(* commented out to reduce chatter in build
   Eval cbn in model_spec compose_ep.
-
+*)
   Lemma compose_pf :
     forall {A B C} (g : B -> C) (f : A -> B) (x : A),
       C.compose g f x = FM.compose g f x.

@@ -85,11 +85,11 @@ Notation "'tmMsg!'" := (tmMsg).
 Notation "'tmPrint'" := (fun _ => ret tt).
 Notation "'tmMsg'" := (fun _ => ret tt).
 
-Instance InGraph_Prop : InGraph Prop :=
+#[export] Instance InGraph_Prop : InGraph Prop :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-Instance InGraph_Set : InGraph Set :=
+#[export] Instance InGraph_Set : InGraph Set :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-Instance InGraph_Type : InGraph Type :=
+#[export] Instance InGraph_Type : InGraph Type :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
 
 (* Starting generation of [InGraph] instances! *)
@@ -408,7 +408,7 @@ Fixpoint get_quantifiers
     (mkBindAnn nAnon rel, ty) :: get_quantifiers modify rest
   | tProd (mkBindAnn (nNamed id) rel) ty rest =>
     (mkBindAnn (nNamed (modify id)) rel, ty) :: get_quantifiers modify rest
-  | x => nil
+  | _ => nil
   end.
 
 (* Given binder names and binding types, add binders to the base [named_term].
@@ -474,7 +474,7 @@ Definition build_method_call
   tmPrint res ;;
   ret res.
 
-Fixpoint make_prop
+Definition make_prop
          (all_single_rep_tys : list (aname * named_term))
          (quantifiers : list (aname * named_term))
          (ind : inductive)

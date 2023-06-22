@@ -23,6 +23,8 @@ echo "RUN: opam repo add coq-released http://coq.inria.fr/opam/released"
 opam repo add coq-released http://coq.inria.fr/opam/released
 echo "RUN: opam pin add coq 8.15.2"
 opam pin add coq 8.15.2 || exit 1
+echo "RUN: opam pin add coqide 8.15.2"
+opam pin add coqide 8.15.2  # all right if this one fails
 
 echo "RUN: git submodule update --init --checkout --recursive"
 git submodule update --init --checkout --recursive  || exit 1
