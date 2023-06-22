@@ -513,8 +513,9 @@ int_or_ptr64 call(struct thread_info *$tinfo, int_or_ptr64 $clo, int_or_ptr64 $a
   register unsigned long long *$envi;
   $f = (*((struct closure *) $clo)).func;
   $envi = (*((struct closure *) $clo)).env;
-  ((void (*)(struct thread_info *, int_or_ptr64, int_or_ptr64)) $f)
-    ($tinfo, $envi, $arg);
+  ((void (*)(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64)) 
+    $f)
+    ($tinfo, $envi, halt_clo, $arg);
   return *((*$tinfo).args + 1LL);
 }
 

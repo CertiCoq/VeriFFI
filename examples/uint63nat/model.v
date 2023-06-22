@@ -12,8 +12,6 @@ Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (desc_gen S).
 
-Print S_desc.
-
 Require Import VeriFFI.examples.uint63nat.prog.
 
 Module FM <: UInt63.

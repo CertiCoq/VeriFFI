@@ -28,4 +28,4 @@ CertiCoq Compile -cps prog
     C.add => "uint63_add"
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" [ Z ].
+CertiCoq Generate Glue -file "glue" -cps [ Z ].

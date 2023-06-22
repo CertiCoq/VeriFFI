@@ -1717,10 +1717,12 @@ Definition f_call := {|
           (tptr (Tfunction
                   (Tcons (tptr (Tstruct _thread_info noattr))
                     (Tcons (talignas 3%N (tptr tvoid))
-                      (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
+                      (Tcons (talignas 3%N (tptr tvoid))
+                        (Tcons (talignas 3%N (tptr tvoid)) Tnil)))) tvoid
                   cc_default)))
         ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
          (Etempvar __envi (tptr tulong)) ::
+         (Evar _halt_clo (tarray (talignas 3%N (tptr tvoid)) 2)) ::
          (Etempvar __arg (talignas 3%N (tptr tvoid))) :: nil))
       (Ssequence
         (Sset _t'1

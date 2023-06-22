@@ -39,5 +39,5 @@ c:
 	# $(CCOMPILER) -g -o prog -Wno-everything -fomit-frame-pointer main.c gc.c prog.prog.c glue.prog.prog.c prims.c
 
 clightgen:
-	clightgen -canonical-idents -normalize prims.c
-	clightgen -canonical-idents -normalize glue.c
+	# clightgen -canonical-idents -normalize prims.c
+	clightgen -canonical-idents -normalize -fstruct-passing glue.c

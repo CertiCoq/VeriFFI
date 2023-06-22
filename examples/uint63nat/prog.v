@@ -28,8 +28,6 @@ CertiCoq Compile -cps prog
     C.add => "uint63_add"
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" [ nat ].
-<<<<<<< HEAD
 
 Inductive exp : Type :=
 | etrue
@@ -41,7 +39,4 @@ Inductive exp : Type :=
 Inductive T : Type :=
 | mkT : nat -> bool -> unit -> T.
 
-CertiCoq Generate Glue -file "glue" [ nat, bool, exp, T ].
-*)
-=======
->>>>>>> parent of b290b36 (Remove unnecessary files)
+CertiCoq Generate Glue -cps -file "glue" [ nat, bool, exp, T ].
