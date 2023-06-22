@@ -90,15 +90,15 @@ Module UInt63_Proofs.
   Axiom add_properties : model_spec add_ep.
   Axiom mul_properties : model_spec mul_ep.
 
+(* commented out to reduce chatter in build
   Eval cbn in model_spec from_nat_ep.
   Eval cbn in model_spec to_nat_ep.
   Eval cbn in model_spec add_ep.
-
+*)
   Lemma add_assoc : forall (x y z : nat),
     C.to_nat (C.add (C.from_nat x) (C.add (C.from_nat y) (C.from_nat z))) =
     C.to_nat (C.add (C.add (C.from_nat x) (C.from_nat y)) (C.from_nat z)).
   Proof.
-    Check pair.
     intros x y z.
     props from_nat_properties.
     props to_nat_properties.

@@ -36,15 +36,15 @@ Class Rep (A : Type) : Type :=
       graph_has_gen g to -> is_in_graph g n p -> is_in_graph (add_node g to lb e) n p
   }.
 
-Instance InGraph_Prop : InGraph Prop :=
+#[export] Instance InGraph_Prop : InGraph Prop :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-Instance InGraph_Set : InGraph Set :=
+#[export] Instance InGraph_Set : InGraph Set :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-Instance InGraph_Type : InGraph Type :=
+#[export] Instance InGraph_Type : InGraph Type :=
   {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-Instance Rep_Prop : Rep Prop. Proof. apply (@Build_Rep _ InGraph_Prop). Admitted.
-Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
-Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
+#[export] Instance Rep_Prop : Rep Prop. Proof. apply (@Build_Rep _ InGraph_Prop). Admitted.
+#[export] Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
+#[export] Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
 
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
 

@@ -17,7 +17,7 @@ Require Import VeriFFI.library.meta.
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
 Import ListNotations.
 
-Unset Strict Unquote Universe Mode.
+(*Unset Strict Unquote Universe Mode.*) (* There is no flag or option with this name *)
 
 Ltac destruct_conj H :=
   match type of H with

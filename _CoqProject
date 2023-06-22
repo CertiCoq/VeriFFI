@@ -1,5 +1,8 @@
--Q . VeriFFI
-# -Q /home/opam/CertiGraph CertiGraph
+-Q library VeriFFI.library
+-Q generator VeriFFI.generator
+-Q verification VeriFFI.verification
+-Q examples VeriFFI.examples
+-Q CertiGraph CertiGraph
 
 library/base_representation.v
 verification/graph_add.v
