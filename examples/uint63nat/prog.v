@@ -1,3 +1,5 @@
+From CertiCoq.Plugin Require Import CertiCoq.
+
 Require Import ZArith.
 Require Import Psatz.
 
@@ -19,9 +21,6 @@ Module C : UInt63.
 End C.
 
 Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
-
-(*
-From CertiCoq.Plugin Require Import CertiCoq.
 CertiCoq Compile -cps prog
   Extract Constants [
     C.from_nat => "uint63_from_nat",
@@ -30,6 +29,7 @@ CertiCoq Compile -cps prog
   ]
   Include [ "prims.h" ].
 CertiCoq Generate Glue -file "glue" [ nat ].
+<<<<<<< HEAD
 
 Inductive exp : Type :=
 | etrue
@@ -43,3 +43,5 @@ Inductive T : Type :=
 
 CertiCoq Generate Glue -file "glue" [ nat, bool, exp, T ].
 *)
+=======
+>>>>>>> parent of b290b36 (Remove unnecessary files)

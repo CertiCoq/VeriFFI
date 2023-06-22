@@ -4,6 +4,16 @@ Require Import ZArith.
 Require Import Psatz.
 
 Require Import VeriFFI.verification.specs_general.
+
+Require Import VeriFFI.generator.all.
+
+Obligation Tactic := gen.
+MetaCoq Run (gen_for nat).
+MetaCoq Run (gen_for bool).
+
+MetaCoq Run (desc_gen S).
+
+Require Import VST.floyd.proofauto.
 Require Import VeriFFI.examples.uint63nat.glue.
 Require Import VeriFFI.library.meta.
 
