@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "gc_stack.h"
+#include "glue.h"
 
-extern value body(struct thread_info *);
+extern struct thread_info *make_tinfo();
+extern int_or_ptr64 body(struct thread_info *);
 
 _Bool is_ptr(unsigned int s) {
   return (_Bool) Is_block(s);
