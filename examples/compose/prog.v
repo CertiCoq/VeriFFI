@@ -11,11 +11,9 @@ End C.
 Definition prog := C.compose S S 2.
 
 From CertiCoq.Plugin Require Import CertiCoq.
-CertiCoq Compile -cps prog
+CertiCoq Compile prog
   Extract Constants [
     C.compose => "compose" with tinfo
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -cps -file "glue" [ nat ].
-(*
-*)
+CertiCoq Generate Glue -file "glue" [ nat ].

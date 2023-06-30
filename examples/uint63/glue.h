@@ -1,23 +1,32 @@
 typedef void * __attribute((aligned(4))) int_or_ptr32;
 typedef void * __attribute((aligned(8))) int_or_ptr64;
-struct thread_info;
 struct closure;
+struct stack_frame;
+struct thread_info;
 struct Coq_Numbers_BinNums_xI_args;
 struct Coq_Numbers_BinNums_xO_args;
 struct Coq_Numbers_BinNums_xH_args;
 struct Coq_Numbers_BinNums_Z0_args;
 struct Coq_Numbers_BinNums_Zpos_args;
 struct Coq_Numbers_BinNums_Zneg_args;
+struct closure {
+  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
+  int_or_ptr64 env;
+};
+
+struct stack_frame {
+  int_or_ptr64 *next;
+  int_or_ptr64 *root;
+  struct stack_frame *prev;
+};
+
 struct thread_info {
   int_or_ptr64 *alloc;
   int_or_ptr64 *limit;
   struct heap *heap;
   int_or_ptr64 args[1024];
-};
-
-struct closure {
-  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
-  int_or_ptr64 env;
+  struct stack_frame *fp;
+  unsigned long long nalloc;
 };
 
 struct Coq_Numbers_BinNums_xI_args {
@@ -64,7 +73,6 @@ extern struct Coq_Numbers_BinNums_Zpos_args *get_Coq_Numbers_BinNums_Zpos_args(i
 extern struct Coq_Numbers_BinNums_Zneg_args *get_Coq_Numbers_BinNums_Zneg_args(int_or_ptr64);
 extern void print_Coq_Numbers_BinNums_positive(int_or_ptr64);
 extern void print_Coq_Numbers_BinNums_Z(int_or_ptr64);
-extern void halt(struct thread_info *, int_or_ptr64, int_or_ptr64);
 extern int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
 extern signed char const lparen_lit[2];
 
@@ -83,7 +91,5 @@ extern signed char const prop_lit[7];
 extern signed char const names_of_Coq_Numbers_BinNums_positive[3][3];
 
 extern signed char const names_of_Coq_Numbers_BinNums_Z[3][5];
-
-extern int_or_ptr64 const halt_clo[2];
 
 

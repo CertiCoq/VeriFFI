@@ -25,7 +25,6 @@ Definition __args : ident := $"$args".
 Definition __argv : ident := $"$argv".
 Definition __b : ident := $"$b".
 Definition __clo : ident := $"$clo".
-Definition __env : ident := $"$env".
 Definition __envi : ident := $"$envi".
 Definition __f : ident := $"$f".
 Definition __t : ident := $"$t".
@@ -107,6 +106,7 @@ Definition _args : ident := $"args".
 Definition _call : ident := $"call".
 Definition _closure : ident := $"closure".
 Definition _env : ident := $"env".
+Definition _fp : ident := $"fp".
 Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
 Definition _get_Coq_Numbers_BinNums_Z0_args : ident := $"get_Coq_Numbers_BinNums_Z0_args".
@@ -119,8 +119,6 @@ Definition _get_Coq_Numbers_BinNums_xI_args : ident := $"get_Coq_Numbers_BinNums
 Definition _get_Coq_Numbers_BinNums_xO_args : ident := $"get_Coq_Numbers_BinNums_xO_args".
 Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
 Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
-Definition _halt : ident := $"halt".
-Definition _halt_clo : ident := $"halt_clo".
 Definition _heap : ident := $"heap".
 Definition _is_ptr : ident := $"is_ptr".
 Definition _limit : ident := $"limit".
@@ -132,14 +130,19 @@ Definition _make_Coq_Numbers_BinNums_Z_Zpos : ident := $"make_Coq_Numbers_BinNum
 Definition _make_Coq_Numbers_BinNums_positive_xH : ident := $"make_Coq_Numbers_BinNums_positive_xH".
 Definition _make_Coq_Numbers_BinNums_positive_xI : ident := $"make_Coq_Numbers_BinNums_positive_xI".
 Definition _make_Coq_Numbers_BinNums_positive_xO : ident := $"make_Coq_Numbers_BinNums_positive_xO".
+Definition _nalloc : ident := $"nalloc".
 Definition _names_of_Coq_Numbers_BinNums_Z : ident := $"names_of_Coq_Numbers_BinNums_Z".
 Definition _names_of_Coq_Numbers_BinNums_positive : ident := $"names_of_Coq_Numbers_BinNums_positive".
+Definition _next : ident := $"next".
+Definition _prev : ident := $"prev".
 Definition _print_Coq_Numbers_BinNums_Z : ident := $"print_Coq_Numbers_BinNums_Z".
 Definition _print_Coq_Numbers_BinNums_positive : ident := $"print_Coq_Numbers_BinNums_positive".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
+Definition _root : ident := $"root".
 Definition _rparen_lit : ident := $"rparen_lit".
 Definition _space_lit : ident := $"space_lit".
+Definition _stack_frame : ident := $"stack_frame".
 Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
@@ -1042,37 +1045,6 @@ Definition f_print_Coq_Numbers_BinNums_Z := {|
           LSnil)))))
 |}.
 
-Definition f_halt := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__env, (talignas 3%N (tptr tvoid))) ::
-                (__arg, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd
-        (Efield
-          (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-            (Tstruct _thread_info noattr)) _args
-          (tarray (talignas 3%N (tptr tvoid)) 1024))
-        (Econst_long (Int64.repr 1) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Etempvar __arg (talignas 3%N (tptr tvoid))))
-  (Sreturn None))
-|}.
-
-Definition v_halt_clo := {|
-  gvar_info := (tarray (talignas 3%N (tptr tvoid)) 2);
-  gvar_init := (Init_addrof _halt (Ptrofs.repr 0) ::
-                Init_int64 (Int64.repr 1) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
 Definition f_call := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
@@ -1107,12 +1079,10 @@ Definition f_call := {|
           (tptr (Tfunction
                   (Tcons (tptr (Tstruct _thread_info noattr))
                     (Tcons (talignas 3%N (tptr tvoid))
-                      (Tcons (talignas 3%N (tptr tvoid))
-                        (Tcons (talignas 3%N (tptr tvoid)) Tnil)))) tvoid
+                      (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
                   cc_default)))
         ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
          (Etempvar __envi (tptr tulong)) ::
-         (Evar _halt_clo (tarray (talignas 3%N (tptr tvoid)) 2)) ::
          (Etempvar __arg (talignas 3%N (tptr tvoid))) :: nil))
       (Ssequence
         (Sset _t'1
@@ -1130,13 +1100,7 @@ Definition f_call := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _thread_info Struct
-   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _heap (tptr (Tstruct _heap noattr)) ::
-    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) :: nil)
-   noattr ::
- Composite _closure Struct
+(Composite _closure Struct
    (Member_plain _func
       (tptr (Tfunction
               (Tcons (Tstruct _thread_info noattr)
@@ -1144,6 +1108,19 @@ Definition composites : list composite_definition :=
                   (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
               cc_default)) ::
     Member_plain _env (talignas 3%N (tptr tvoid)) :: nil)
+   noattr ::
+ Composite _stack_frame Struct
+   (Member_plain _next (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _root (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)
+   noattr ::
+ Composite _thread_info Struct
+   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _heap (tptr (Tstruct _heap noattr)) ::
+    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
+    Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
+    Member_plain _nalloc tulong :: nil)
    noattr ::
  Composite _Coq_Numbers_BinNums_xI_args Struct
    (Member_plain _Coq_Numbers_BinNums_xI_arg_0 (talignas 3%N (tptr tvoid)) ::
@@ -1467,11 +1444,10 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_get_Coq_Numbers_BinNums_Zneg_args, Gfun(Internal f_get_Coq_Numbers_BinNums_Zneg_args)) ::
  (_print_Coq_Numbers_BinNums_positive, Gfun(Internal f_print_Coq_Numbers_BinNums_positive)) ::
  (_print_Coq_Numbers_BinNums_Z, Gfun(Internal f_print_Coq_Numbers_BinNums_Z)) ::
- (_halt, Gfun(Internal f_halt)) :: (_halt_clo, Gvar v_halt_clo) ::
  (_call, Gfun(Internal f_call)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _halt_clo :: _halt :: _print_Coq_Numbers_BinNums_Z ::
+(_call :: _print_Coq_Numbers_BinNums_Z ::
  _print_Coq_Numbers_BinNums_positive :: _get_Coq_Numbers_BinNums_Zneg_args ::
  _get_Coq_Numbers_BinNums_Zpos_args :: _get_Coq_Numbers_BinNums_Z0_args ::
  _get_Coq_Numbers_BinNums_xH_args :: _get_Coq_Numbers_BinNums_xO_args ::

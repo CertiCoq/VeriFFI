@@ -21,7 +21,7 @@ Module C : UInt63.
 End C.
 
 Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
-CertiCoq Compile -cps prog
+CertiCoq Compile prog
   Extract Constants [
     C.from_nat => "uint63_from_nat",
     C.to_nat => "uint63_to_nat" with tinfo,
@@ -39,4 +39,4 @@ Inductive exp : Type :=
 Inductive T : Type :=
 | mkT : nat -> bool -> unit -> T.
 
-CertiCoq Generate Glue -cps -file "glue" [ nat, bool, exp, T ].
+CertiCoq Generate Glue -file "glue" [ nat, bool, exp, T ].
