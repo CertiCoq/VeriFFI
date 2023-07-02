@@ -229,7 +229,9 @@ Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
 { ctor_name : string;
   ctor_reific : reific Rep;
-  ctor_real : reconstruct ctor_reific
+  ctor_real : reconstruct ctor_reific;
+  ctor_tag : nat;
+  ctor_arity : nat
 }.
 
 Class Desc {T : Type} (ctor_val : T) :=
