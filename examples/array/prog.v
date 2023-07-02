@@ -26,11 +26,17 @@ Module C <: Array.
   Axiom runM : forall {A} (len : nat) (init : elt), M A -> A.
 End C.
 
+Notation "e1 ;; e2" :=
+  (@C.bind _ _ e1 (fun _ => e2)) (at level 61, right associativity).
+Notation "x <- c1 ;; c2" :=
+  (@C.bind _ _ c1 (fun x => c2)) (at level 61, c1 at next level, right associativity).
+
 Require Import List.
 Import ListNotations.
 
 Definition incr (i : nat) : C.M unit :=
-  C.bind (C.get i) (fun v => C.set i (1 + v)).
+  v <- C.get i ;;
+  C.set i (1 + v).
 
 Definition index : Type := nat.
 
@@ -44,23 +50,24 @@ Definition mode (xs : list elt) : option elt :=
   let fix create (xs : list elt) : C.M unit :=
     match xs with
     | [] => C.pure tt
-    | y :: ys => C.bind (incr y) (fun _ => create ys)
-    end
-  in
+    | y :: ys => incr y ;; create ys
+    end in
   let fix find (len : index) (highest : option (index * elt)) : C.M (option (index * elt)) :=
     match len with
-    | S len' => C.bind (C.get len')
-                       (fun e => find len' (higher_elt highest (len', e)))
+    | S len' => e <- C.get len' ;;
+                find len' (higher_elt highest (len', e))
     | O => C.pure highest
-    end
-  in
+    end in
   let final (len : index) : C.M (option index) :=
-    C.bind (find len None)
-           (fun o => match o with Some (i, o) => C.pure (Some i) | None => C.pure None end) in
-  let len := S (List.list_max xs) in
-  C.runM len O (C.bind (create xs) (fun _ => final len)).
+    o <- find len None ;;
+    match o with
+    | Some (i, o) => C.pure (Some i)
+    | None => C.pure None
+    end in
+  let len := match xs with [] => O | _ => S (List.list_max xs) end in
+  C.runM len O (create xs ;; final len).
 
-Definition prog := mode [].
+Definition prog := mode [1;2;3;2;3;2;4].
 
 CertiCoq Compile prog
   Extract Constants [
