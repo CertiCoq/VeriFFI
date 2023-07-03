@@ -133,6 +133,7 @@ Definition alloc_make_spec_general
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reific c) xs in
               @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g' (ctor_real c xs) p' ;
+              headroom t_info' = headroom t_info - Z.of_nat n;
               gc_graph_iso g roots g' roots)
         RETURN  (rep_type_val g' p')
         SEP (full_gc g' t_info' roots outlier ti sh).

@@ -299,7 +299,7 @@ intros.
 
   (** General properties *)
 (*  assert (graph_has_gen_0 := graph_has_gen_O g). *)
-  assert (~ In (inr (new_copied_v g 0)) roots)
+  assert (~ In (inr (new_copied_v g 0)) roots) 
     as ROOTS_IN
     by (eapply new_node_roots; eapply gc_cond).
   fold heap.
@@ -429,7 +429,7 @@ Proof.
   reflexivity.
 Qed.
 
-
+(*
 Lemma alloc_finish: forall
  (g : graph)
  (pl : list rep_type)
@@ -550,7 +550,7 @@ rewrite Zlength_Zrepeat by lia.
   - split3.
     + (** In this new graph, we have (S n) at position v with our predicate. *)
 
-Abort. (*
+Abort. *) (*
       exists p. 
       change (is_in_graph (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) x p /\
        graph_cRep (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) (repNode v) (boxed 0 1) [p]).
@@ -744,6 +744,7 @@ Lemma body_alloc_make_Coq_Init_Datatypes_nat_S :
 Proof.
   alloc_start.
   change_compspecs CompSpecs.
+
   repeat forward; [solve [entailer!] | ].
 
 
@@ -842,13 +843,13 @@ H_uneq : match p with
   assert (add_node_compatible g (new_copied_v g 0) es).
     { unfold add_node_compatible. intros * Hx; subst es; destruct p; inversion Hx.
     - injection H0. intros. subst. simpl.  intuition eauto.
-      + eauto using has_v.
+      + eauto using has_v. admit.
       + rep_lia.
       + repeat constructor. eauto.
        - inversion H0. }
 
     entailer!;     clear H7 H8 H6 H5 H4 H3 H2.
-  - split3.
+  -  admit. (* split3.
     + (** In this new graph, we have (S n) at position v with our predicate. *)
       exists p. 
       change (is_in_graph (add_node g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es) x p /\
@@ -877,12 +878,12 @@ H_uneq : match p with
           rewrite nat_seq_In_iff in H2. intros A. injection A. rep_lia. }
         assert (WORD_SIZE = 8) as -> by reflexivity; rep_lia.
       * rewrite add_node_gen_start; eauto; try apply graph_has_gen_O.
-        unfold gen_start. if_tac. eauto. contradiction H2; apply graph_has_gen_O.
+        unfold gen_start. if_tac. eauto. contradiction H2; apply graph_has_gen_O. *)
   - unfold full_gc.
     Intros. entailer!;     clear H7 H8 H6 H5 H4 H2.
     { eapply add_node_gc_condition_prop; try apply graph_has_gen_O; eauto. destruct p; 
        intuition (eauto using has_v).
-        clear - H. exfalso.
+        clear - H. Print is_in_graph. exfalso.
        induction x; simpl. contradiction. destruct H as[p [? ? ] ]. contradiction.
      }
 
