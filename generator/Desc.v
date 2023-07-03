@@ -156,6 +156,8 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
         let d := {| ctor_name := cstr_name ctor
                   ; ctor_reific := reific
                   ; ctor_real := actual
+                  ; ctor_tag := ctor_tag
+                  ; ctor_arity := cstr_arity ctor
                   |} in
 
         tmMsg "Before def" ;;

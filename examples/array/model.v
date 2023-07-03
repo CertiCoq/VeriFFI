@@ -18,20 +18,21 @@ Variable Rep_elt : Rep elt.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
 Module FM <: Array.
-  Definition state := list elt.
+  Definition state : Type :=
+    (list elt * elt). (* the internal list and the default element *)
   Definition M (A : Type) : Type := state -> A * state.
   Definition pure {A} (a : A) : M A := fun s => (a, s).
   Definition bind {A B} (m : M A) (f : A -> M B) : M B :=
     fun s => f (fst (m s)) (snd (m s)).
     (* fun s => let '(a, s') := m s in f a s'. *)
   Definition runM {A} (len : nat) (init: elt) (m : M A) : A :=
-    fst (m (repeat init len)).
+    fst (m (repeat init len, init)).
 
   Definition set (index : nat) (x : elt) : M unit :=
-    fun s => (tt, canon.replace_nth index s x).
+    fun '(l, init) => (tt, (VST.veric.invariants.replace_nth index l x, init)).
 
-  Definition get (index : nat) : M (option elt) :=
-    fun s => (nth_error s index, s).
+  Definition get (index : nat) : M elt :=
+    fun '(l, init) => (nth index l init, (l, init)).
 End FM.
 
 Module Array_Proofs.
@@ -95,7 +96,7 @@ Module Array_Proofs.
   Definition get_ep : extern_properties :=
     {| type_desc :=
         @TRANSPARENT nat Rep_nat (Some (fun n =>
-          @OPAQUE (C.M (option elt)) (FM.M (option elt)) (Isomorphism_M _) None))
+          @OPAQUE (C.M elt) (FM.M elt) (Isomorphism_M _) None))
      ; prim_fn := @C.get
      ; model_fn := @FM.get
      ; c_name := "array_get"
@@ -114,7 +115,7 @@ Module Array_Proofs.
     forall (n len : nat) (bound : n < len) (init : elt) (to_set : elt),
       (C.runM len init (C.bind (C.set n to_set) (fun _ => C.get n)))
         =
-      (C.runM len init (C.pure (Some to_set))).
+      (C.runM len init (C.pure to_set)).
   Proof.
     intros n len bound init to_set.
 
@@ -131,8 +132,8 @@ Module Array_Proofs.
     props get_properties.
     prim_rewrites.
 
-    eapply canon.nth_error_replace_nth.
-    apply nth_error_repeat.
+    eapply invariants.nth_replace_nth.
+    rewrite repeat_length.
     auto.
   Qed.
 

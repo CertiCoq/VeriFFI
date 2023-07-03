@@ -488,14 +488,14 @@ Definition make_prop
   let make_prop_base : TemplateMonad named_term :=
     (* Create the [cRep] for this constructor and evaluate *)
     crep <- tmEval all
-              (match ctor_arity ctor with
+              (match gen_utils.ctor_arity ctor with
                 | O => enum (N.of_nat (ctor_ordinal ctor))
                 | a => boxed (N.of_nat (ctor_ordinal ctor)) (N.of_nat a)
                 end) ;;
     t_crep <- tmQuote crep ;;
     (* Create list of [[p0;p1;p2;...]] to pass to [graph_cRep] *)
     let l := t_conses (map (fun n => tVar ("p" ++ string_of_nat n))
-                           (seq 0 (ctor_arity ctor))) in
+                           (seq 0 (gen_utils.ctor_arity ctor))) in
     ret (tApp <% graph_cRep %>
               [ t_g ; t_p ; t_crep ; l])
   in

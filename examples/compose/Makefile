@@ -5,12 +5,12 @@ default: copy coq c
 .PHONY: default clean coq c
 
 copy:
-	cp /home/opam/certicoq/theories/Runtime/gc.c ./
-	cp /home/opam/certicoq/theories/Runtime/gc.h ./
-	cp /home/opam/certicoq/theories/Runtime/gc_stack.c ./
-	cp /home/opam/certicoq/theories/Runtime/gc_stack.h ./
-	cp /home/opam/certicoq/theories/Runtime/values.h ./
-	cp /home/opam/certicoq/theories/Runtime/config.h ./
+	cp ../../certicoq/theories/Runtime/gc.c ./
+	cp ../../certicoq/theories/Runtime/gc.h ./
+	cp ../../certicoq/theories/Runtime/gc_stack.c ./
+	cp ../../certicoq/theories/Runtime/gc_stack.h ./
+	cp ../../certicoq/theories/Runtime/values.h ./
+	cp ../../certicoq/theories/Runtime/config.h ./
 
 clean:
 	rm -f ./gc.c

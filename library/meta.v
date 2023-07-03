@@ -46,6 +46,21 @@ Class Rep (A : Type) : Type :=
 #[export] Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
 #[export] Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
 
+(* This is an unprovable but useful predicate about
+   a Coq value being in the heap graph.
+   Unprovable because it requires proving False.
+   Useful because traversing HOAS-style annotations
+   (like reific and annotated) requires a Rep instance.
+   However, make sure you don't declare these as global instances.
+   They should only be available in cases like this. *)
+Theorem InGraph_any : forall {A : Type}, InGraph A.
+Proof. intros. constructor. intros. exact False. Defined.
+Theorem Rep_any : forall {A : Type}, Rep A.
+Proof.
+  intros. refine (@Build_Rep A (@InGraph_any A) _ _);
+  intros; simpl in *; contradiction.
+Defined.
+
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
 
 (* The type to represent a constructor in an inductive data type.
@@ -229,7 +244,9 @@ Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
 { ctor_name : string;
   ctor_reific : reific Rep;
-  ctor_real : reconstruct ctor_reific
+  ctor_real : reconstruct ctor_reific;
+  ctor_tag : nat;
+  ctor_arity : nat
 }.
 
 Class Desc {T : Type} (ctor_val : T) :=
