@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
   body(tinfo);
 
   print_Coq_Init_Datatypes_option(tinfo->args[1], print_Coq_Init_Datatypes_nat);
+
   puts("");
   return 0;
 }

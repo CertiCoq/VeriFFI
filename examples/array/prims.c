@@ -5,29 +5,53 @@
 
 #define SHELTER0(tinfo, exp) (exp)
 #define SHELTER1(tinfo, exp, a) ({ \
-  value root[1] = { a }; \
-  struct stack_frame frame = { root + 1, root, tinfo->fp }; \
-  tinfo->fp = &frame; value __TEMP__ = exp; \
-  a = root[0]; \
-  tinfo->fp = frame.prev; __TEMP__; })
+  value __ROOT__[1] = { a }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 1, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
 #define SHELTER2(tinfo, exp, a, b) ({ \
-  value root[2] = { a, b }; \
-  struct stack_frame frame = { root + 2, root, tinfo->fp }; \
-  tinfo->fp = &frame; value __TEMP__ = exp; \
-  a = root[0]; b = root[1]; \
-  tinfo->fp = frame.prev; __TEMP__; })
+  value __ROOT__[2] = { a, b }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 2, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
 #define SHELTER3(tinfo, exp, a, b, c) ({ \
-  value root[3] = { a, b, c }; \
-  struct stack_frame frame = { root + 3, root, tinfo->fp }; \
-  tinfo->fp = &frame; value __TEMP__ = exp; \
-  a = root[0]; b = root[1]; c = root[2]; \
-  tinfo->fp = frame.prev; __TEMP__; })
+  value __ROOT__[3] = { a, b, c }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 3, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
 #define SHELTER4(tinfo, exp, a, b, c, d) ({ \
-  value root[4] = { a, b, c, d }; \
-  struct stack_frame frame = { root + 4, root, tinfo->fp }; \
-  tinfo->fp = &frame; value __TEMP__ = exp; \
-  a = root[0]; b = root[1]; c = root[2]; d = root[3]; \
-  tinfo->fp = frame.prev; __TEMP__; })
+  value __ROOT__[4] = { a, b, c, d }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 4, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define SHELTER5(tinfo, exp, a, b, c, d, e) ({ \
+  value __ROOT__[5] = { a, b, c, d, e }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 5, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define SHELTER6(tinfo, exp, a, b, c, d, e, f) ({ \
+  value __ROOT__[6] = { a, b, c, d, e, f }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 6, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define SHELTER7(tinfo, exp, a, b, c, d, e, f, g) ({ \
+  value __ROOT__[7] = { a, b, c, d, e, f, g }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 7, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; g = __ROOT__[6]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define SHELTER8(tinfo, exp, a, b, c, d, e, f, g, h) ({ \
+  value __ROOT__[8] = { a, b, c, d, e, f, g, h }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 8, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; g = __ROOT__[6]; h = __ROOT__[7]; \
+  tinfo->fp = __FRAME__.prev; __TEMP__; })
 
 typedef enum { O, S } nat;
 unsigned long long nat_to_ull(value n) {
@@ -55,8 +79,8 @@ value runM(struct thread_info *tinfo, unsigned long long size, value init, value
     case BIND:
       arg0 = get_prog_C_bindI_args(action)->prog_C_bindI_arg_2;
       arg1 = get_prog_C_bindI_args(action)->prog_C_bindI_arg_3;
-      temp = SHELTER1(tinfo, runM(tinfo, size, init, arr, arg0), arg1);
-      temp = SHELTER2(tinfo, call(tinfo, arg1, temp), arr, init);
+      temp = SHELTER4(tinfo, runM(tinfo, size, init, arr, arg0), arg0, arg1, init, arr);
+      temp = SHELTER4(tinfo, call(tinfo, arg1, temp), arg1, init, arr, temp);
       return runM(tinfo, size, init, arr, temp);
     case SET:
       arg0 = get_prog_C_setI_args(action)->prog_C_setI_arg_0;
@@ -67,7 +91,6 @@ value runM(struct thread_info *tinfo, unsigned long long size, value init, value
         tinfo->nalloc = 1;
         SHELTER2(tinfo, garbage_collect(tinfo), arr, arg1);
       }
-      // printf("Setting %i from size %i\n", i, size);
       if (i < size) {
         certicoq_modify(tinfo, (value *) arr + i, arg1);
       }
@@ -75,7 +98,6 @@ value runM(struct thread_info *tinfo, unsigned long long size, value init, value
     case GET:
       arg0 = get_prog_C_getI_args(action)->prog_C_getI_arg_0;
       i = nat_to_ull(arg0);
-      // printf("Getting %i from size %i\n", i, size);
       if (i < size) {
         return *((value *) arr + i);
       } else {
@@ -93,7 +115,7 @@ value array_runM(struct thread_info *tinfo, value a, value len, value init, valu
     SHELTER2(tinfo, garbage_collect(tinfo), init, action);
   }
   value *arr = tinfo->alloc;
-  arr[0LLU] = size << 9;
+  arr[0LLU] = size << 10;
   arr = arr + 1LLU;
   for (size_t i = 0; i < size; i++) {
     arr[i] = init;
