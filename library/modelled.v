@@ -36,10 +36,6 @@ Inductive annotated : Type :=
                     annotated
 | TRANSPARENT : forall (A : Type) `{Rep A}, (option (A -> annotated)) -> annotated.
 
-(* Theorem InGraph_any : forall {A : Type}, InGraph A. *)
-(* Proof. intros. constructor. intros. exact False. Defined. *)
-Theorem Rep_any : forall {A : Type}, Rep A. Admitted.
-
 Fixpoint to_prim_fn_type (r : annotated) : Type :=
   match r with
   | TYPEPARAM f => forall (A : Type), to_prim_fn_type (f A Rep_any)

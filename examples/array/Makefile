@@ -36,7 +36,6 @@ coq:
 
 c:
 	$(CCOMPILER) -w -g -o prog main.c gc_stack.c prog.prog.c glue.c prims.c
-	# $(CCOMPILER) -g -o prog -Wno-everything -fomit-frame-pointer main.c gc.c prog.prog.c glue.prog.prog.c prims.c
 
 clightgen:
 	# clightgen -canonical-idents -normalize prims.c

@@ -69,6 +69,22 @@ Definition mode (xs : list elt) : option elt :=
 
 Definition prog := mode [1;2;3;2;3;2;4].
 
+(* 
+Definition fib (len : nat) : nat :=
+  let fix aux (n : nat) (fuel : nat) {struct fuel} : C.M unit :=
+    match fuel with
+    | O => C.pure tt
+    | S fuel' =>
+      x <- C.get (pred (pred n)) ;;
+      y <- C.get (pred n) ;;
+      C.set n (x + y) ;;
+      aux (S n) fuel'
+    end
+  in C.runM (S len) 1 (aux 2 (pred len) ;; C.get len).
+
+Definition prog := fib 7.
+*)
+
 CertiCoq Compile prog
   Extract Constants [
     C.runM => "array_runM" with tinfo
