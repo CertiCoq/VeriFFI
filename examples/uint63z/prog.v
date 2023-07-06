@@ -21,11 +21,11 @@ End C.
 
 Definition prog := C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)).
 
-CertiCoq Compile -cps prog
+CertiCoq Compile prog
   Extract Constants [
     C.from_Z => "uint63_from_Z",
     C.to_Z => "uint63_to_Z" with tinfo,
     C.add => "uint63_add"
   ]
   Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" -cps [ Z ].
+CertiCoq Generate Glue -file "glue" [ Z ].

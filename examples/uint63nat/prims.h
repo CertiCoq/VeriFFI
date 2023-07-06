@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include "glue.h"
-
 value uint63_from_nat(value z);
 
 value uint63_to_nat(struct thread_info *tinfo, value t);

@@ -21,14 +21,10 @@ verification/specs_library.v
 verification/specs_general.v
 # verification/proofs_library_general.v
 
-# prim/lift.v
+examples/uint63z/prog.v
+examples/uint63z/glue.v
+examples/uint63z/model.v
 
-# examples/verif/glue.v
-# examples/int/uint63.v
-
-examples/uint63/prog.v
-examples/uint63/glue.v
-examples/uint63/model.v
 examples/uint63nat/prog.v
 examples/uint63nat/glue.v
 examples/uint63nat/prims.v
@@ -37,3 +33,7 @@ examples/uint63nat/Verif_prog_general.v
 examples/compose/prog.v
 examples/compose/model.v
 examples/compose/glue.v
+
+examples/array/prog.v
+examples/array/model.v
+examples/array/glue.v

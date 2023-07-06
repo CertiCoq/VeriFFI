@@ -11,7 +11,7 @@ Require Import VeriFFI.generator.all.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for Z).
 
-Require Import VeriFFI.examples.uint63.prog.
+Require Import VeriFFI.examples.uint63z.prog.
 
 Module FM <: UInt63.
   Definition t := {z : Z | 0 <= z < 2^63}%Z.

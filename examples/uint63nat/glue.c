@@ -1,7 +1,8 @@
 typedef void * __attribute((aligned(4))) int_or_ptr32;
 typedef void * __attribute((aligned(8))) int_or_ptr64;
-struct thread_info;
 struct closure;
+struct stack_frame;
+struct thread_info;
 struct Coq_Init_Datatypes_O_args;
 struct Coq_Init_Datatypes_S_args;
 struct Coq_Init_Datatypes_true_args;
@@ -13,16 +14,24 @@ struct prog_eor_args;
 struct prog_eif_args;
 struct Coq_Init_Datatypes_tt_args;
 struct prog_mkT_args;
+struct closure {
+  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
+  int_or_ptr64 env;
+};
+
+struct stack_frame {
+  int_or_ptr64 *next;
+  int_or_ptr64 *root;
+  struct stack_frame *prev;
+};
+
 struct thread_info {
   int_or_ptr64 *alloc;
   int_or_ptr64 *limit;
   struct heap *heap;
   int_or_ptr64 args[1024];
-};
-
-struct closure {
-  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
-  int_or_ptr64 env;
+  struct stack_frame *fp;
+  unsigned long long nalloc;
 };
 
 struct Coq_Init_Datatypes_O_args {
@@ -108,7 +117,6 @@ void print_Coq_Init_Datatypes_bool(int_or_ptr64);
 void print_prog_exp(int_or_ptr64);
 void print_Coq_Init_Datatypes_unit(int_or_ptr64);
 void print_prog_T(int_or_ptr64);
-void halt(struct thread_info *, int_or_ptr64, int_or_ptr64);
 int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
 signed char const lparen_lit[2] = { 40, 0, };
 
@@ -499,23 +507,14 @@ void print_prog_T(int_or_ptr64 $v)
   }
 }
 
-void halt(struct thread_info *$tinfo, int_or_ptr64 $env, int_or_ptr64 $arg)
-{
-  *((*$tinfo).args + 1LL) = $arg;
-  return;
-}
-
-int_or_ptr64 const halt_clo[2] = { &halt, 1LL, };
-
 int_or_ptr64 call(struct thread_info *$tinfo, int_or_ptr64 $clo, int_or_ptr64 $arg)
 {
   register unsigned long long *$f;
   register unsigned long long *$envi;
   $f = (*((struct closure *) $clo)).func;
   $envi = (*((struct closure *) $clo)).env;
-  ((void (*)(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64)) 
-    $f)
-    ($tinfo, $envi, halt_clo, $arg);
+  ((void (*)(struct thread_info *, int_or_ptr64, int_or_ptr64)) $f)
+    ($tinfo, $envi, $arg);
   return *((*$tinfo).args + 1LL);
 }
 

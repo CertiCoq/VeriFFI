@@ -1,4 +1,4 @@
-Require Import VeriFFI.examples.uint63.prog.
+Require Import VeriFFI.examples.uint63z.prog.
 
 Require Import ZArith.
 Require Import Psatz.
@@ -23,7 +23,7 @@ MetaCoq Run (desc_gen xI).
 
 
 Require Import VST.floyd.proofauto.
-Require Import VeriFFI.examples.uint63.glue.
+Require Import VeriFFI.examples.uint63z.glue.
 Require Import VeriFFI.library.meta.
 
 Definition alloc_make_Coq_Numbers_BinNums_positive_xI_spec : ident * funspec :=

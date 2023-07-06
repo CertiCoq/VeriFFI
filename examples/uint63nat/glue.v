@@ -27,7 +27,6 @@ Definition __args : ident := $"$args".
 Definition __argv : ident := $"$argv".
 Definition __b : ident := $"$b".
 Definition __clo : ident := $"$clo".
-Definition __env : ident := $"$env".
 Definition __envi : ident := $"$envi".
 Definition __f : ident := $"$f".
 Definition __t : ident := $"$t".
@@ -105,6 +104,7 @@ Definition _args : ident := $"args".
 Definition _call : ident := $"call".
 Definition _closure : ident := $"closure".
 Definition _env : ident := $"env".
+Definition _fp : ident := $"fp".
 Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
 Definition _get_Coq_Init_Datatypes_O_args : ident := $"get_Coq_Init_Datatypes_O_args".
@@ -125,8 +125,6 @@ Definition _get_prog_etrue_args : ident := $"get_prog_etrue_args".
 Definition _get_prog_exp_tag : ident := $"get_prog_exp_tag".
 Definition _get_prog_mkT_args : ident := $"get_prog_mkT_args".
 Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
-Definition _halt : ident := $"halt".
-Definition _halt_clo : ident := $"halt_clo".
 Definition _heap : ident := $"heap".
 Definition _is_ptr : ident := $"is_ptr".
 Definition _limit : ident := $"limit".
@@ -143,11 +141,14 @@ Definition _make_prog_exp_efalse : ident := $"make_prog_exp_efalse".
 Definition _make_prog_exp_eif : ident := $"make_prog_exp_eif".
 Definition _make_prog_exp_eor : ident := $"make_prog_exp_eor".
 Definition _make_prog_exp_etrue : ident := $"make_prog_exp_etrue".
+Definition _nalloc : ident := $"nalloc".
 Definition _names_of_Coq_Init_Datatypes_bool : ident := $"names_of_Coq_Init_Datatypes_bool".
 Definition _names_of_Coq_Init_Datatypes_nat : ident := $"names_of_Coq_Init_Datatypes_nat".
 Definition _names_of_Coq_Init_Datatypes_unit : ident := $"names_of_Coq_Init_Datatypes_unit".
 Definition _names_of_prog_T : ident := $"names_of_prog_T".
 Definition _names_of_prog_exp : ident := $"names_of_prog_exp".
+Definition _next : ident := $"next".
+Definition _prev : ident := $"prev".
 Definition _print_Coq_Init_Datatypes_bool : ident := $"print_Coq_Init_Datatypes_bool".
 Definition _print_Coq_Init_Datatypes_nat : ident := $"print_Coq_Init_Datatypes_nat".
 Definition _print_Coq_Init_Datatypes_unit : ident := $"print_Coq_Init_Datatypes_unit".
@@ -169,8 +170,10 @@ Definition _prog_mkT_arg_1 : ident := $"prog_mkT_arg_1".
 Definition _prog_mkT_arg_2 : ident := $"prog_mkT_arg_2".
 Definition _prog_mkT_args : ident := $"prog_mkT_args".
 Definition _prop_lit : ident := $"prop_lit".
+Definition _root : ident := $"root".
 Definition _rparen_lit : ident := $"rparen_lit".
 Definition _space_lit : ident := $"space_lit".
+Definition _stack_frame : ident := $"stack_frame".
 Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
@@ -1651,37 +1654,6 @@ Definition f_print_prog_T := {|
       LSnil)))
 |}.
 
-Definition f_halt := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__env, (talignas 3%N (tptr tvoid))) ::
-                (__arg, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd
-        (Efield
-          (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-            (Tstruct _thread_info noattr)) _args
-          (tarray (talignas 3%N (tptr tvoid)) 1024))
-        (Econst_long (Int64.repr 1) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Etempvar __arg (talignas 3%N (tptr tvoid))))
-  (Sreturn None))
-|}.
-
-Definition v_halt_clo := {|
-  gvar_info := (tarray (talignas 3%N (tptr tvoid)) 2);
-  gvar_init := (Init_addrof _halt (Ptrofs.repr 0) ::
-                Init_int64 (Int64.repr 1) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
 Definition f_call := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
@@ -1716,12 +1688,10 @@ Definition f_call := {|
           (tptr (Tfunction
                   (Tcons (tptr (Tstruct _thread_info noattr))
                     (Tcons (talignas 3%N (tptr tvoid))
-                      (Tcons (talignas 3%N (tptr tvoid))
-                        (Tcons (talignas 3%N (tptr tvoid)) Tnil)))) tvoid
+                      (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
                   cc_default)))
         ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
          (Etempvar __envi (tptr tulong)) ::
-         (Evar _halt_clo (tarray (talignas 3%N (tptr tvoid)) 2)) ::
          (Etempvar __arg (talignas 3%N (tptr tvoid))) :: nil))
       (Ssequence
         (Sset _t'1
@@ -1739,13 +1709,7 @@ Definition f_call := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _thread_info Struct
-   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _heap (tptr (Tstruct _heap noattr)) ::
-    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) :: nil)
-   noattr ::
- Composite _closure Struct
+(Composite _closure Struct
    (Member_plain _func
       (tptr (Tfunction
               (Tcons (Tstruct _thread_info noattr)
@@ -1753,6 +1717,19 @@ Definition composites : list composite_definition :=
                   (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
               cc_default)) ::
     Member_plain _env (talignas 3%N (tptr tvoid)) :: nil)
+   noattr ::
+ Composite _stack_frame Struct
+   (Member_plain _next (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _root (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)
+   noattr ::
+ Composite _thread_info Struct
+   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _heap (tptr (Tstruct _heap noattr)) ::
+    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
+    Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
+    Member_plain _nalloc tulong :: nil)
    noattr :: Composite _Coq_Init_Datatypes_O_args Struct nil noattr ::
  Composite _Coq_Init_Datatypes_S_args Struct
    (Member_plain _Coq_Init_Datatypes_S_arg_0 (talignas 3%N (tptr tvoid)) ::
@@ -2093,19 +2070,18 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_print_prog_exp, Gfun(Internal f_print_prog_exp)) ::
  (_print_Coq_Init_Datatypes_unit, Gfun(Internal f_print_Coq_Init_Datatypes_unit)) ::
  (_print_prog_T, Gfun(Internal f_print_prog_T)) ::
- (_halt, Gfun(Internal f_halt)) :: (_halt_clo, Gvar v_halt_clo) ::
  (_call, Gfun(Internal f_call)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _halt_clo :: _halt :: _print_prog_T ::
- _print_Coq_Init_Datatypes_unit :: _print_prog_exp ::
- _print_Coq_Init_Datatypes_bool :: _print_Coq_Init_Datatypes_nat ::
- _get_prog_mkT_args :: _get_Coq_Init_Datatypes_tt_args ::
- _get_prog_eif_args :: _get_prog_eor_args :: _get_prog_eand_args ::
- _get_prog_efalse_args :: _get_prog_etrue_args ::
- _get_Coq_Init_Datatypes_false_args :: _get_Coq_Init_Datatypes_true_args ::
- _get_Coq_Init_Datatypes_S_args :: _get_Coq_Init_Datatypes_O_args ::
- _get_prog_T_tag :: _get_Coq_Init_Datatypes_unit_tag :: _get_prog_exp_tag ::
+(_call :: _print_prog_T :: _print_Coq_Init_Datatypes_unit ::
+ _print_prog_exp :: _print_Coq_Init_Datatypes_bool ::
+ _print_Coq_Init_Datatypes_nat :: _get_prog_mkT_args ::
+ _get_Coq_Init_Datatypes_tt_args :: _get_prog_eif_args ::
+ _get_prog_eor_args :: _get_prog_eand_args :: _get_prog_efalse_args ::
+ _get_prog_etrue_args :: _get_Coq_Init_Datatypes_false_args ::
+ _get_Coq_Init_Datatypes_true_args :: _get_Coq_Init_Datatypes_S_args ::
+ _get_Coq_Init_Datatypes_O_args :: _get_prog_T_tag ::
+ _get_Coq_Init_Datatypes_unit_tag :: _get_prog_exp_tag ::
  _get_Coq_Init_Datatypes_bool_tag :: _get_Coq_Init_Datatypes_nat_tag ::
  _alloc_make_prog_T_mkT :: _make_prog_T_mkT ::
  _make_Coq_Init_Datatypes_unit_tt :: _alloc_make_prog_exp_eif ::
