@@ -3,12 +3,6 @@ typedef void * __attribute((aligned(8))) int_or_ptr64;
 struct closure;
 struct stack_frame;
 struct thread_info;
-struct Coq_Numbers_BinNums_xI_args;
-struct Coq_Numbers_BinNums_xO_args;
-struct Coq_Numbers_BinNums_xH_args;
-struct Coq_Numbers_BinNums_Z0_args;
-struct Coq_Numbers_BinNums_Zpos_args;
-struct Coq_Numbers_BinNums_Zneg_args;
 struct closure {
   void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
   int_or_ptr64 env;
@@ -29,30 +23,9 @@ struct thread_info {
   unsigned long long nalloc;
 };
 
-struct Coq_Numbers_BinNums_xI_args {
-  int_or_ptr64 Coq_Numbers_BinNums_xI_arg_0;
-};
-
-struct Coq_Numbers_BinNums_xO_args {
-  int_or_ptr64 Coq_Numbers_BinNums_xO_arg_0;
-};
-
-struct Coq_Numbers_BinNums_xH_args {
-};
-
-struct Coq_Numbers_BinNums_Z0_args {
-};
-
-struct Coq_Numbers_BinNums_Zpos_args {
-  int_or_ptr64 Coq_Numbers_BinNums_Zpos_arg_0;
-};
-
-struct Coq_Numbers_BinNums_Zneg_args {
-  int_or_ptr64 Coq_Numbers_BinNums_Zneg_arg_0;
-};
-
 extern unsigned int get_unboxed_ordinal(int_or_ptr64);
 extern unsigned int get_boxed_ordinal(int_or_ptr64);
+extern int_or_ptr64 *get_args(int_or_ptr64);
 extern int_or_ptr64 make_Coq_Numbers_BinNums_positive_xI(int_or_ptr64, int_or_ptr64 *);
 extern int_or_ptr64 alloc_make_Coq_Numbers_BinNums_positive_xI(struct thread_info *, int_or_ptr64);
 extern int_or_ptr64 make_Coq_Numbers_BinNums_positive_xO(int_or_ptr64, int_or_ptr64 *);
@@ -65,12 +38,6 @@ extern int_or_ptr64 make_Coq_Numbers_BinNums_Z_Zneg(int_or_ptr64, int_or_ptr64 *
 extern int_or_ptr64 alloc_make_Coq_Numbers_BinNums_Z_Zneg(struct thread_info *, int_or_ptr64);
 extern unsigned int get_Coq_Numbers_BinNums_positive_tag(int_or_ptr64);
 extern unsigned int get_Coq_Numbers_BinNums_Z_tag(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_xI_args *get_Coq_Numbers_BinNums_xI_args(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_xO_args *get_Coq_Numbers_BinNums_xO_args(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_xH_args *get_Coq_Numbers_BinNums_xH_args(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_Z0_args *get_Coq_Numbers_BinNums_Z0_args(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_Zpos_args *get_Coq_Numbers_BinNums_Zpos_args(int_or_ptr64);
-extern struct Coq_Numbers_BinNums_Zneg_args *get_Coq_Numbers_BinNums_Zneg_args(int_or_ptr64);
 extern void print_Coq_Numbers_BinNums_positive(int_or_ptr64);
 extern void print_Coq_Numbers_BinNums_Z(int_or_ptr64);
 extern int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);

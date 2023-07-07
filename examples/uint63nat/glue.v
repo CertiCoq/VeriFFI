@@ -33,12 +33,6 @@ Definition __t : ident := $"$t".
 Definition __tag : ident := $"$tag".
 Definition __tinfo : ident := $"$tinfo".
 Definition __v : ident := $"$v".
-Definition _Coq_Init_Datatypes_O_args : ident := $"Coq_Init_Datatypes_O_args".
-Definition _Coq_Init_Datatypes_S_arg_0 : ident := $"Coq_Init_Datatypes_S_arg_0".
-Definition _Coq_Init_Datatypes_S_args : ident := $"Coq_Init_Datatypes_S_args".
-Definition _Coq_Init_Datatypes_false_args : ident := $"Coq_Init_Datatypes_false_args".
-Definition _Coq_Init_Datatypes_true_args : ident := $"Coq_Init_Datatypes_true_args".
-Definition _Coq_Init_Datatypes_tt_args : ident := $"Coq_Init_Datatypes_tt_args".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -108,23 +102,13 @@ Definition _env : ident := $"env".
 Definition _fp : ident := $"fp".
 Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
-Definition _get_Coq_Init_Datatypes_O_args : ident := $"get_Coq_Init_Datatypes_O_args".
-Definition _get_Coq_Init_Datatypes_S_args : ident := $"get_Coq_Init_Datatypes_S_args".
 Definition _get_Coq_Init_Datatypes_bool_tag : ident := $"get_Coq_Init_Datatypes_bool_tag".
-Definition _get_Coq_Init_Datatypes_false_args : ident := $"get_Coq_Init_Datatypes_false_args".
 Definition _get_Coq_Init_Datatypes_nat_tag : ident := $"get_Coq_Init_Datatypes_nat_tag".
-Definition _get_Coq_Init_Datatypes_true_args : ident := $"get_Coq_Init_Datatypes_true_args".
-Definition _get_Coq_Init_Datatypes_tt_args : ident := $"get_Coq_Init_Datatypes_tt_args".
 Definition _get_Coq_Init_Datatypes_unit_tag : ident := $"get_Coq_Init_Datatypes_unit_tag".
+Definition _get_args : ident := $"get_args".
 Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
 Definition _get_prog_T_tag : ident := $"get_prog_T_tag".
-Definition _get_prog_eand_args : ident := $"get_prog_eand_args".
-Definition _get_prog_efalse_args : ident := $"get_prog_efalse_args".
-Definition _get_prog_eif_args : ident := $"get_prog_eif_args".
-Definition _get_prog_eor_args : ident := $"get_prog_eor_args".
-Definition _get_prog_etrue_args : ident := $"get_prog_etrue_args".
 Definition _get_prog_exp_tag : ident := $"get_prog_exp_tag".
-Definition _get_prog_mkT_args : ident := $"get_prog_mkT_args".
 Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
 Definition _heap : ident := $"heap".
 Definition _is_ptr : ident := $"is_ptr".
@@ -156,20 +140,6 @@ Definition _print_Coq_Init_Datatypes_unit : ident := $"print_Coq_Init_Datatypes_
 Definition _print_prog_T : ident := $"print_prog_T".
 Definition _print_prog_exp : ident := $"print_prog_exp".
 Definition _printf : ident := $"printf".
-Definition _prog_eand_arg_0 : ident := $"prog_eand_arg_0".
-Definition _prog_eand_args : ident := $"prog_eand_args".
-Definition _prog_efalse_args : ident := $"prog_efalse_args".
-Definition _prog_eif_arg_0 : ident := $"prog_eif_arg_0".
-Definition _prog_eif_arg_1 : ident := $"prog_eif_arg_1".
-Definition _prog_eif_arg_2 : ident := $"prog_eif_arg_2".
-Definition _prog_eif_args : ident := $"prog_eif_args".
-Definition _prog_eor_arg_0 : ident := $"prog_eor_arg_0".
-Definition _prog_eor_args : ident := $"prog_eor_args".
-Definition _prog_etrue_args : ident := $"prog_etrue_args".
-Definition _prog_mkT_arg_0 : ident := $"prog_mkT_arg_0".
-Definition _prog_mkT_arg_1 : ident := $"prog_mkT_arg_1".
-Definition _prog_mkT_arg_2 : ident := $"prog_mkT_arg_2".
-Definition _prog_mkT_args : ident := $"prog_mkT_args".
 Definition _prop_lit : ident := $"prop_lit".
 Definition _root : ident := $"root".
 Definition _rparen_lit : ident := $"rparen_lit".
@@ -275,6 +245,17 @@ Definition f_get_boxed_ordinal := {|
       tulong))
   (Sreturn (Some (Ebinop Oand (Etempvar _t'1 tulong)
                    (Econst_long (Int64.repr 255) tlong) tulong))))
+|}.
+
+Definition f_get_args := {|
+  fn_return := (tptr (talignas 3%N (tptr tvoid)));
+  fn_callconv := cc_default;
+  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
+                 (tptr (talignas 3%N (tptr tvoid))))))
 |}.
 
 Definition v_names_of_Coq_Init_Datatypes_nat := {|
@@ -1009,135 +990,14 @@ Definition f_get_prog_T_tag := {|
   (Sreturn (Some (Etempvar __t tuint))))
 |}.
 
-Definition f_get_Coq_Init_Datatypes_O_args := {|
-  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_O_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Init_Datatypes_O_args noattr)))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_S_args := {|
-  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_true_args := {|
-  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_true_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Init_Datatypes_true_args noattr)))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_false_args := {|
-  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_false_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Init_Datatypes_false_args noattr)))))
-|}.
-
-Definition f_get_prog_etrue_args := {|
-  fn_return := (tptr (Tstruct _prog_etrue_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _prog_etrue_args noattr)))))
-|}.
-
-Definition f_get_prog_efalse_args := {|
-  fn_return := (tptr (Tstruct _prog_efalse_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _prog_efalse_args noattr)))))
-|}.
-
-Definition f_get_prog_eand_args := {|
-  fn_return := (tptr (Tstruct _prog_eand_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _prog_eand_args noattr)))))
-|}.
-
-Definition f_get_prog_eor_args := {|
-  fn_return := (tptr (Tstruct _prog_eor_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _prog_eor_args noattr)))))
-|}.
-
-Definition f_get_prog_eif_args := {|
-  fn_return := (tptr (Tstruct _prog_eif_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _prog_eif_args noattr)))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_tt_args := {|
-  fn_return := (tptr (Tstruct _Coq_Init_Datatypes_tt_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 0) tint)
-                 (tptr (Tstruct _Coq_Init_Datatypes_tt_args noattr)))))
-|}.
-
-Definition f_get_prog_mkT_args := {|
-  fn_return := (tptr (Tstruct _prog_mkT_args noattr));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (Tstruct _prog_mkT_args noattr)))))
-|}.
-
 Definition f_print_Coq_Init_Datatypes_nat := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))) ::
-               (_t'1, tuint) :: (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
+               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -1164,15 +1024,12 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
         (Ssequence
           (Ssequence
             (Scall (Some _t'2)
-              (Evar _get_Coq_Init_Datatypes_S_args (Tfunction
-                                                     (Tcons
-                                                       (talignas 3%N (tptr tvoid))
-                                                       Tnil)
-                                                     (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))
-                                                     cc_default))
+              (Evar _get_args (Tfunction
+                                (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+                                (tptr (talignas 3%N (tptr tvoid)))
+                                cc_default))
               ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-            (Sset __args
-              (Etempvar _t'2 (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)))))
+            (Sset __args (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
           (Ssequence
             (Scall None
               (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1249,10 +1106,10 @@ Definition f_print_prog_exp := {|
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'4, (tptr (Tstruct _prog_eif_args noattr))) ::
-               (_t'3, (tptr (Tstruct _prog_eor_args noattr))) ::
-               (_t'2, (tptr (Tstruct _prog_eand_args noattr))) ::
-               (_t'1, tuint) :: (_t'9, (talignas 3%N (tptr tvoid))) ::
+               (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'3, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
+               (_t'9, (talignas 3%N (tptr tvoid))) ::
                (_t'8, (talignas 3%N (tptr tvoid))) ::
                (_t'7, (talignas 3%N (tptr tvoid))) ::
                (_t'6, (talignas 3%N (tptr tvoid))) ::
@@ -1293,15 +1150,13 @@ Definition f_print_prog_exp := {|
           (Ssequence
             (Ssequence
               (Scall (Some _t'2)
-                (Evar _get_prog_eand_args (Tfunction
-                                            (Tcons
-                                              (talignas 3%N (tptr tvoid))
-                                              Tnil)
-                                            (tptr (Tstruct _prog_eand_args noattr))
-                                            cc_default))
+                (Evar _get_args (Tfunction
+                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+                                  (tptr (talignas 3%N (tptr tvoid)))
+                                  cc_default))
                 ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
               (Sset __args
-                (Etempvar _t'2 (tptr (Tstruct _prog_eand_args noattr)))))
+                (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
             (Ssequence
               (Scall None
                 (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1347,15 +1202,13 @@ Definition f_print_prog_exp := {|
             (Ssequence
               (Ssequence
                 (Scall (Some _t'3)
-                  (Evar _get_prog_eor_args (Tfunction
-                                             (Tcons
-                                               (talignas 3%N (tptr tvoid))
-                                               Tnil)
-                                             (tptr (Tstruct _prog_eor_args noattr))
-                                             cc_default))
+                  (Evar _get_args (Tfunction
+                                    (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+                                    (tptr (talignas 3%N (tptr tvoid)))
+                                    cc_default))
                   ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
                 (Sset __args
-                  (Etempvar _t'3 (tptr (Tstruct _prog_eor_args noattr)))))
+                  (Etempvar _t'3 (tptr (talignas 3%N (tptr tvoid))))))
               (Ssequence
                 (Scall None
                   (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1402,15 +1255,14 @@ Definition f_print_prog_exp := {|
               (Ssequence
                 (Ssequence
                   (Scall (Some _t'4)
-                    (Evar _get_prog_eif_args (Tfunction
-                                               (Tcons
-                                                 (talignas 3%N (tptr tvoid))
-                                                 Tnil)
-                                               (tptr (Tstruct _prog_eif_args noattr))
-                                               cc_default))
+                    (Evar _get_args (Tfunction
+                                      (Tcons (talignas 3%N (tptr tvoid))
+                                        Tnil)
+                                      (tptr (talignas 3%N (tptr tvoid)))
+                                      cc_default))
                     ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
                   (Sset __args
-                    (Etempvar _t'4 (tptr (Tstruct _prog_eif_args noattr)))))
+                    (Etempvar _t'4 (tptr (talignas 3%N (tptr tvoid))))))
                 (Ssequence
                   (Scall None
                     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1537,8 +1389,8 @@ Definition f_print_prog_T := {|
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (Tstruct _prog_mkT_args noattr))) ::
-               (_t'1, tuint) :: (_t'5, (talignas 3%N (tptr tvoid))) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
+               (_t'5, (talignas 3%N (tptr tvoid))) ::
                (_t'4, (talignas 3%N (tptr tvoid))) ::
                (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
@@ -1555,14 +1407,11 @@ Definition f_print_prog_T := {|
       (Ssequence
         (Ssequence
           (Scall (Some _t'2)
-            (Evar _get_prog_mkT_args (Tfunction
-                                       (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil)
-                                       (tptr (Tstruct _prog_mkT_args noattr))
-                                       cc_default))
+            (Evar _get_args (Tfunction
+                              (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+                              (tptr (talignas 3%N (tptr tvoid))) cc_default))
             ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-          (Sset __args
-            (Etempvar _t'2 (tptr (Tstruct _prog_mkT_args noattr)))))
+          (Sset __args (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
         (Ssequence
           (Scall None
             (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1731,29 +1580,6 @@ Definition composites : list composite_definition :=
     Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
     Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
     Member_plain _nalloc tulong :: nil)
-   noattr :: Composite _Coq_Init_Datatypes_O_args Struct nil noattr ::
- Composite _Coq_Init_Datatypes_S_args Struct
-   (Member_plain _Coq_Init_Datatypes_S_arg_0 (talignas 3%N (tptr tvoid)) ::
-    nil)
-   noattr :: Composite _Coq_Init_Datatypes_true_args Struct nil noattr ::
- Composite _Coq_Init_Datatypes_false_args Struct nil noattr ::
- Composite _prog_etrue_args Struct nil noattr ::
- Composite _prog_efalse_args Struct nil noattr ::
- Composite _prog_eand_args Struct
-   (Member_plain _prog_eand_arg_0 (talignas 3%N (tptr tvoid)) :: nil)
-   noattr ::
- Composite _prog_eor_args Struct
-   (Member_plain _prog_eor_arg_0 (talignas 3%N (tptr tvoid)) :: nil)
-   noattr ::
- Composite _prog_eif_args Struct
-   (Member_plain _prog_eif_arg_0 (talignas 3%N (tptr tvoid)) ::
-    Member_plain _prog_eif_arg_1 (talignas 3%N (tptr tvoid)) ::
-    Member_plain _prog_eif_arg_2 (talignas 3%N (tptr tvoid)) :: nil)
-   noattr :: Composite _Coq_Init_Datatypes_tt_args Struct nil noattr ::
- Composite _prog_mkT_args Struct
-   (Member_plain _prog_mkT_arg_0 (talignas 3%N (tptr tvoid)) ::
-    Member_plain _prog_mkT_arg_1 (talignas 3%N (tptr tvoid)) ::
-    Member_plain _prog_mkT_arg_2 (talignas 3%N (tptr tvoid)) :: nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
@@ -2038,6 +1864,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_unk_lit, Gvar v_unk_lit) :: (_prop_lit, Gvar v_prop_lit) ::
  (_get_unboxed_ordinal, Gfun(Internal f_get_unboxed_ordinal)) ::
  (_get_boxed_ordinal, Gfun(Internal f_get_boxed_ordinal)) ::
+ (_get_args, Gfun(Internal f_get_args)) ::
  (_names_of_Coq_Init_Datatypes_nat, Gvar v_names_of_Coq_Init_Datatypes_nat) ::
  (_names_of_Coq_Init_Datatypes_bool, Gvar v_names_of_Coq_Init_Datatypes_bool) ::
  (_names_of_prog_exp, Gvar v_names_of_prog_exp) ::
@@ -2064,17 +1891,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_get_prog_exp_tag, Gfun(Internal f_get_prog_exp_tag)) ::
  (_get_Coq_Init_Datatypes_unit_tag, Gfun(Internal f_get_Coq_Init_Datatypes_unit_tag)) ::
  (_get_prog_T_tag, Gfun(Internal f_get_prog_T_tag)) ::
- (_get_Coq_Init_Datatypes_O_args, Gfun(Internal f_get_Coq_Init_Datatypes_O_args)) ::
- (_get_Coq_Init_Datatypes_S_args, Gfun(Internal f_get_Coq_Init_Datatypes_S_args)) ::
- (_get_Coq_Init_Datatypes_true_args, Gfun(Internal f_get_Coq_Init_Datatypes_true_args)) ::
- (_get_Coq_Init_Datatypes_false_args, Gfun(Internal f_get_Coq_Init_Datatypes_false_args)) ::
- (_get_prog_etrue_args, Gfun(Internal f_get_prog_etrue_args)) ::
- (_get_prog_efalse_args, Gfun(Internal f_get_prog_efalse_args)) ::
- (_get_prog_eand_args, Gfun(Internal f_get_prog_eand_args)) ::
- (_get_prog_eor_args, Gfun(Internal f_get_prog_eor_args)) ::
- (_get_prog_eif_args, Gfun(Internal f_get_prog_eif_args)) ::
- (_get_Coq_Init_Datatypes_tt_args, Gfun(Internal f_get_Coq_Init_Datatypes_tt_args)) ::
- (_get_prog_mkT_args, Gfun(Internal f_get_prog_mkT_args)) ::
  (_print_Coq_Init_Datatypes_nat, Gfun(Internal f_print_Coq_Init_Datatypes_nat)) ::
  (_print_Coq_Init_Datatypes_bool, Gfun(Internal f_print_Coq_Init_Datatypes_bool)) ::
  (_print_prog_exp, Gfun(Internal f_print_prog_exp)) ::
@@ -2085,12 +1901,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
 Definition public_idents : list ident :=
 (_call :: _print_prog_T :: _print_Coq_Init_Datatypes_unit ::
  _print_prog_exp :: _print_Coq_Init_Datatypes_bool ::
- _print_Coq_Init_Datatypes_nat :: _get_prog_mkT_args ::
- _get_Coq_Init_Datatypes_tt_args :: _get_prog_eif_args ::
- _get_prog_eor_args :: _get_prog_eand_args :: _get_prog_efalse_args ::
- _get_prog_etrue_args :: _get_Coq_Init_Datatypes_false_args ::
- _get_Coq_Init_Datatypes_true_args :: _get_Coq_Init_Datatypes_S_args ::
- _get_Coq_Init_Datatypes_O_args :: _get_prog_T_tag ::
+ _print_Coq_Init_Datatypes_nat :: _get_prog_T_tag ::
  _get_Coq_Init_Datatypes_unit_tag :: _get_prog_exp_tag ::
  _get_Coq_Init_Datatypes_bool_tag :: _get_Coq_Init_Datatypes_nat_tag ::
  _alloc_make_prog_T_mkT :: _make_prog_T_mkT ::
@@ -2103,26 +1914,27 @@ Definition public_idents : list ident :=
  _make_Coq_Init_Datatypes_nat_O :: _names_of_prog_T ::
  _names_of_Coq_Init_Datatypes_unit :: _names_of_prog_exp ::
  _names_of_Coq_Init_Datatypes_bool :: _names_of_Coq_Init_Datatypes_nat ::
- _get_boxed_ordinal :: _get_unboxed_ordinal :: _prop_lit :: _unk_lit ::
- _type_lit :: _fun_lit :: _space_lit :: _rparen_lit :: _lparen_lit ::
- _is_ptr :: _printf :: ___builtin_debug :: ___builtin_write32_reversed ::
- ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
+ _get_args :: _get_boxed_ordinal :: _get_unboxed_ordinal :: _prop_lit ::
+ _unk_lit :: _type_lit :: _fun_lit :: _space_lit :: _rparen_lit ::
+ _lparen_lit :: _is_ptr :: _printf :: ___builtin_debug ::
+ ___builtin_write32_reversed :: ___builtin_write16_reversed ::
+ ___builtin_read32_reversed :: ___builtin_read16_reversed ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___builtin_ais_annot :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
+ ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
+ ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
+ ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
+ ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
+ ___compcert_i64_dtos :: ___compcert_va_composite ::
  ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
  nil).
 

@@ -19,8 +19,6 @@ Module Info.
   Definition normalized := true.
 End Info.
 
-Definition _Coq_Init_Datatypes_S_arg_0 : ident := $"Coq_Init_Datatypes_S_arg_0".
-Definition _Coq_Init_Datatypes_S_args : ident := $"Coq_Init_Datatypes_S_args".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -81,8 +79,9 @@ Definition _alloc : ident := $"alloc".
 Definition _alloc_make_Coq_Init_Datatypes_nat_S : ident := $"alloc_make_Coq_Init_Datatypes_nat_S".
 Definition _args : ident := $"args".
 Definition _fp : ident := $"fp".
-Definition _get_Coq_Init_Datatypes_S_args : ident := $"get_Coq_Init_Datatypes_S_args".
+Definition _garbage_collect : ident := $"garbage_collect".
 Definition _get_Coq_Init_Datatypes_nat_tag : ident := $"get_Coq_Init_Datatypes_nat_tag".
+Definition _get_args : ident := $"get_args".
 Definition _heap : ident := $"heap".
 Definition _i : ident := $"i".
 Definition _limit : ident := $"limit".
@@ -106,18 +105,20 @@ Definition _x : ident := $"x".
 Definition _y : ident := $"y".
 Definition _t'1 : ident := 128%positive.
 Definition _t'2 : ident := 129%positive.
+Definition _t'3 : ident := 130%positive.
+Definition _t'4 : ident := 131%positive.
 
 Definition f_uint63_from_nat := {|
-  fn_return := tlong;
+  fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((_n, tlong) :: nil);
+  fn_params := ((_n, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((_temp, tlong) :: (_i, tulong) ::
-               (_t'2, (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))) ::
-               (_t'1, tuint) :: nil);
+  fn_temps := ((_temp, (talignas 3%N (tptr tvoid))) :: (_i, tulong) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
+               nil);
   fn_body :=
 (Ssequence
-  (Sset _temp (Etempvar _n tlong))
+  (Sset _temp (Etempvar _n (talignas 3%N (tptr tvoid))))
   (Ssequence
     (Sset _i (Ecast (Econst_int (Int.repr 0) tint) tulong))
     (Ssequence
@@ -130,7 +131,7 @@ Definition f_uint63_from_nat := {|
                                                         (talignas 3%N (tptr tvoid))
                                                         Tnil) tuint
                                                       cc_default))
-              ((Etempvar _temp tlong) :: nil))
+              ((Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
             (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tuint)
                            (Econst_int (Int.repr 1) tint) tint)
               Sskip
@@ -141,39 +142,44 @@ Definition f_uint63_from_nat := {|
                 (Econst_int (Int.repr 1) tint) tulong))
             (Ssequence
               (Scall (Some _t'2)
-                (Evar _get_Coq_Init_Datatypes_S_args (Tfunction
-                                                       (Tcons
-                                                         (talignas 3%N (tptr tvoid))
-                                                         Tnil)
-                                                       (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr))
-                                                       cc_default))
-                ((Etempvar _temp tlong) :: nil))
+                (Evar _get_args (Tfunction
+                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+                                  (tptr (talignas 3%N (tptr tvoid)))
+                                  cc_default))
+                ((Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
               (Sset _temp
-                (Efield
-                  (Ederef
-                    (Etempvar _t'2 (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)))
-                    (Tstruct _Coq_Init_Datatypes_S_args noattr))
-                  _Coq_Init_Datatypes_S_arg_0 (talignas 3%N (tptr tvoid)))))))
+                (Ederef
+                  (Ebinop Oadd
+                    (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))
+                    (Econst_int (Int.repr 0) tint)
+                    (tptr (talignas 3%N (tptr tvoid))))
+                  (talignas 3%N (tptr tvoid)))))))
         Sskip)
-      (Sreturn (Some (Ebinop Oadd
-                       (Ebinop Oshl (Etempvar _i tulong)
+      (Sreturn (Some (Ecast
+                       (Ebinop Oadd
+                         (Ebinop Oshl (Etempvar _i tulong)
+                           (Econst_int (Int.repr 1) tint) tulong)
                          (Econst_int (Int.repr 1) tint) tulong)
-                       (Econst_int (Int.repr 1) tint) tulong))))))
+                       (talignas 3%N (tptr tvoid))))))))
 |}.
 
 Definition f_uint63_to_nat := {|
-  fn_return := tlong;
+  fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
   fn_params := ((_tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (_t, tlong) :: nil);
+                (_t, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((_i, tlong) :: (_temp, tlong) ::
+  fn_temps := ((_i, tulong) :: (_temp, (talignas 3%N (tptr tvoid))) ::
                (_t'2, (talignas 3%N (tptr tvoid))) ::
-               (_t'1, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'1, (talignas 3%N (tptr tvoid))) ::
+               (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'3, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
   fn_body :=
 (Ssequence
   (Sset _i
-    (Ebinop Oshr (Etempvar _t tlong) (Econst_int (Int.repr 1) tint) tlong))
+    (Ecast
+      (Ebinop Oshr (Ecast (Etempvar _t (talignas 3%N (tptr tvoid))) tulong)
+        (Econst_int (Int.repr 1) tint) tulong) (talignas 3%N (tptr tvoid))))
   (Ssequence
     (Ssequence
       (Scall (Some _t'1)
@@ -183,61 +189,105 @@ Definition f_uint63_to_nat := {|
       (Sset _temp (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))
     (Ssequence
       (Swhile
-        (Etempvar _i tlong)
+        (Etempvar _i tulong)
         (Ssequence
           (Ssequence
-            (Scall (Some _t'2)
-              (Evar _alloc_make_Coq_Init_Datatypes_nat_S (Tfunction
-                                                           (Tcons
-                                                             (tptr (Tstruct _thread_info noattr))
+            (Sset _t'3
+              (Efield
+                (Ederef
+                  (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                  (Tstruct _thread_info noattr)) _limit
+                (tptr (talignas 3%N (tptr tvoid)))))
+            (Ssequence
+              (Sset _t'4
+                (Efield
+                  (Ederef
+                    (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                    (Tstruct _thread_info noattr)) _alloc
+                  (tptr (talignas 3%N (tptr tvoid)))))
+              (Sifthenelse (Eunop Onotbool
+                             (Ebinop Ole (Econst_int (Int.repr 2) tint)
+                               (Ebinop Osub
+                                 (Etempvar _t'3 (tptr (talignas 3%N (tptr tvoid))))
+                                 (Etempvar _t'4 (tptr (talignas 3%N (tptr tvoid))))
+                                 tlong) tint) tint)
+                (Ssequence
+                  (Sassign
+                    (Efield
+                      (Ederef
+                        (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                        (Tstruct _thread_info noattr)) _nalloc tulong)
+                    (Econst_int (Int.repr 2) tint))
+                  (Scall None
+                    (Evar _garbage_collect (Tfunction Tnil tint
+                                             {|cc_vararg:=None; cc_unproto:=true; cc_structret:=false|}))
+                    ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+                     nil)))
+                Sskip)))
+          (Ssequence
+            (Ssequence
+              (Scall (Some _t'2)
+                (Evar _alloc_make_Coq_Init_Datatypes_nat_S (Tfunction
                                                              (Tcons
-                                                               (talignas 3%N (tptr tvoid))
-                                                               Tnil))
-                                                           (talignas 3%N (tptr tvoid))
-                                                           cc_default))
-              ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
-               (Etempvar _temp tlong) :: nil))
-            (Sset _temp (Etempvar _t'2 (talignas 3%N (tptr tvoid)))))
-          (Sset _i
-            (Ebinop Osub (Etempvar _i tlong) (Econst_int (Int.repr 1) tint)
-              tlong))))
-      (Sreturn (Some (Etempvar _temp tlong))))))
+                                                               (tptr (Tstruct _thread_info noattr))
+                                                               (Tcons
+                                                                 (talignas 3%N (tptr tvoid))
+                                                                 Tnil))
+                                                             (talignas 3%N (tptr tvoid))
+                                                             cc_default))
+                ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+                 (Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
+              (Sset _temp (Etempvar _t'2 (talignas 3%N (tptr tvoid)))))
+            (Sset _i
+              (Ebinop Osub (Etempvar _i tulong)
+                (Econst_int (Int.repr 1) tint) tulong)))))
+      (Sreturn (Some (Etempvar _temp (talignas 3%N (tptr tvoid))))))))
 |}.
 
 Definition f_uint63_add := {|
-  fn_return := tlong;
+  fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((_x, tlong) :: (_y, tlong) :: nil);
+  fn_params := ((_x, (talignas 3%N (tptr tvoid))) ::
+                (_y, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
-(Sreturn (Some (Ebinop Oadd
-                 (Ebinop Oshl
-                   (Ebinop Oadd
-                     (Ebinop Oshr (Etempvar _x tlong)
-                       (Econst_int (Int.repr 1) tint) tlong)
-                     (Ebinop Oshr (Etempvar _y tlong)
-                       (Econst_int (Int.repr 1) tint) tlong) tlong)
-                   (Econst_int (Int.repr 1) tint) tlong)
-                 (Econst_int (Int.repr 1) tint) tlong)))
+(Sreturn (Some (Ecast
+                 (Ebinop Oadd
+                   (Ebinop Oshl
+                     (Ebinop Oadd
+                       (Ebinop Oshr
+                         (Ecast (Etempvar _x (talignas 3%N (tptr tvoid)))
+                           tulong) (Econst_int (Int.repr 1) tint) tulong)
+                       (Ebinop Oshr
+                         (Ecast (Etempvar _y (talignas 3%N (tptr tvoid)))
+                           tulong) (Econst_int (Int.repr 1) tint) tulong)
+                       tulong) (Econst_int (Int.repr 1) tint) tulong)
+                   (Econst_int (Int.repr 1) tint) tulong)
+                 (talignas 3%N (tptr tvoid)))))
 |}.
 
 Definition f_uint63_mul := {|
-  fn_return := tlong;
+  fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((_x, tlong) :: (_y, tlong) :: nil);
+  fn_params := ((_x, (talignas 3%N (tptr tvoid))) ::
+                (_y, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
-(Sreturn (Some (Ebinop Oadd
-                 (Ebinop Oshl
-                   (Ebinop Omul
-                     (Ebinop Oshr (Etempvar _x tlong)
-                       (Econst_int (Int.repr 1) tint) tlong)
-                     (Ebinop Oshr (Etempvar _y tlong)
-                       (Econst_int (Int.repr 1) tint) tlong) tlong)
-                   (Econst_int (Int.repr 1) tint) tlong)
-                 (Econst_int (Int.repr 1) tint) tlong)))
+(Sreturn (Some (Ecast
+                 (Ebinop Oadd
+                   (Ebinop Oshl
+                     (Ebinop Omul
+                       (Ebinop Oshr
+                         (Ecast (Etempvar _x (talignas 3%N (tptr tvoid)))
+                           tulong) (Econst_int (Int.repr 1) tint) tulong)
+                       (Ebinop Oshr
+                         (Ecast (Etempvar _y (talignas 3%N (tptr tvoid)))
+                           tulong) (Econst_int (Int.repr 1) tint) tulong)
+                       tulong) (Econst_int (Int.repr 1) tint) tulong)
+                   (Econst_int (Int.repr 1) tint) tulong)
+                 (talignas 3%N (tptr tvoid)))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -253,10 +303,6 @@ Definition composites : list composite_definition :=
     Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
     Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
     Member_plain _nalloc tulong :: nil)
-   noattr ::
- Composite _Coq_Init_Datatypes_S_args Struct
-   (Member_plain _Coq_Init_Datatypes_S_arg_0 (talignas 3%N (tptr tvoid)) ::
-    nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
@@ -527,6 +573,11 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tint Tnil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
+ (_get_args,
+   Gfun(External (EF_external "get_args"
+                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
+     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
+     (tptr (talignas 3%N (tptr tvoid))) cc_default)) ::
  (_make_Coq_Init_Datatypes_nat_O,
    Gfun(External (EF_external "make_Coq_Init_Datatypes_nat_O"
                    (mksignature nil AST.Tlong cc_default)) Tnil
@@ -542,21 +593,21 @@ Definition global_definitions : list (ident * globdef fundef type) :=
    Gfun(External (EF_external "get_Coq_Init_Datatypes_nat_tag"
                    (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
      (Tcons (talignas 3%N (tptr tvoid)) Tnil) tuint cc_default)) ::
- (_get_Coq_Init_Datatypes_S_args,
-   Gfun(External (EF_external "get_Coq_Init_Datatypes_S_args"
-                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
-     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-     (tptr (Tstruct _Coq_Init_Datatypes_S_args noattr)) cc_default)) ::
  (_uint63_from_nat, Gfun(Internal f_uint63_from_nat)) ::
+ (_garbage_collect,
+   Gfun(External (EF_external "garbage_collect"
+                   (mksignature nil AST.Tint
+                     {|cc_vararg:=None; cc_unproto:=true; cc_structret:=false|}))
+     Tnil tint {|cc_vararg:=None; cc_unproto:=true; cc_structret:=false|})) ::
  (_uint63_to_nat, Gfun(Internal f_uint63_to_nat)) ::
  (_uint63_add, Gfun(Internal f_uint63_add)) ::
  (_uint63_mul, Gfun(Internal f_uint63_mul)) :: nil).
 
 Definition public_idents : list ident :=
-(_uint63_mul :: _uint63_add :: _uint63_to_nat :: _uint63_from_nat ::
- _get_Coq_Init_Datatypes_S_args :: _get_Coq_Init_Datatypes_nat_tag ::
+(_uint63_mul :: _uint63_add :: _uint63_to_nat :: _garbage_collect ::
+ _uint63_from_nat :: _get_Coq_Init_Datatypes_nat_tag ::
  _alloc_make_Coq_Init_Datatypes_nat_S :: _make_Coq_Init_Datatypes_nat_O ::
- ___builtin_debug :: ___builtin_write32_reversed ::
+ _get_args :: ___builtin_debug :: ___builtin_write32_reversed ::
  ___builtin_write16_reversed :: ___builtin_read32_reversed ::
  ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
  ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
