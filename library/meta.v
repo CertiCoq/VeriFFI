@@ -242,14 +242,38 @@ Check <%% vec %%>.
 (* Require Import MetaCoq.Template.All. *)
 Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
-{ ctor_name : string;
-  ctor_reific : reific Rep;
-  ctor_real : reconstruct ctor_reific;
-  ctor_tag : nat;
-  ctor_arity : nat
-}.
+  { ctor_name : string
+  ; ctor_reific : reific Rep
+  ; ctor_real : reconstruct ctor_reific
+  ; ctor_tag : nat
+  ; ctor_arity : nat
+  }.
 
 Class Desc {T : Type} (ctor_val : T) :=
-  { desc : constructor_description }.
+  { desc : constructor_description
+  (* Think about an addition like the following: *)
+  (* ; proof : ctor_val = curry ctor_real *)
+  }.
+
+Require Import JMeq.
+
+(* pattern match class? *)
+Class Descs (A : Type) :=
+  { get_desc : forall (x : A),
+      { c : constructor_description &
+          { y : args (ctor_reific c) &
+              JMeq (ctor_real c y) x }  }
+  }.
+
+(*
+Definition Descs_nat : Descs nat.
+Proof.
+  constructor.
+  intros x.
+  case x.
+  exists (@desc _ O _). exists tt. auto.
+  exists (@desc _ S _). exists (n; tt). auto.
+Defined.
+*)
 
 Definition Reppyish := option ({A : Type & Rep A}).
