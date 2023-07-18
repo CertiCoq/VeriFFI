@@ -18,15 +18,13 @@ Require Import CertiGraph.CertiGC.GCGraph.
 
 Notation " ( x ; p ) " := (existT _ x p).
 
-(* From VeriFFI Require Export verification.example.glue. *)
-(* From VeriFFI Require Export verification.specs_library. *)
-
 (* The type class to describe how a Coq type is represented in the CertiCoq heap graph.
    We also have some lemmas about this representation as a part of the type class. *)
-Class InGraph (A : Type) :=
-  { is_in_graph : graph -> A -> rep_type -> Prop }.
-Class Rep (A : Type) : Type :=
-  { in_graph : InGraph A
+(* GraphPredicate is only for internal use, just to make automatic generation easier *)
+Class GraphPredicate (A : Type) :=
+  { graph_predicate : graph -> A -> rep_type -> Prop }.
+Class InGraph (A : Type) : Type :=
+  { is_in_graph : graph -> A -> rep_type -> Prop
   ; has_v :
       forall (g : graph) (n : A) (v : VType), is_in_graph g n (repNode v) -> graph_has_v g v
   ; is_monotone :
@@ -36,15 +34,21 @@ Class Rep (A : Type) : Type :=
       graph_has_gen g to -> is_in_graph g n p -> is_in_graph (add_node g to lb e) n p
   }.
 
-#[export] Instance InGraph_Prop : InGraph Prop :=
-  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-#[export] Instance InGraph_Set : InGraph Set :=
-  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-#[export] Instance InGraph_Type : InGraph Type :=
-  {| is_in_graph g x p := graph_cRep g p (enum 0) [] |}.
-#[export] Instance Rep_Prop : Rep Prop. Proof. apply (@Build_Rep _ InGraph_Prop). Admitted.
-#[export] Instance Rep_Set : Rep Set. Proof. apply (@Build_Rep _ InGraph_Set). Admitted.
-#[export] Instance Rep_Type : Rep Type. Proof. apply (@Build_Rep _ InGraph_Type). Admitted.
+#[export] Instance InGraph_Prop : InGraph Prop.
+Proof.
+  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  intros; simpl in *. intuition. induction p; intuition.
+Defined.
+#[export] Instance InGraph_Set : InGraph Set.
+Proof.
+  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  intros; simpl in *. intuition. induction p; intuition.
+Defined.
+#[export] Instance InGraph_Type : InGraph Type.
+Proof.
+  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  intros; simpl in *. intuition. induction p; intuition.
+Defined.
 
 (* This is an unprovable but useful predicate about
    a Coq value being in the heap graph.
@@ -54,10 +58,9 @@ Class Rep (A : Type) : Type :=
    However, make sure you don't declare these as global instances.
    They should only be available in cases like this. *)
 Theorem InGraph_any : forall {A : Type}, InGraph A.
-Proof. intros. constructor. intros. exact False. Defined.
-Theorem Rep_any : forall {A : Type}, Rep A.
 Proof.
-  intros. refine (@Build_Rep A (@InGraph_any A) _ _);
+  intros.
+  refine (@Build_InGraph A (fun g x p => False) _ _);
   intros; simpl in *; contradiction.
 Defined.
 
@@ -75,11 +78,9 @@ but the possibility for representation is needed later, e.g., A in [list A] *)
 (* Non-type parameters of a fixed type which isn't represented in memory, e.g., n in [n < m] *)
  | PARAM  : forall A : Type, (A -> reific cls) -> reific cls
 (* index, represented in memory, e.g. the index of a vector *)
- | INDEX  : forall (A : Type) `{cls A}, (A -> reific cls) ->reific cls
- (* non-dependent version of arguments, argument represented in memory, e.g. for X/list X of cons *)
- | ARG : forall (A : Type) `{cls A}, reific cls -> reific cls
+ | INDEX  : forall (A : Type) `{cls A}, (A -> reific cls) -> reific cls
  (* dependent argument, represented in memory, e.g. in positive_nat_list *)
- | DEPARG : forall (A : Type) `{cls A}, (A -> reific cls) -> reific cls
+ | ARG : forall (A : Type) `{cls A}, (A -> reific cls) -> reific cls
 (* the end type, e.g., list X for cons : forall X, X -> list X -> **list X** *)
  | RES  : forall (A : Type) `{cls A}, reific cls.
 
@@ -89,8 +90,7 @@ Fixpoint args {cls : Type -> Type} (c : reific cls) : Type :=
   | TYPEPARAM f => {A : Type & {H : cls A & args (f A H)}}
   | PARAM A f => {a : A & args (f a) }
   | INDEX A H f => {a : A & args (f a)}
-  | ARG A H c => (A * args c)%type
-  | DEPARG A H f => {a : A & args (f a)}
+  | ARG A H f => {a : A & args (f a)}
   | RES _ _ => unit
   end.
 
@@ -100,8 +100,7 @@ Fixpoint result {cls : Type -> Type} (c : reific cls) (xs : args c) : {A : Type 
   | TYPEPARAM f => fun P => let '(a; (h; rest)) := P in result (f a h) rest
   | PARAM A f => fun P => let '(a; rest) := P in result (f a) rest
   | INDEX A H f => fun P => let '(a; rest) := P in result (f a) rest
-  | ARG A H c => fun P => let '(a, rest) := P in result c rest
-  | DEPARG A H f => fun P => let '(a; rest) := P in result (f a) rest
+  | ARG A H f => fun P => let '(a; rest) := P in result (f a) rest
   | RES A H => fun _ => (A; H)
   end xs.
 
@@ -243,8 +242,8 @@ Check <%% vec %%>.
 Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
   { ctor_name : string
-  ; ctor_reific : reific Rep
-  ; ctor_real : reconstruct ctor_reific
+  ; ctor_reific : reific InGraph
+  ; ctor_reflect : reconstruct ctor_reific
   ; ctor_tag : nat
   ; ctor_arity : nat
   }.
@@ -258,11 +257,11 @@ Class Desc {T : Type} (ctor_val : T) :=
 Require Import JMeq.
 
 (* pattern match class? *)
-Class Descs (A : Type) :=
+Class Discrimination (A : Type) :=
   { get_desc : forall (x : A),
       { c : constructor_description &
           { y : args (ctor_reific c) &
-              JMeq (ctor_real c y) x }  }
+              JMeq (ctor_reflect c y) x }  }
   }.
 
 (*
@@ -275,5 +274,10 @@ Proof.
   exists (@desc _ S _). exists (n; tt). auto.
 Defined.
 *)
+
+Class Rep (A : Type) :=
+  { in_graph : InGraph A
+  ; disc : Discrimination A
+  }.
 
 Definition Reppyish := option ({A : Type & Rep A}).

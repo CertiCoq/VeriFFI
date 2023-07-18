@@ -29,22 +29,26 @@ Ltac props x :=
 
 (* opaque and transparent *)
 Inductive annotated : Type :=
-| TYPEPARAM : (forall (A : Type) `{Rep A}, annotated) -> annotated
+| TYPEPARAM : (forall (A : Type) `{InGraph A}, annotated) -> annotated
 | OPAQUE : forall (prim_type model_type : Type)
                     `{Isomorphism prim_type model_type},
                     (option (prim_type -> annotated)) ->
                     annotated
-| TRANSPARENT : forall (A : Type) `{Rep A}, (option (A -> annotated)) -> annotated.
+| TRANSPARENT : forall (A : Type) `{InGraph A}, (option (A -> annotated)) -> annotated.
+
+(* Inductive annotation (A : Type) : Type := *)
+(* | opaque : forall (model_type : Type), `{Isomorphism A model_type} -> annotation A *)
+(* | transparent : `{InGraph A} -> annotation A. *)
 
 Fixpoint to_prim_fn_type (r : annotated) : Type :=
   match r with
-  | TYPEPARAM f => forall (A : Type), to_prim_fn_type (f A Rep_any)
+  | TYPEPARAM f => forall (A : Type), to_prim_fn_type (f A InGraph_any)
   | OPAQUE pt mt Iso k =>
       match k with
       | None => pt
       | Some fp => forall (p : pt), to_prim_fn_type (fp p)
       end
-  | TRANSPARENT t Rep_A k =>
+  | TRANSPARENT t InGraph_A k =>
       match k with
       | None => t
       | Some f => forall (x : t), to_prim_fn_type (f x)
@@ -53,13 +57,13 @@ Fixpoint to_prim_fn_type (r : annotated) : Type :=
 
 Fixpoint to_model_fn_type (r : annotated) : Type :=
   match r with
-  | TYPEPARAM f => forall (A : Type), to_model_fn_type (f A Rep_any)
+  | TYPEPARAM f => forall (A : Type), to_model_fn_type (f A InGraph_any)
   | OPAQUE pt mt Iso k =>
       match k with
       | None => mt
       | Some fp => forall (m : mt), to_model_fn_type (fp (@to pt mt Iso m))
       end
-  | TRANSPARENT t Rep_A k =>
+  | TRANSPARENT t InGraph_A k =>
       match k with
       | None => t
       | Some f => forall (x : t), to_model_fn_type (f x)
@@ -87,7 +91,7 @@ Equations model_spec_aux
           (pt : to_prim_fn_type a)
           (mt : to_model_fn_type a) : Prop :=
 model_spec_aux (@TYPEPARAM f) pt mt :=
-  forall (A : Type), model_spec_aux (f A Rep_any) (pt A) (mt A) ;
+  forall (A : Type), model_spec_aux (f A InGraph_any) (pt A) (mt A) ;
 model_spec_aux (@OPAQUE prim_type model_type Iso (Some k)) pt mt :=
   forall (x : prim_type),
     model_spec_aux (k x) (pt x)
@@ -95,9 +99,9 @@ model_spec_aux (@OPAQUE prim_type model_type Iso (Some k)) pt mt :=
       (* (ltac: (rewrite_apply from_to (mt (@from prim_type model_type Iso x)))) ; *)
 model_spec_aux (@OPAQUE prim_type model_type Iso None) pt mt :=
   pt = to mt ;
-model_spec_aux (@TRANSPARENT A Rep_A (Some k)) pt mt :=
+model_spec_aux (@TRANSPARENT A InGraph_A (Some k)) pt mt :=
   forall (x : A), model_spec_aux (k x) (pt x) (mt x) ;
-model_spec_aux (@TRANSPARENT A Rep_A None) pt mt :=
+model_spec_aux (@TRANSPARENT A InGraph_A None) pt mt :=
   pt = mt.
 Check from_to.
 *)
@@ -107,7 +111,7 @@ Fixpoint model_spec_aux
          (ft : to_prim_fn_type a)
          (mt : to_model_fn_type a) {struct a} : Prop.
 destruct a as [f|prim_type model_type M|A R o]; simpl in ft, mt.
-* exact (forall (A : Type), model_spec_aux (f A Rep_any) (ft A) (mt A)).
+* exact (forall (A : Type), model_spec_aux (f A InGraph_any) (ft A) (mt A)).
 * destruct o as [pf|].
   - refine (forall (x : prim_type), model_spec_aux (pf x) (ft x) _).
     pose (m := mt (@from prim_type model_type M x)).

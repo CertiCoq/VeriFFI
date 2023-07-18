@@ -7,7 +7,7 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (desc_gen S).
@@ -47,7 +47,7 @@ Module UInt63_Proofs.
 
   Definition from_nat_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT nat Rep_nat
+        @TRANSPARENT nat _
            (Some (fun n => @OPAQUE _ _ Isomorphism_t None))
      ; prim_fn := C.from_nat
      ; model_fn := FM.from_nat
@@ -57,7 +57,7 @@ Module UInt63_Proofs.
   Definition to_nat_ep : extern_properties :=
     {| type_desc :=
         @OPAQUE _ _ Isomorphism_t
-           (Some (fun n => @TRANSPARENT nat Rep_nat None))
+           (Some (fun n => @TRANSPARENT nat _ None))
      ; prim_fn := C.to_nat
      ; model_fn := FM.to_nat
      ; c_name := "int63_to_nat"

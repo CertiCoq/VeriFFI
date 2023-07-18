@@ -5,7 +5,7 @@
 typedef unsigned long long uint64;
 typedef enum { O, S } nat;
 
-#define SHELTER1(tinfo, exp, a) ({ \
+#define LIVEPOINTERS1(tinfo, exp, a) ({ \
   value __ROOT__[1] = { a }; \
   struct stack_frame __FRAME__ = { __ROOT__ + 1, __ROOT__, tinfo->fp }; \
   tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
