@@ -45,11 +45,14 @@ End FM.
 
 Module UInt63_Proofs.
   Axiom Isomorphism_t : Isomorphism C.t FM.t.
+  Axiom InGraph_t : InGraph C.t.
+  Existing Instance Isomorphism_t.
+  Existing Instance InGraph_t.
 
   Definition from_Z_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT Z _
-           (Some (fun z => @OPAQUE _ _ Isomorphism_t None))
+        @ARG _ Z (@TRANSPARENT _ _) (fun _ =>
+          @RES _ C.t (@OPAQUE _ _ _ _))
      ; prim_fn := C.from_Z
      ; model_fn := FM.from_Z
      ; c_name := "int63_from_Z"
@@ -57,8 +60,8 @@ Module UInt63_Proofs.
 
   Definition to_Z_ep : extern_properties :=
     {| type_desc :=
-        @OPAQUE _ _ Isomorphism_t
-           (Some (fun z => @TRANSPARENT Z _ None))
+        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
+          @RES _ Z (@TRANSPARENT _ _))
      ; prim_fn := C.to_Z
      ; model_fn := FM.to_Z
      ; c_name := "int63_to_Z"
@@ -66,10 +69,9 @@ Module UInt63_Proofs.
 
   Definition add_ep : extern_properties :=
     {| type_desc :=
-          @OPAQUE _ _ Isomorphism_t
-            (Some (fun i =>
-              @OPAQUE _ _ Isomorphism_t
-                (Some (fun i => @OPAQUE _ _ Isomorphism_t None))))
+        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
+          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
+            @RES _ C.t (@OPAQUE _ _ _ _)))
      ; prim_fn := C.add
      ; model_fn := FM.add
      ; c_name := "int63_add"
@@ -77,10 +79,9 @@ Module UInt63_Proofs.
 
   Definition mul_ep : extern_properties :=
     {| type_desc :=
-          @OPAQUE _ _ Isomorphism_t
-            (Some (fun i =>
-              @OPAQUE _ _ Isomorphism_t
-                (Some (fun i => @OPAQUE _ _ Isomorphism_t None))))
+        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
+          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
+            @RES _ C.t (@OPAQUE _ _ _ _)))
      ; prim_fn := C.mul
      ; model_fn := FM.mul
      ; c_name := "int63_mul"

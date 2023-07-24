@@ -28,50 +28,60 @@ Ltac props x :=
   clear P.
 
 (* opaque and transparent *)
-Inductive annotated : Type :=
-| TYPEPARAM : (forall (A : Type) `{InGraph A}, annotated) -> annotated
-| OPAQUE : forall (prim_type model_type : Type)
-                    `{Isomorphism prim_type model_type},
-                    (option (prim_type -> annotated)) ->
-                    annotated
-| TRANSPARENT : forall (A : Type) `{InGraph A}, (option (A -> annotated)) -> annotated.
+(* Inductive annotated : Type := *)
+(* | TYPEPARAM : (forall (A : Type) `{InGraph A}, annotated) -> annotated *)
+(* | OPAQUE : forall (prim_type model_type : Type) *)
+(*                     `{Isomorphism prim_type model_type}, *)
+(*                     (option (prim_type -> annotated)) -> *)
+(*                     annotated *)
+(* | TRANSPARENT : forall (A : Type) `{InGraph A}, (option (A -> annotated)) -> annotated. *)
 
-(* Inductive annotation (A : Type) : Type := *)
-(* | opaque : forall (model_type : Type), `{Isomorphism A model_type} -> annotation A *)
-(* | transparent : `{InGraph A} -> annotation A. *)
+Inductive prim_ann (actual_type : Type) : Type :=
+| OPAQUE : forall (model_type : Type) `{InGraph actual_type}, `{Isomorphism actual_type model_type} -> prim_ann actual_type
+| TRANSPARENT : `{InGraph actual_type} -> prim_ann actual_type.
 
-Fixpoint to_prim_fn_type (r : annotated) : Type :=
+Definition prim_in_graph {A : Type} (p : prim_ann A) : InGraph A :=
+  match p with
+  | @OPAQUE _ mt ig _ => ig
+  | @TRANSPARENT _ ig => ig
+  end.
+
+Fixpoint to_prim_fn_type (r : reified prim_ann) : Type :=
   match r with
-  | TYPEPARAM f => forall (A : Type), to_prim_fn_type (f A InGraph_any)
-  | OPAQUE pt mt Iso k =>
-      match k with
-      | None => pt
-      | Some fp => forall (p : pt), to_prim_fn_type (fp p)
+  | TYPEPARAM f =>
+      forall (A : Type),
+        to_prim_fn_type (f A (@TRANSPARENT A InGraph_any))
+  | ARG pt ann k =>
+      match ann with
+      | OPAQUE mt _ Iso => forall (p : pt), to_prim_fn_type (k p)
+      | TRANSPARENT InGraph_A => forall (x : pt), to_prim_fn_type (k x)
       end
-  | TRANSPARENT t InGraph_A k =>
-      match k with
-      | None => t
-      | Some f => forall (x : t), to_prim_fn_type (f x)
+ | RES pt ann =>
+      match ann with
+      | OPAQUE mt _ Iso => pt
+      | TRANSPARENT InGraph_A => pt
       end
   end.
 
-Fixpoint to_model_fn_type (r : annotated) : Type :=
+Fixpoint to_model_fn_type (r : reified prim_ann) : Type :=
   match r with
-  | TYPEPARAM f => forall (A : Type), to_model_fn_type (f A InGraph_any)
-  | OPAQUE pt mt Iso k =>
-      match k with
-      | None => mt
-      | Some fp => forall (m : mt), to_model_fn_type (fp (@to pt mt Iso m))
+  | TYPEPARAM f =>
+      forall (A : Type),
+        to_model_fn_type (f A (@TRANSPARENT A InGraph_any))
+  | ARG pt ann k =>
+      match ann with
+      | OPAQUE mt _ Iso => forall (m : mt), to_model_fn_type (k (@to pt mt Iso m))
+      | TRANSPARENT InGraph_A => forall (x : pt), to_model_fn_type (k x)
       end
-  | TRANSPARENT t InGraph_A k =>
-      match k with
-      | None => t
-      | Some f => forall (x : t), to_model_fn_type (f x)
+ | RES pt ann =>
+      match ann with
+      | OPAQUE mt _ Iso => mt
+      | TRANSPARENT InGraph_A => pt
       end
   end.
 
 Record extern_properties :=
-  { type_desc : annotated
+  { type_desc : reified prim_ann
   ; prim_fn : to_prim_fn_type type_desc
   ; model_fn : to_model_fn_type type_desc
   ; c_name : string
@@ -106,24 +116,25 @@ model_spec_aux (@TRANSPARENT A InGraph_A None) pt mt :=
 Check from_to.
 *)
 
+
 Fixpoint model_spec_aux
-         (a : annotated)
+         (a : reified prim_ann)
          (ft : to_prim_fn_type a)
          (mt : to_model_fn_type a) {struct a} : Prop.
-destruct a as [f|prim_type model_type M|A R o]; simpl in ft, mt.
-* exact (forall (A : Type), model_spec_aux (f A InGraph_any) (ft A) (mt A)).
-* destruct o as [pf|].
-  - refine (forall (x : prim_type), model_spec_aux (pf x) (ft x) _).
-    pose (m := mt (@from prim_type model_type M x)).
-    rewrite from_to in m.
-    exact m.
-  - exact (ft = to mt).
-* destruct o as [pf|].
-  - exact (forall (x : A), model_spec_aux (pf x) (ft x) (mt x)).
-  - exact (ft = mt).
+Proof.
+  destruct a as [f | prim_type ann k | A ann]; simpl in ft, mt.
+  * exact (forall (A : Type),
+              model_spec_aux (f A (@TRANSPARENT A InGraph_any)) (ft A) (mt A)).
+  * destruct ann as [model_type Iso | R].
+    - refine (forall (x : prim_type), model_spec_aux (k x) (ft x) _).
+      pose (m := mt (@from prim_type model_type _ x)).
+      rewrite from_to in m.
+      exact m.
+    - exact (forall (x : prim_type), model_spec_aux (k x) (ft x) (mt x)).
+  * destruct ann as [model_type Iso | R].
+    - exact (ft = to mt).
+    - exact (ft = mt).
 Defined.
 
 Definition model_spec (ep : extern_properties) : Prop :=
   model_spec_aux (type_desc ep) (prim_fn ep) (model_fn ep).
-
-

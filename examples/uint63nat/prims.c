@@ -12,20 +12,20 @@ typedef enum { O, S } nat;
   a = __ROOT__[0]; \
   tinfo->fp = __FRAME__.prev; __TEMP__; })
 
-int_or_ptr64 uint63_from_nat(int_or_ptr64 n) {
-  int_or_ptr64 temp = n;
+value uint63_from_nat(value n) {
+  value temp = n;
   uint64 i = 0;
 
   while (get_Coq_Init_Datatypes_nat_tag(temp) == S) {
     i++;
     temp = get_args(temp)[0];
   }
-  return (int_or_ptr64) ((i << 1) + 1);
+  return (value) ((i << 1) + 1);
 }
 
-int_or_ptr64 uint63_to_nat(struct thread_info *tinfo, int_or_ptr64 t) {
-  uint64 i = (int_or_ptr64) (((uint64) t) >> 1);
-  int_or_ptr64 temp = make_Coq_Init_Datatypes_nat_O();
+value uint63_to_nat(struct thread_info *tinfo, value t) {
+  uint64 i = (value) (((uint64) t) >> 1);
+  value temp = make_Coq_Init_Datatypes_nat_O();
   while (i) {
     if (!(2 <= tinfo->limit - tinfo->alloc)) {
       tinfo->nalloc = 2;
@@ -37,10 +37,10 @@ int_or_ptr64 uint63_to_nat(struct thread_info *tinfo, int_or_ptr64 t) {
   return temp;
 }
 
-int_or_ptr64 uint63_add(int_or_ptr64 x, int_or_ptr64 y) {
-  return (int_or_ptr64) ((((((uint64) x) >> 1) + (((uint64) y) >> 1)) << 1) + 1);
+value uint63_add(value x, value y) {
+  return (value) ((((((uint64) x) >> 1) + (((uint64) y) >> 1)) << 1) + 1);
 }
 
-int_or_ptr64 uint63_mul(int_or_ptr64 x, int_or_ptr64 y) {
-  return (int_or_ptr64) ((((((uint64) x) >> 1) * (((uint64) y) >> 1)) << 1) + 1);
+value uint63_mul(value x, value y) {
+  return (value) ((((((uint64) x) >> 1) * (((uint64) y) >> 1)) << 1) + 1);
 }

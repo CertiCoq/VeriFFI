@@ -54,7 +54,7 @@ Defined.
    a Coq value being in the heap graph.
    Unprovable because it requires proving False.
    Useful because traversing HOAS-style annotations
-   (like reific and annotated) requires a Rep instance.
+   (like reified and annotated) requires a Rep instance.
    However, make sure you don't declare these as global instances.
    They should only be available in cases like this. *)
 Theorem InGraph_any : forall {A : Type}, InGraph A.
@@ -67,54 +67,54 @@ Defined.
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
 
 (* The type to represent a constructor in an inductive data type.
-   The name [reific] stands for "reified inductive constructor".
+   The name [reified] stands for "reified inductive constructor".
    Notice how this type uses Gallina binders,
    it is a weak HOAS description of the constructor. *)
 (* What other examples of cls are there? *)
-Inductive reific (cls : Type -> Type) : Type :=
+Inductive reified (ann : Type -> Type) : Type :=
 (* the type parameters in parametric polymorphism, isn't represented immediately in memory,
 but the possibility for representation is needed later, e.g., A in [list A] *)
- | TYPEPARAM  : (forall (A : Type) `{cls A}, reific cls) -> reific cls
-(* Non-type parameters of a fixed type which isn't represented in memory, e.g., n in [n < m] *)
- | PARAM  : forall A : Type, (A -> reific cls) -> reific cls
-(* index, represented in memory, e.g. the index of a vector *)
- | INDEX  : forall (A : Type) `{cls A}, (A -> reific cls) -> reific cls
+ | TYPEPARAM : (forall (A : Type) `{ann A}, reified ann) -> reified ann
  (* dependent argument, represented in memory, e.g. in positive_nat_list *)
- | ARG : forall (A : Type) `{cls A}, (A -> reific cls) -> reific cls
+ | ARG : forall (A : Type) `{ann A}, (A -> reified ann) -> reified ann
 (* the end type, e.g., list X for cons : forall X, X -> list X -> **list X** *)
- | RES  : forall (A : Type) `{cls A}, reific cls.
+ | RES : forall (A : Type) `{ann A}, reified ann.
 
 (* Makes nested sigmas (i.e. dependent tuples) of all the arguments. *)
-Fixpoint args {cls : Type -> Type} (c : reific cls) : Type :=
+Fixpoint args {cls : Type -> Type} (c : reified cls) : Type :=
   match c with
   | TYPEPARAM f => {A : Type & {H : cls A & args (f A H)}}
-  | PARAM A f => {a : A & args (f a) }
-  | INDEX A H f => {a : A & args (f a)}
   | ARG A H f => {a : A & args (f a)}
   | RES _ _ => unit
   end.
 
 (* Instance of result type *)
-Fixpoint result {cls : Type -> Type} (c : reific cls) (xs : args c) : {A : Type & cls A} :=
+Fixpoint result {cls : Type -> Type} (c : reified cls) (xs : args c) : {A : Type & cls A} :=
   match c as l return (args l -> {A : Type & cls A}) with
   | TYPEPARAM f => fun P => let '(a; (h; rest)) := P in result (f a h) rest
-  | PARAM A f => fun P => let '(a; rest) := P in result (f a) rest
-  | INDEX A H f => fun P => let '(a; rest) := P in result (f a) rest
   | ARG A H f => fun P => let '(a; rest) := P in result (f a) rest
   | RES A H => fun _ => (A; H)
   end xs.
 
-(* Makes a Coq level constructor type from a [reific], with the new type
+(* some things are computationally irrelevant but still present at computational time *)
+Variant erasure := erased | present.
+
+Class ctor_ann (A : Type) : Type :=
+  { is_erased : erasure
+  ; field_in_graph : InGraph A
+  }.
+
+(* Makes a Coq level constructor type from a [reified], with the new type
    taking a nested dependent tuple instead of curried arguments. *)
-Definition reconstruct {cls : Type -> Type} (c : reific cls) : Type :=
+Definition reflect {cls : Type -> Type} (c : reified cls) : Type :=
   forall (P : args c),
   projT1 (result c P).
 
-(* The same thing as [reconstruct] but takes the actual constructor
+(* The same thing as [reflect] but takes the actual constructor
    as an argument but "ignores" it. In reality that argument is
-   used by the tactic to infer how to reconstruct. *)
-Definition reconstructor {cls : Type -> Type} {T : Type} (x : T) (c : reific cls) :=
-  reconstruct c.
+   used by the tactic to infer how to reflect. *)
+Definition reflector {cls : Type -> Type} {T : Type} (x : T) (c : reified cls) :=
+  reflect c.
 
 Ltac destruct_through C :=
   match goal with
@@ -130,17 +130,17 @@ Ltac destruct_through C :=
   | [P : unit |- _ ] => exact C
   end.
 
-Ltac reconstructing_aux C :=
+Ltac reflecting_aux C :=
   let P := fresh "P" in
   intro P;
   simpl in P;
   destruct_through C.
 
 (* The entry point to the tactic that solves
-   goals like [reconstructor S S_reific]. *)
-Ltac reconstructing :=
+   goals like [reflector S S_reified]. *)
+Ltac reflecting :=
   match goal with
-  | [ |- @reconstructor _ _ ?C _ ] => hnf; reconstructing_aux C
+  | [ |- @reflector _ _ ?C _ ] => hnf; reflecting_aux C
   end.
 
 (* EXAMPLES *)
@@ -160,7 +160,7 @@ Check <%% vec %%>.
 Instance Rep_vec : forall (A : Type) (n : nat), Rep A -> Rep (vec A n).
   intros. constructor. intros. exact True. Defined.
 
-Definition S_reific : reific :=
+Definition S_reified : reified :=
   @ARG nat Rep_nat (@RES nat Rep_nat).
 Set Printing Universes.
 
@@ -176,14 +176,14 @@ Check tSort.
 Instance Rep_plist (A : Type) (Rep_A : Rep A) : Rep (plist A) :=
   {| rep _ _ _ := False |}.
 
-Definition pcons_reific : reific :=
+Definition pcons_reified : reified :=
   @TYPEPARAM (fun A H =>
                 @ARG A H
                      (@ARG (plist A) (Rep_plist A H)
                            (@RES (plist A) (Rep_plist A H)))).
 
-Definition pcons' : reconstructor (@pcons) pcons_reific.
-  reconstructing. Defined.
+Definition pcons' : reflector (@pcons) pcons_reified.
+  reflecting. Defined.
 Print pcons'.
 
 Check <%
@@ -193,15 +193,15 @@ Check <%
                            (@RES (plist A) (Rep_plist A H))))  %>.
 
 
-Definition cons_reific : reific :=
+Definition cons_reified : reified :=
   @TYPEPARAM (fun A H =>
                 @ARG A H
                      (@ARG (list A) (Rep_list A H)
                            (@RES (list A) (Rep_list A H)))).
 
-Compute reconstructor (@cons) cons_reific.
-Goal reconstructor (@cons) cons_reific.
-  reconstructing. Defined.
+Compute reflector (@cons) cons_reified.
+Goal reflector (@cons) cons_reified.
+  reflecting. Defined.
 
 Inductive two (A : Type) : Type :=
 | mkTwo : A -> A -> two A.
@@ -210,28 +210,28 @@ Definition Rep_two : forall (A : Type), Rep A -> Rep (two A).
   intros. constructor. intros. exact True. Defined.
 Existing Instance Rep_two.
 
-Definition mkTwo_reific : reific :=
+Definition mkTwo_reified : reified :=
   @TYPEPARAM (fun A H =>
                 @ARG A H (@ARG A H (@RES (two A) (Rep_two A H)))).
 
-Goal reconstructor mkTwo mkTwo_reific.
-  reconstructing. Defined.
+Goal reflector mkTwo mkTwo_reified.
+  reflecting. Defined.
 
-Definition vnil_reific : reific :=
+Definition vnil_reified : reified :=
   @TYPEPARAM (fun A H =>
                 (@RES (vec A O) (Rep_vec A O H))).
 
-Goal (reconstructor vnil vnil_reific).
-  reconstructing. Defined.
+Goal (reflector vnil vnil_reified).
+  reflecting. Defined.
 
-Definition vcons_reific : reific :=
+Definition vcons_reified : reified :=
   @TYPEPARAM (fun A H =>
      @INDEX nat Rep_nat (fun n =>
        @ARG A H (@ARG (vec A n) (Rep_vec A n H)
           (@RES (vec A (S n)) (Rep_vec A (S n) H))))).
 
-Goal (reconstructor vcons vcons_reific).
-  reconstructing. Defined.
+Goal (reflector vcons vcons_reified).
+  reflecting. Defined.
 
 Check <%% vec %%>.
 
@@ -242,8 +242,8 @@ Check <%% vec %%>.
 Require Import MetaCoq.Template.utils.MCString.
 Record constructor_description :=
   { ctor_name : string
-  ; ctor_reific : reific InGraph
-  ; ctor_reflect : reconstruct ctor_reific
+  ; ctor_reified : reified ctor_ann
+  ; ctor_reflected : reflect ctor_reified
   ; ctor_tag : nat
   ; ctor_arity : nat
   }.
@@ -260,8 +260,8 @@ Require Import JMeq.
 Class Discrimination (A : Type) :=
   { get_desc : forall (x : A),
       { c : constructor_description &
-          { y : args (ctor_reific c) &
-              JMeq (ctor_reflect c y) x }  }
+          { y : args (ctor_reified c) &
+              JMeq (ctor_reflected c y) x }  }
   }.
 
 (*

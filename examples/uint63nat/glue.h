@@ -1,58 +1,57 @@
-typedef void * __attribute((aligned(4))) int_or_ptr32;
-typedef void * __attribute((aligned(8))) int_or_ptr64;
+#include "values.h"
 struct closure;
 struct stack_frame;
 struct thread_info;
 struct closure {
-  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
-  int_or_ptr64 env;
+  void (*func)(struct thread_info, value, value);
+  value env;
 };
 
 struct stack_frame {
-  int_or_ptr64 *next;
-  int_or_ptr64 *root;
+  value *next;
+  value *root;
   struct stack_frame *prev;
 };
 
 struct thread_info {
-  int_or_ptr64 *alloc;
-  int_or_ptr64 *limit;
+  value *alloc;
+  value *limit;
   struct heap *heap;
-  int_or_ptr64 args[1024];
+  value args[1024];
   struct stack_frame *fp;
   unsigned long long nalloc;
 };
 
-extern unsigned int get_unboxed_ordinal(int_or_ptr64);
-extern unsigned int get_boxed_ordinal(int_or_ptr64);
-extern int_or_ptr64 *get_args(int_or_ptr64);
-extern int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void);
-extern int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, int_or_ptr64);
-extern int_or_ptr64 make_Coq_Init_Datatypes_bool_true(void);
-extern int_or_ptr64 make_Coq_Init_Datatypes_bool_false(void);
-extern int_or_ptr64 make_prog_exp_etrue(void);
-extern int_or_ptr64 make_prog_exp_efalse(void);
-extern int_or_ptr64 make_prog_exp_eand(int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_prog_exp_eand(struct thread_info *, int_or_ptr64);
-extern int_or_ptr64 make_prog_exp_eor(int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_prog_exp_eor(struct thread_info *, int_or_ptr64);
-extern int_or_ptr64 make_prog_exp_eif(int_or_ptr64, int_or_ptr64, int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_prog_exp_eif(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
-extern int_or_ptr64 make_Coq_Init_Datatypes_unit_tt(void);
-extern int_or_ptr64 make_prog_T_mkT(int_or_ptr64, int_or_ptr64, int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_prog_T_mkT(struct thread_info *, int_or_ptr64, int_or_ptr64, int_or_ptr64);
-extern unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
-extern unsigned int get_Coq_Init_Datatypes_bool_tag(int_or_ptr64);
-extern unsigned int get_prog_exp_tag(int_or_ptr64);
-extern unsigned int get_Coq_Init_Datatypes_unit_tag(int_or_ptr64);
-extern unsigned int get_prog_T_tag(int_or_ptr64);
-extern void print_Coq_Init_Datatypes_nat(int_or_ptr64);
-extern void print_Coq_Init_Datatypes_bool(int_or_ptr64);
-extern void print_prog_exp(int_or_ptr64);
-extern void print_Coq_Init_Datatypes_unit(int_or_ptr64);
-extern void print_prog_T(int_or_ptr64);
-extern int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
+extern unsigned int get_unboxed_ordinal(value);
+extern unsigned int get_boxed_ordinal(value);
+extern value *get_args(value);
+extern value make_Coq_Init_Datatypes_nat_O(void);
+extern value make_Coq_Init_Datatypes_nat_S(value, value *);
+extern value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, value);
+extern value make_Coq_Init_Datatypes_bool_true(void);
+extern value make_Coq_Init_Datatypes_bool_false(void);
+extern value make_prog_exp_etrue(void);
+extern value make_prog_exp_efalse(void);
+extern value make_prog_exp_eand(value, value, value *);
+extern value alloc_make_prog_exp_eand(struct thread_info *, value, value);
+extern value make_prog_exp_eor(value, value, value *);
+extern value alloc_make_prog_exp_eor(struct thread_info *, value, value);
+extern value make_prog_exp_eif(value, value, value, value *);
+extern value alloc_make_prog_exp_eif(struct thread_info *, value, value, value);
+extern value make_Coq_Init_Datatypes_unit_tt(void);
+extern value make_prog_T_mkT(value, value, value, value *);
+extern value alloc_make_prog_T_mkT(struct thread_info *, value, value, value);
+extern unsigned int get_Coq_Init_Datatypes_nat_tag(value);
+extern unsigned int get_Coq_Init_Datatypes_bool_tag(value);
+extern unsigned int get_prog_exp_tag(value);
+extern unsigned int get_Coq_Init_Datatypes_unit_tag(value);
+extern unsigned int get_prog_T_tag(value);
+extern void print_Coq_Init_Datatypes_nat(value);
+extern void print_Coq_Init_Datatypes_bool(value);
+extern void print_prog_exp(value);
+extern void print_Coq_Init_Datatypes_unit(value);
+extern void print_prog_T(value);
+extern value call(struct thread_info *, value, value);
 extern signed char const lparen_lit[2];
 
 extern signed char const rparen_lit[2];

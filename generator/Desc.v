@@ -76,7 +76,7 @@ Definition create_reific
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : constructor_body) : TemplateMonad (reific InGraph) :=
+           (ctor : constructor_body) : TemplateMonad (reified ctor_ann) :=
   let cn := cstr_name ctor in
   let t := cstr_type ctor in
   let arity := cstr_arity ctor in
@@ -105,7 +105,7 @@ Definition create_reific
             | _ => named_ctx end in
         rest <- go b index_ctx named_ctx' (pred num_params) ;;
         let f := tLambda n (tSort s) (tLambda H (tApp <% @InGraph %> [tRel O]) rest) in
-        ret (tApp <% @TYPEPARAM InGraph %> [f])
+        ret (tApp <% @TYPEPARAM ctor_ann %> [f])
 
       | tProd n t b , O =>
         let named_ctx' : list (Kernames.ident * named_term) :=
@@ -116,12 +116,14 @@ Definition create_reific
         let t' := Substitution.named_subst_all index_ctx t in
         let f := tLambda n t' rest in
         H <- fill_hole named_ctx (tApp <% InGraph %> [t']) ;;
-        ret (tApp <% @ARG InGraph %> [t'; H; f])
+        let H' := tApp <% Build_ctor_ann %> [t'; <% present %>; H] in
+        ret (tApp <% @ARG ctor_ann %> [t'; H'; f])
 
       | rest , _ =>
         let rest' := Substitution.named_subst_all index_ctx rest in
         H <- fill_hole named_ctx (tApp <% InGraph %> [rest']) ;;
-        ret (tApp <% @RES InGraph %> [rest'; H])
+        let H' := tApp <% Build_ctor_ann %> [rest'; <% present %>; H] in
+        ret (tApp <% @RES ctor_ann %> [rest'; H'])
       end
   in
 
@@ -132,7 +134,7 @@ Definition create_reific
   c' <- DB.deBruijn c ;;
   (* tmMsg "after de bruijn:" ;; *)
   (* tmEval all c' >>= tmPrint ;; *)
-  tmUnquoteTyped (reific InGraph) c'.
+  tmUnquoteTyped (reified ctor_ann) c'.
 
 Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
   t <- tmQuote ctor_val ;;
@@ -151,11 +153,11 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
         (* tmEval all reific >>= tmPrint ;; *)
 
         newName <- tmFreshName "new"%bs ;;
-        reflected <- tmLemma newName (@reconstructor InGraph T ctor_val reific) ;;
+        reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reific) ;;
 
         let d := {| ctor_name := cstr_name ctor
-                  ; ctor_reific := reific
-                  ; ctor_reflect := reflected
+                  ; ctor_reified := reific
+                  ; ctor_reflected := reflected
                   ; ctor_tag := ctor_tag
                   ; ctor_arity := cstr_arity ctor
                   |} in
@@ -199,11 +201,11 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
 (*   | _ => tmFail "Need an inductive type in the environment" *)
 (*   end. *)
 
-Obligation Tactic := reconstructing.
+Obligation Tactic := reflecting.
 
 (* Ltac gen := *)
 (*   match goal with *)
-(*   | [ |- @reconstructor _ _ _ _ ] => reconstructing *)
+(*   | [ |- @reflector _ _ _ _ ] => reflecting *)
 (*   | _ => in_graph_gen_tac *)
 (*   end. *)
 
@@ -213,6 +215,8 @@ Obligation Tactic := reconstructing.
 (* MetaCoq Run (in_graph_gen nat). *)
 (* MetaCoq Run (desc_gen tt). *)
 (* MetaCoq Run (desc_gen S). *)
+(* Set Printing All. *)
+(* Print S_desc. *)
 (* Check <% tt %>. *)
 
 (* MetaCoq Run (in_graph_gen unit). *)
