@@ -3,7 +3,6 @@
 #include <stddef.h>
 #include <stdio.h>
 
-// live pointers
 #define LIVEPOINTERS0(tinfo, exp) (exp)
 #define LIVEPOINTERS1(tinfo, exp, a) ({ \
   value __ROOT__[1] = { a }; \
@@ -63,7 +62,7 @@ unsigned long long nat_to_ull(value n) {
     unsigned int tag = get_Coq_Init_Datatypes_nat_tag(temp);
     if(tag == S) {
       i++;
-      temp = get_args(temp)[0];
+      temp = get_Coq_Init_Datatypes_S_args(temp)->Coq_Init_Datatypes_S_arg_0;
     } else {
       break;
     }
@@ -76,17 +75,17 @@ value runM(struct thread_info *tinfo, unsigned long long size, value init, value
   value i, temp, arg0, arg1;
   switch (get_prog_C_MI_tag(action)) {
     case PURE:
-      return get_args(action)[1];
+      return get_prog_C_pureI_args(action)->prog_C_pureI_arg_1;
     case BIND:
-      arg0 = get_args(action)[2];
-      arg1 = get_args(action)[3];
+      arg0 = get_prog_C_bindI_args(action)->prog_C_bindI_arg_2;
+      arg1 = get_prog_C_bindI_args(action)->prog_C_bindI_arg_3;
       temp = LIVEPOINTERS4(tinfo, runM(tinfo, size, init, arr, arg0), arg0, arg1, init, arr);
       temp = LIVEPOINTERS4(tinfo, call(tinfo, arg1, temp), arg1, init, arr, temp);
       return runM(tinfo, size, init, arr, temp);
     case SET:
-      arg0 = get_args(action)[0];
+      arg0 = get_prog_C_setI_args(action)->prog_C_setI_arg_0;
       i = nat_to_ull(arg0);
-      arg1 = get_args(action)[1];
+      arg1 = get_prog_C_setI_args(action)->prog_C_setI_arg_1;
       // check if there's enough memory for the update record (1 word)
       if (!(1 <= tinfo->limit - tinfo->alloc)) {
         tinfo->nalloc = 1;
@@ -97,7 +96,7 @@ value runM(struct thread_info *tinfo, unsigned long long size, value init, value
       }
       return make_Coq_Init_Datatypes_unit_tt();
     case GET:
-      arg0 = get_args(action)[0];
+      arg0 = get_prog_C_getI_args(action)->prog_C_getI_arg_0;
       i = nat_to_ull(arg0);
       if (i < size) {
         return *((value *) arr + i);

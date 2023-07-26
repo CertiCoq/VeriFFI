@@ -3,8 +3,6 @@ typedef void * __attribute((aligned(8))) int_or_ptr64;
 struct closure;
 struct stack_frame;
 struct thread_info;
-struct Coq_Init_Datatypes_O_args;
-struct Coq_Init_Datatypes_S_args;
 struct closure {
   void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
   int_or_ptr64 env;
@@ -25,23 +23,15 @@ struct thread_info {
   unsigned long long nalloc;
 };
 
-struct Coq_Init_Datatypes_O_args {
-};
-
-struct Coq_Init_Datatypes_S_args {
-  int_or_ptr64 Coq_Init_Datatypes_S_arg_0;
-};
-
 extern int printf(signed char *);
 extern _Bool is_ptr(int_or_ptr64);
 unsigned int get_unboxed_ordinal(int_or_ptr64);
 unsigned int get_boxed_ordinal(int_or_ptr64);
+int_or_ptr64 *get_args(int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void);
 int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, int_or_ptr64);
 unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64);
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64);
 void print_Coq_Init_Datatypes_nat(int_or_ptr64);
 int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
 signed char const lparen_lit[2] = { 40, 0, };
@@ -66,6 +56,11 @@ unsigned int get_unboxed_ordinal(int_or_ptr64 $v)
 unsigned int get_boxed_ordinal(int_or_ptr64 $v)
 {
   return *((unsigned long long *) $v + -1LL) & 255LL;
+}
+
+int_or_ptr64 *get_args(int_or_ptr64 $v)
+{
+  return (int_or_ptr64 *) $v;
 }
 
 signed char const names_of_Coq_Init_Datatypes_nat[2][2] = { 79, 0, 83, 0,
@@ -115,16 +110,6 @@ unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64 $v)
   }
 }
 
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_O_args *) 0;
-}
-
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_S_args *) $v;
-}
-
 void print_Coq_Init_Datatypes_nat(int_or_ptr64 $v)
 {
   register unsigned int $tag;
@@ -135,7 +120,7 @@ void print_Coq_Init_Datatypes_nat(int_or_ptr64 $v)
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       break;
     case 1:
-      $args = get_Coq_Init_Datatypes_S_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       printf(space_lit);

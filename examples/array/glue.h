@@ -3,15 +3,6 @@ typedef void * __attribute((aligned(8))) int_or_ptr64;
 struct closure;
 struct stack_frame;
 struct thread_info;
-struct Coq_Init_Datatypes_Some_args;
-struct Coq_Init_Datatypes_None_args;
-struct Coq_Init_Datatypes_O_args;
-struct Coq_Init_Datatypes_S_args;
-struct Coq_Init_Datatypes_tt_args;
-struct prog_C_pureI_args;
-struct prog_C_bindI_args;
-struct prog_C_setI_args;
-struct prog_C_getI_args;
 struct closure {
   void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
   int_or_ptr64 env;
@@ -32,46 +23,9 @@ struct thread_info {
   unsigned long long nalloc;
 };
 
-struct Coq_Init_Datatypes_Some_args {
-  int_or_ptr64 Coq_Init_Datatypes_Some_arg_0;
-};
-
-struct Coq_Init_Datatypes_None_args {
-};
-
-struct Coq_Init_Datatypes_O_args {
-};
-
-struct Coq_Init_Datatypes_S_args {
-  int_or_ptr64 Coq_Init_Datatypes_S_arg_0;
-};
-
-struct Coq_Init_Datatypes_tt_args {
-};
-
-struct prog_C_pureI_args {
-  int_or_ptr64 prog_C_pureI_arg_0;
-  int_or_ptr64 prog_C_pureI_arg_1;
-};
-
-struct prog_C_bindI_args {
-  int_or_ptr64 prog_C_bindI_arg_0;
-  int_or_ptr64 prog_C_bindI_arg_1;
-  int_or_ptr64 prog_C_bindI_arg_2;
-  int_or_ptr64 prog_C_bindI_arg_3;
-};
-
-struct prog_C_setI_args {
-  int_or_ptr64 prog_C_setI_arg_0;
-  int_or_ptr64 prog_C_setI_arg_1;
-};
-
-struct prog_C_getI_args {
-  int_or_ptr64 prog_C_getI_arg_0;
-};
-
 extern unsigned int get_unboxed_ordinal(int_or_ptr64);
 extern unsigned int get_boxed_ordinal(int_or_ptr64);
+extern int_or_ptr64 *get_args(int_or_ptr64);
 extern int_or_ptr64 make_Coq_Init_Datatypes_option_Some(int_or_ptr64, int_or_ptr64 *);
 extern int_or_ptr64 alloc_make_Coq_Init_Datatypes_option_Some(struct thread_info *, int_or_ptr64);
 extern int_or_ptr64 make_Coq_Init_Datatypes_option_None(void);
@@ -91,15 +45,6 @@ extern unsigned int get_Coq_Init_Datatypes_option_tag(int_or_ptr64);
 extern unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
 extern unsigned int get_Coq_Init_Datatypes_unit_tag(int_or_ptr64);
 extern unsigned int get_prog_C_MI_tag(int_or_ptr64);
-extern struct Coq_Init_Datatypes_Some_args *get_Coq_Init_Datatypes_Some_args(int_or_ptr64);
-extern struct Coq_Init_Datatypes_None_args *get_Coq_Init_Datatypes_None_args(int_or_ptr64);
-extern struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64);
-extern struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64);
-extern struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(int_or_ptr64);
-extern struct prog_C_pureI_args *get_prog_C_pureI_args(int_or_ptr64);
-extern struct prog_C_bindI_args *get_prog_C_bindI_args(int_or_ptr64);
-extern struct prog_C_setI_args *get_prog_C_setI_args(int_or_ptr64);
-extern struct prog_C_getI_args *get_prog_C_getI_args(int_or_ptr64);
 extern void print_Coq_Init_Datatypes_option(int_or_ptr64, void (*)(int_or_ptr64));
 extern void print_Coq_Init_Datatypes_nat(int_or_ptr64);
 extern void print_Coq_Init_Datatypes_unit(int_or_ptr64);

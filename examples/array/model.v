@@ -4,7 +4,7 @@ Require Import List.
 Require Import String.
 Open Scope string.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 
@@ -14,7 +14,7 @@ Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.array.prog.
 
-Variable Rep_elt : Rep elt.
+Variable InGraph_elt : InGraph elt.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
 Module FM <: Array.
@@ -51,8 +51,8 @@ Module Array_Proofs.
 
   Definition pure_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TRANSPARENT A Rep_A (Some (fun arr =>
+        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
+          @TRANSPARENT A InGraph_A (Some (fun arr =>
             @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) None)))
      ; prim_fn := @C.pure
      ; model_fn := @FM.pure
@@ -61,8 +61,8 @@ Module Array_Proofs.
 
   Definition bind_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TYPEPARAM (fun (B : Type) `{Rep_B : Rep B} =>
+        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
+          @TYPEPARAM (fun (B : Type) `{InGraph_B : InGraph B} =>
             @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) (Some (fun m =>
               @OPAQUE (A -> C.M B) (A -> FM.M B) (Isomorphism_fn _ (Isomorphism_M _)) (Some (fun f =>
                 @OPAQUE (C.M B) (FM.M B) (Isomorphism_M _) None))))))
@@ -73,11 +73,11 @@ Module Array_Proofs.
 
   Definition runM_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TRANSPARENT nat Rep_nat (Some (fun len =>
-            @TRANSPARENT elt Rep_elt (Some (fun init =>
+        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
+          @TRANSPARENT nat InGraph_nat (Some (fun len =>
+            @TRANSPARENT elt InGraph_elt (Some (fun init =>
               @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _)
-                      (Some (fun f => @TRANSPARENT A Rep_A None)))))))
+                      (Some (fun f => @TRANSPARENT A InGraph_A None)))))))
      ; prim_fn := @C.runM
      ; model_fn := @FM.runM
      ; c_name := "m_runM"
@@ -85,8 +85,8 @@ Module Array_Proofs.
 
   Definition set_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT nat Rep_nat (Some (fun n =>
-          @TRANSPARENT elt Rep_elt (Some (fun a =>
+        @TRANSPARENT nat InGraph_nat (Some (fun n =>
+          @TRANSPARENT elt InGraph_elt (Some (fun a =>
             @OPAQUE (C.M unit) (FM.M unit) (Isomorphism_M _) None))))
      ; prim_fn := @C.set
      ; model_fn := @FM.set
@@ -95,7 +95,7 @@ Module Array_Proofs.
 
   Definition get_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT nat Rep_nat (Some (fun n =>
+        @TRANSPARENT nat InGraph_nat (Some (fun n =>
           @OPAQUE (C.M elt) (FM.M elt) (Isomorphism_M _) None))
      ; prim_fn := @C.get
      ; model_fn := @FM.get

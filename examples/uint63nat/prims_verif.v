@@ -1,29 +1,7 @@
 Require Import VeriFFI.examples.uint63nat.prog.
-
 Require Import ZArith.
 Require Import Psatz.
-
-Require Import VeriFFI.verification.specs_general.
-
-Require Import VeriFFI.generator.all.
-
-Obligation Tactic := gen.
-MetaCoq Run (gen_for nat).
-MetaCoq Run (gen_for bool).
-
-MetaCoq Run (desc_gen S).
-MetaCoq Run (desc_gen O).
-
-Require Import VST.floyd.proofauto.
-Require Import CertiGraph.CertiGC.GCGraph.
-
-From VeriFFI Require Import library.base_representation.
-From VeriFFI Require Import library.meta.
-From VeriFFI Require Import verification.graph_add.
-From VeriFFI Require Import verification.specs_library.
-
-Require Import VeriFFI.examples.uint63nat.Verif_prog_general.
-Require Import VeriFFI.examples.uint63nat.prims. 
+Require Import VeriFFI.specs.
 
 (* #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined. *)
 
@@ -32,38 +10,13 @@ Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
           (alloc_make_spec_general (@desc _ S _) 1).
 
-Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
-    DECLARE _make_Coq_Init_Datatypes_nat_O
-      WITH gv : globals, g : graph
-      PRE  [ ] 
-          PROP ()
-          PARAMS ()
-          GLOBALS ()
-          SEP (spatial_gcgraph.graph_rep g)
-      POST [ (talignas 3%N (tptr tvoid)) ]  
-        EX (x : rep_type), 
-        PROP (@is_in_graph nat _ g O x) 
-        LOCAL (temp ret_temp (rep_type_val g x)) 
-        SEP (spatial_gcgraph.graph_rep g).
-
-Print GCGraph.thread_info.
-Print outlier_t.
-Print full_gc.
-Print gc_condition_prop.
-
-(* Same as in UVRooster - TODO: encode_Z as relation to fit our general scheme *)
-Definition encode_Z (x: Z): Z := x * 2 + 1.
-Definition min_signed: Z := - 2^62.
-Definition max_signed: Z := 2^62 - 1.
-
-
 (* Delete fun_info everywhere. *)        
 Definition  uint63_to_nat_spec :  ident *  funspec := 
    DECLARE _uint63_to_nat  
    WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
-        ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+        ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
    PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
-      PROP ( (Z.of_nat n) < headroom t_info ; (* KS: 2 times this *)
+      PROP ( 2 * (Z.of_nat n) < headroom t_info ; 
             writable_share sh; 
             min_signed <= encode_Z (Z.of_nat n) <= max_signed
             )
@@ -81,7 +34,7 @@ Definition  uint63_to_nat_spec :  ident *  funspec :=
 Definition  uint63_from_nat_spec :  ident *  funspec := 
 DECLARE _uint63_from_nat  
 WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
-        ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+        ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
 PRE  [ (talignas 3%N (tptr tvoid)) 
 ]
     PROP ( encode_Z (Z.of_nat n) <= max_signed; 
@@ -120,7 +73,7 @@ Definition tag_spec_S : ident * funspec :=
     DECLARE _get_Coq_Init_Datatypes_nat_tag
     WITH gv : globals, g : graph, p : rep_type,
     x : nat, roots : roots_t, sh : share,
-    ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+    ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[  [int_or_ptr_type] ]]
     PROP (
       @is_in_graph nat _ g x p;
@@ -151,7 +104,7 @@ Definition tag_spec_S : ident * funspec :=
 Definition tag_spec_general (X: Type) (R_ : Rep X) :  funspec := 
     WITH gv : globals, g : graph, p : rep_type,
     x : X, roots : roots_t, sh : share,
-    ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+    ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[  [int_or_ptr_type] ]]
     PROP (
         @is_in_graph X (@in_graph X R_) g x p;
@@ -196,12 +149,10 @@ struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64 $v)
 
 *)
 
-Print rep_type_val.
-
  Definition args_spec_S (c : constructor_description) (n : nat) : funspec := 
     WITH gv : globals, g : graph, p : rep_type,
     xs : args (ctor_reific c), roots : roots_t, sh : share,
-    ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+    ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[  [int_or_ptr_type] ]]
     PROP (
       c = (@desc _ S _); 

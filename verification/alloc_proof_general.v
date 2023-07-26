@@ -14,7 +14,6 @@ Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs.  mk_varspecs prog. Defined.
 Definition Gprog := ltac:(with_library prog (@nil (ident * funspec))).
 
-
 (** Custom types *)
 Definition thread_info_type := Tstruct _thread_info noattr.
 Definition thread_info := tptr thread_info_type.
@@ -37,7 +36,6 @@ Ltac inv x := dependent inversion x; subst; clear x.
 
 Ltac vector_inv :=
   repeat (match goal with H: vector _ _ |- _ => inv H end).
-
 
 (** *** Step 1 : A general definition of the Clight representation of the glue function.
 This representation will be parametric in:

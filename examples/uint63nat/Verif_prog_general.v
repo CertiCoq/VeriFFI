@@ -5,7 +5,8 @@ Require Import Psatz.
 
 Require Import VeriFFI.verification.specs_general.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
+Require Import VeriFFI.generator.Desc.
 
 Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
@@ -700,9 +701,9 @@ Definition X_in_graph_cons (descr : constructor_description) (t: nat) : Prop :=
     in_graphs gr (ctor_reific descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reific descr) args_my in 
-    @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r))  (add_node gr 0
+    @is_in_graph (projT1 r)  (projT2 r)  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_real descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) (ctor_reflect descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition calc t n := Z.of_nat t + Z.shiftl (Z.of_nat n) 10.
@@ -748,20 +749,13 @@ Proof.
       * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
     + eauto. 
   - simpl in *. destruct args_my. destruct ps; eauto. 
-    destruct H. constructor. 
-    + destruct r. eauto. reflexivity. 
-    split. 
-      * eapply has_v; eauto.
-      * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
-    + eauto. 
-  - simpl in *. destruct args_my. destruct ps; eauto. 
-  destruct H0. constructor. 
+    destruct H0. constructor. 
     + destruct r0. eauto. reflexivity. 
     split. 
       * eapply has_v; eauto.
       * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
     + eauto. 
-  - simpl in *. subst. constructor.  
+  - simpl in *. destruct args_my. destruct ps; eauto. inversion H. 
 Qed.
 
 
@@ -774,9 +768,9 @@ Definition X_in_graph_cons' (descr : constructor_description) (t: nat) : Prop :=
     in_graphs gr (ctor_reific descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reific descr) args_my in 
-    @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r))  (add_node gr 0
+    @is_in_graph (projT1 r) (projT2 r)  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_real descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) (ctor_reflect descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition field_t_rep_type (g : LGraph) x := 
@@ -894,7 +888,11 @@ Proof.
    -- apply result_in_graph; eauto. 
    -- split3.
       ++ split. 
-        ** simpl. admit. (* TODO: headroom condition. *)
+        ** unfold headroom. simpl. autorewrite with graph_add.
+           unfold fds.
+           rewrite map_length. rewrite Zlength_map. 
+           Search Zlength length.
+           rewrite Zlength_correct. rep_lia.
         **  destruct gc_cond. unfold gc_correct.sound_gc_graph, roots_compatible in *. intuition eauto.
         apply add_node_iso; eauto. (* ~In (inr (new_copied_v gr 0)) roots *)
         eapply new_node_roots; eauto. 

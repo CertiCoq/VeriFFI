@@ -7,7 +7,7 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for Z).
 
@@ -48,7 +48,7 @@ Module UInt63_Proofs.
 
   Definition from_Z_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT Z Rep_Z
+        @TRANSPARENT Z _
            (Some (fun z => @OPAQUE _ _ Isomorphism_t None))
      ; prim_fn := C.from_Z
      ; model_fn := FM.from_Z
@@ -58,7 +58,7 @@ Module UInt63_Proofs.
   Definition to_Z_ep : extern_properties :=
     {| type_desc :=
         @OPAQUE _ _ Isomorphism_t
-           (Some (fun z => @TRANSPARENT Z Rep_Z None))
+           (Some (fun z => @TRANSPARENT Z _ None))
      ; prim_fn := C.to_Z
      ; model_fn := FM.to_Z
      ; c_name := "int63_to_Z"

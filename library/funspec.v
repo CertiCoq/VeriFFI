@@ -23,8 +23,20 @@ mk_funspec
 Check mk_funspec.
 *)
 
-Definition val : type := tulong.
-(*
+Definition val : type :=
+  talignas (if Archi.ptr64 then 3%N else 2%N) (tptr tvoid).
+
+
+(* Instance of result type *)
+Fixpoint len (c : annotated) (xs : args c) : Type :=
+  match c as l return (args l -> Type) with
+  | TYPEPARAM f => fun P => let '(a; (h; rest)) := P in len (f a h) rest
+  | OPAQUE _ _ _ f => fun P => let '(a; rest) := P in len (f a) rest
+  | TRANSPARENT _ _ f => fun P => let '(a; rest) := P in len (f a) rest
+  end xs.
+
+
+
 Definition ep_to_funspec_aux
          (has_tinfo : bool)
          (a : annotated)
@@ -48,7 +60,6 @@ Definition ep_to_funspec_aux
   if has_tinfo
   then (cons (Tstruct (ident_of_string "thread_info") noattr) args, res)
   else (args, res).
-*)
 
 Fixpoint ep_to_funspec_aux
          (a : annotated)

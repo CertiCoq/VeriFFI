@@ -19,9 +19,11 @@ From VeriFFI Require Export verification.specs_library.
 
 (** ** 3. A General Specification *)
 
+Print reific. 
+
 (** Generation of the in_graphs predicate, given the constructor arguments. *)
 Fixpoint in_graphs
-         (g : graph) (c : reific Rep) (xs : args c) (ps : list rep_type) : Prop :=
+         (g : graph) (c : reific InGraph) (xs : args c) (ps : list rep_type) : Prop :=
   match c as l return (args l -> Prop) with
   | TYPEPARAM f =>
       fun H => let (X_, xs') := H in
@@ -34,27 +36,23 @@ Fixpoint in_graphs
       fun H => let (x, xs') := H in
       match ps with
       | [] => False
-      | p :: ps' =>  @is_in_graph X_ (@in_graph X_ R_) g x p /\ in_graphs g (f x) xs' ps'
+      | p :: ps' =>  @is_in_graph X_ R_ g x p /\ in_graphs g (f x) xs' ps'
       end
-  | ARG X_ R_ arg =>
-      fun H (* : args (ARG X_ R_ arg) *) =>
-      let (x, xs') := H in
-      match ps with
-      | [] => False
-      | p :: ps' => @is_in_graph X_ (@in_graph X_ R_) g x p /\ in_graphs g arg xs' ps'
-      end
+  | ARG X_ (* : Type *) R_ (* : InGraph X_ *) c (* : reific InGraph *) => 
+          fun H => let (x, xs') := H in 
+           in_graphs g c xs' ps
   | DEPARG X_ R_ f =>
       fun H  => let (x, xs') := H in
       match ps with
       | [] => False
-      | p :: ps' => @is_in_graph X_ (@in_graph X_ R_) g x p /\ in_graphs g (f x) xs' ps'
+      | p :: ps' => @is_in_graph X_ R_ g x p /\ in_graphs g (f x) xs' ps'
       end
   | RES x _ => fun _ => ps = nil
   end xs.
 
 (** List of [tulong] depending on the number of arguments
     represented in memory, needed for the parameters. *)
-Fixpoint get_size (c : reific Rep) (xs : args c) : nat :=
+Fixpoint get_size (c : reific InGraph) (xs : args c) : nat :=
   match c as l return (args l -> nat) with
   | TYPEPARAM f =>
       fun H => let (X_, xs') := H in let (R_, xs') := xs' in get_size (f X_ R_) xs'
@@ -62,16 +60,14 @@ Fixpoint get_size (c : reific Rep) (xs : args c) : nat :=
       fun H => let (x, xs') := H in get_size (f x) xs'
   | INDEX _ _ f =>
       fun H => let (x, xs') := H in S (get_size (f x) xs')
-  | ARG _ X_ arg =>
-      fun H (* : args (ARG X_ arg) *) => let (x, xs') := H in S (get_size arg xs')
-  | DEPARG _ X_ f => fun H  => let (x, xs') := H in S (get_size (f x) xs')
+  | ARG _ X_ f => fun H  => let (x, xs') := H in S (get_size (f x) xs')
   | RES _ x => fun _ => O
   end xs.
 
-Definition get_tulongs (c : reific Rep) (xs : args c) : list type :=
+Definition get_tulongs (c : reific InGraph) (xs : args c) : list type :=
   repeat tulong (get_size c xs).
 
-Lemma in_graphs_size (g : graph) (c : reific Rep) (xs : args c) (ps : list rep_type) :
+Lemma in_graphs_size (g : graph) (c : reific InGraph) (xs : args c) (ps : list rep_type) :
   in_graphs g c xs ps -> get_size c xs = length ps.
 Proof.
   revert ps.
@@ -89,8 +85,6 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
               x10 at level 0,
              P at level 100, Q at level 100) : funspec_scope.
 
-
-Theorem Rep_any : forall {A : Type}, Rep A. Admitted.
 
 Definition headroom (ti: GCGraph.thread_info) : Z :=
    let g0 := heap_head (ti_heap ti) in
@@ -132,8 +126,8 @@ Definition alloc_make_spec_general
     POST [ int_or_ptr_type ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reific c) xs in
-              @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g' (ctor_real c xs) p' ;
-              headroom t_info' = headroom t_info - (* 1 + *) Z.of_nat n;
+              @is_in_graph (projT1 r) (projT2 r) g' (ctor_reflect c xs) p' ;
+              headroom t_info' = headroom t_info - (* 1 + *)   Z.of_nat (S n);
               gc_graph_iso g roots g' roots)
         RETURN  (rep_type_val g' p')
         SEP (full_gc g' t_info' roots outlier ti sh).

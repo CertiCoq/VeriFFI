@@ -32,8 +32,8 @@ CertiCoq Compile prog
 Inductive exp : Type :=
 | etrue
 | efalse
-| eand : exp -> exp
-| eor : exp -> exp
+| eand : exp -> exp -> exp
+| eor : exp -> exp -> exp
 | eif : exp -> exp -> exp -> exp.
 
 Inductive T : Type :=

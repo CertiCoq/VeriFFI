@@ -91,10 +91,10 @@ Ltac prove_monotone :=
     try (eauto || (eapply graph_cRep_add_node; eauto))
   end); auto.
 
-Ltac in_graph_gen_tac :=
+Ltac disc_gen_tac :=
   intros;
   repeat (match goal with
-          | [R : InGraph _ |- _] => destruct R
+          | [R : Discrimination _ |- _] => destruct R
           end);
   unshelve econstructor;
   [apply graph_predicate | prove_has_v | prove_monotone].
@@ -110,15 +110,15 @@ Import monad_utils.MCMonadNotation
 
 Require Import VeriFFI.generator.GraphPredicate.
 
-Definition generate_InGraph_instance_type
+Definition generate_Discrimination_instance_type
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body) : TemplateMonad named_term :=
   generate_instance_type ind mut one
     (fun ty_name t =>
-      let n := "InGraph_" ++ ty_name in
-      tProd (mkBindAnn (nNamed n) Relevant) (tApp <% InGraph %> [tVar ty_name]) t)
-    (fun t => apply_to_pi_base (fun t' => tApp <% InGraph %> [t']) t).
+      let n := "Discrimination_" ++ ty_name in
+      tProd (mkBindAnn (nNamed n) Relevant) (tApp <% Discrimination %> [tVar ty_name]) t)
+    (fun t => apply_to_pi_base (fun t' => tApp <% Discrimination %> [t']) t).
 
 (* Constructs the instance type for the type at hand,
    checks if there's an instance for it. *)
@@ -127,12 +127,12 @@ Definition find_missing_instance
            (mut : mutual_inductive_body)
            (one : one_inductive_body) : TemplateMonad bool :=
   tmMsg! ("Missing: " ++ string_of_inductive ind) ;;
-  generate_InGraph_instance_type ind mut one >>=
+  generate_Discrimination_instance_type ind mut one >>=
   DB.deBruijn >>= tmUnquoteTyped Type >>= has_instance.
 
 (* Take in a [global_declarations], which is a list of declarations,
    and find the inductive declarations in that list
-   that do not have [InGraph] instances. *)
+   that do not have [Discrimination] instances. *)
 Fixpoint find_missing_instances
         (env : global_declarations) : TemplateMonad (list kername) :=
     match env with
@@ -158,7 +158,7 @@ Definition add_instances_aux (kn : kername)
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-       quantified <- quantified ind mut one "InGraph_" <% InGraph %> ;;
+       quantified <- quantified ind mut one "Discrimination_" <% Discrimination %> ;;
        (* Now what can we do with this? *)
        (*    Let's start by going to its named representation. *)
        (* The reified type of the fully applied type constructor, *)
@@ -167,26 +167,26 @@ Definition add_instances_aux (kn : kername)
        let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
        extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
-                                                          (tApp <% InGraph %> [tau])) ;;
+                                                          (tApp <% Discrimination %> [tau])) ;;
        instance_ty <- tmUnquoteTyped Type extra_quantified ;;
        (* tmPrint prog';; *)
        (* tmMsg "Inst" ;; *)
        (* tmPrint instance ;; *)
        (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
        (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("InGraph_" ++ ind_name one)%bs ;;
+       name <- tmFreshName =<< tmEval all ("Discrimination_" ++ ind_name one)%bs ;;
        tmLemma name instance_ty ;;
 
        (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
        (*    because of a mysterious type error. (Coq's type errors in monadic *)
        (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
        (*    a Σ-type. But when you project the second field out of that, *)
-       (*    the type doesn't get evaluated to [InGraph _], it stays as *)
+       (*    the type doesn't get evaluated to [Discrimination _], it stays as *)
        (*    [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
        (*    which is the type of the second projection. When the user prints *)
-       (*    their [InGraph] instance, Coq shows the unevaluated version. *)
+       (*    their [Discrimination] instance, Coq shows the unevaluated version. *)
        (*    But we don't want to evaluate it [all] the way, that would unfoldd *)
-       (*    the references to other instances of [InGraph]. We only want to get *)
+       (*    the references to other instances of [Discrimination]. We only want to get *)
        (*    the head normal form with [hnf]. *)
        (*    We have to do this both for the instance body and its type. *) *)
        (* tmEval hnf (my_projT2 instance) >>= *)
@@ -197,7 +197,7 @@ Definition add_instances_aux (kn : kername)
        tmExistingInstance (ConstRef (mp, name)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
-       tmMsg! ("Added InGraph instance for " ++ string_of_kername fake_kn) ;;
+       tmMsg! ("Added Discrimination instance for " ++ string_of_kername fake_kn) ;;
        ret tt) (ind_bodies mut).
 
 Definition add_instances (kn : kername) : TemplateMonad unit :=
@@ -210,34 +210,33 @@ Definition add_instances (kn : kername) : TemplateMonad unit :=
   ret tt.
 
 
-(* Derives a [InGraph] instance for the type constructor [Tau],
+(* Derives a [Discrimination] instance for the type constructor [Tau],
    and the types its definition depends on. *)
-Definition in_graph_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
-  @graph_predicate_gen kind Tau ;;
+Definition disc_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   '(env, tau) <- tmQuoteRec Tau ;;
   missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
-Obligation Tactic := in_graph_gen_tac.
+Obligation Tactic := disc_gen_tac.
 
 (* Require Import VeriFFI.generator.GraphPredicate. *)
 (* MetaCoq Run (graph_predicate_gen nat). *)
-(* MetaCoq Run (in_graph_gen nat). *)
-(* Print InGraph_nat. *)
+(* MetaCoq Run (disc_gen nat). *)
+(* Print Discrimination_nat. *)
 
-(* MetaCoq Run (in_graph_gen list). *)
-(* Instance InGraph_list : forall A `{InGraph_A: InGraph A}, InGraph (list A). *)
-(*   (* intros. destruct InGraph_A. *) *)
-(*   in_graph_gen_tac. *)
+(* MetaCoq Run (disc_gen list). *)
+(* Instance Discrimination_list : forall A `{Discrimination_A: Discrimination A}, Discrimination (list A). *)
+(*   (* intros. destruct Discrimination_A. *) *)
+(*   disc_gen_tac. *)
 (* Defined. *)
 
-(* MetaCoq Run (in_graph_gen nat). *)
-(* Instance InGraph_nat : InGraph nat. *)
-(*   in_graph_gen_tac. *)
+(* MetaCoq Run (disc_gen nat). *)
+(* Instance Discrimination_nat : Discrimination nat. *)
+(*   disc_gen_tac. *)
 (* Defined. *)
 
-(* MetaCoq Run (in_graph_gen bool). *)
-(* Instance InGraph_bool : InGraph bool. *)
+(* MetaCoq Run (disc_gen bool). *)
+(* Instance Discrimination_bool : Discrimination bool. *)
 (* econstructor. *)
 (* prove_has_v. *)
 (* prove_monotone. *)
@@ -248,25 +247,25 @@ Obligation Tactic := in_graph_gen_tac.
 (* | C2 : bool -> T *)
 (* | C3 : bool -> bool -> T -> T. *)
 
-(* MetaCoq Run (in_graph_gen T). *)
-(* Instance InGraph_T : InGraph T. *)
+(* MetaCoq Run (disc_gen T). *)
+(* Instance Discrimination_T : Discrimination T. *)
 (* econstructor. *)
 (* prove_has_v. *)
 (* prove_monotone. *)
 (* Defined. *)
 
 
-(* MetaCoq Run (in_graph_gen option). *)
-(* Definition InGraph_option : forall A `{InGraph_A: InGraph A}, InGraph (option A). *)
-(* intros. destruct InGraph_A. *)
+(* MetaCoq Run (disc_gen option). *)
+(* Definition Discrimination_option : forall A `{Discrimination_A: Discrimination A}, Discrimination (option A). *)
+(* intros. destruct Discrimination_A. *)
 (* econstructor. *)
 (* prove_has_v. *)
 (* prove_monotone. *)
 (* Defined. *)
 
-(* MetaCoq Run (in_graph_gen prod). *)
-(* Definition InGraph_prod : forall A `{InGraph_A: InGraph A} B `{InGraph_B : InGraph B}, InGraph (prod A B). *)
-(* intros. destruct InGraph_A. destruct InGraph_B. *)
+(* MetaCoq Run (disc_gen prod). *)
+(* Definition Discrimination_prod : forall A `{Discrimination_A: Discrimination A} B `{Discrimination_B : Discrimination B}, Discrimination (prod A B). *)
+(* intros. destruct Discrimination_A. destruct Discrimination_B. *)
 (* econstructor. *)
 (* prove_has_v. *)
 (* prove_monotone. *)
@@ -276,26 +275,4 @@ Obligation Tactic := in_graph_gen_tac.
 (* Inductive vec (A : Type) : nat -> Type := *)
 (* | vnil : vec A O *)
 (* | vcons : forall n, A -> vec A n -> vec A (S n). *)
-(* MetaCoq Run (in_graph_gen vec). *)
-
-(* (* MetaCoq Run (in_graph_gen vec). *) *)
-(* Instance InGraph_vec (A : Type) (InGraph_A : InGraph A) (n : nat) : InGraph (vec A n) := *)
-(*   let fix is_in_graph_vec (n : nat) (g : graph) (x : vec A n) (p : rep_type) {struct x} : Prop := *)
-(*     match x with *)
-(*     | vnil => graph_cRep g p (enum 0) [] *)
-(*     | vcons arg0 arg1 arg2 => *)
-(*         exists p0 p1 p2 : rep_type, *)
-(*           @is_in_graph nat InGraph_nat g arg0 p0 /\ *)
-(*           @is_in_graph A InGraph_A g arg1 p1 /\ *)
-(*           is_in_graph_vec arg0 g arg2 p2 /\ *)
-(*           graph_cRep g p (boxed 0 3) [p0; p1; p2] *)
-(*     end *)
-(*     in @Build_InGraph (vec A n) (is_in_graph_vec n). *)
-
-(* Definition InGraph_vec : forall A `{InGraph_A: InGraph A} n, InGraph (vec A n). *)
-
-(* intros. destruct InGraph_A. *)
-(* econstructor. *)
-(* prove_has_v. *)
-(* prove_monotone. *)
-(* Defined. *)
+(* MetaCoq Run (disc_gen vec). *)

@@ -15,18 +15,18 @@ Require Import MetaCoq.Template.All.
 Require Import VeriFFI.generator.gen_utils.
 Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
+Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
-Require Import VeriFFI.generator.Rep.
 
 (*Unset Strict Unquote Universe Mode.*) (* There is no flag or option with this name *)
 
-(* Require Import VeriFFI.generator.Rep. *)
+(* Require Import VeriFFI.generator.InGraph. *)
 (* MetaCoq Run (in_graph_gen bool). *)
-(* Instance Rep_bool : Rep bool. rep_gen. Defined. *)
+(* Instance InGraph_bool : InGraph bool. rep_gen. Defined. *)
 (* MetaCoq Run (in_graph_gen list). *)
-(* Instance Rep_list : forall A, Rep A -> Rep (list A). rep_gen. Defined. *)
+(* Instance InGraph_list : forall A, InGraph A -> InGraph (list A). rep_gen. Defined. *)
 (* MetaCoq Run (in_graph_gen nat). *)
-(* Instance Rep_nat : Rep nat. rep_gen. Defined. *)
+(* Instance InGraph_nat : InGraph nat. rep_gen. Defined. *)
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
@@ -68,15 +68,15 @@ Definition fill_hole
   ret (tApp hoisted (rev (map (fun '(id, _) => tVar id) named_ctx))).
 
 (*
-MetaCoq Run (fill_hole [("H", tApp <% Rep %> [tVar "a"]);("a", <% Type %>)]
-                       (tApp <% Rep %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint).
+MetaCoq Run (fill_hole [("H", tApp <% InGraph %> [tVar "a"]);("a", <% Type %>)]
+                       (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint).
 *)
 
 Definition create_reific
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : constructor_body) : TemplateMonad (reific Rep) :=
+           (ctor : constructor_body) : TemplateMonad (reific InGraph) :=
   let cn := cstr_name ctor in
   let t := cstr_type ctor in
   let arity := cstr_arity ctor in
@@ -101,11 +101,11 @@ Definition create_reific
         '(h, H) <- fresh_aname "H" n ;;
         let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
-            | nNamed id => (h, tApp <% @Rep %> [tVar id]) :: (id, t) :: named_ctx
+            | nNamed id => (h, tApp <% @InGraph %> [tVar id]) :: (id, t) :: named_ctx
             | _ => named_ctx end in
         rest <- go b index_ctx named_ctx' (pred num_params) ;;
-        let f := tLambda n (tSort s) (tLambda H (tApp <% @Rep %> [tRel O]) rest) in
-        ret (tApp <% @TYPEPARAM Rep %> [f])
+        let f := tLambda n (tSort s) (tLambda H (tApp <% @InGraph %> [tRel O]) rest) in
+        ret (tApp <% @TYPEPARAM InGraph %> [f])
 
       | tProd n t b , O =>
         let named_ctx' : list (Kernames.ident * named_term) :=
@@ -115,13 +115,13 @@ Definition create_reific
         rest <- go b index_ctx named_ctx' O ;;
         let t' := Substitution.named_subst_all index_ctx t in
         let f := tLambda n t' rest in
-        H <- fill_hole named_ctx (tApp <% Rep %> [t']) ;;
-        ret (tApp <% @DEPARG Rep %> [t'; H; f])
+        H <- fill_hole named_ctx (tApp <% InGraph %> [t']) ;;
+        ret (tApp <% @ARG InGraph %> [t'; H; f])
 
       | rest , _ =>
         let rest' := Substitution.named_subst_all index_ctx rest in
-        H <- fill_hole named_ctx (tApp <% Rep %> [rest']) ;;
-        ret (tApp <% @RES Rep %> [rest'; H])
+        H <- fill_hole named_ctx (tApp <% InGraph %> [rest']) ;;
+        ret (tApp <% @RES InGraph %> [rest'; H])
       end
   in
 
@@ -132,7 +132,7 @@ Definition create_reific
   c' <- DB.deBruijn c ;;
   (* tmMsg "after de bruijn:" ;; *)
   (* tmEval all c' >>= tmPrint ;; *)
-  tmUnquoteTyped (reific Rep) c'.
+  tmUnquoteTyped (reific InGraph) c'.
 
 Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
   t <- tmQuote ctor_val ;;
@@ -151,25 +151,21 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
         (* tmEval all reific >>= tmPrint ;; *)
 
         newName <- tmFreshName "new"%bs ;;
-        actual <- tmLemma newName (@reconstructor Rep T ctor_val reific) ;;
+        reflected <- tmLemma newName (@reconstructor InGraph T ctor_val reific) ;;
 
         let d := {| ctor_name := cstr_name ctor
                   ; ctor_reific := reific
-                  ; ctor_real := actual
+                  ; ctor_reflect := reflected
                   ; ctor_tag := ctor_tag
                   ; ctor_arity := cstr_arity ctor
                   |} in
 
-        tmMsg "Before def" ;;
-        d' <- tmEval all d ;;
-        tmPrint d' ;;
         name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-        @tmDefinition name (@Desc T ctor_val) {| desc := d' |} ;;
-        tmMsg "After def" ;;
+        @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
         (* Declare the new definition a type class instance *)
         mp <- tmCurrentModPath tt ;;
         tmExistingInstance (ConstRef (mp, name)) ;;
-        tmMsg "After inst"
+        ret tt
       end
     end
   | t' => tmPrint t' ;; tmFail "Not a constructor"
@@ -205,10 +201,21 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
 
 Obligation Tactic := reconstructing.
 
+(* Ltac gen := *)
+(*   match goal with *)
+(*   | [ |- @reconstructor _ _ _ _ ] => reconstructing *)
+(*   | _ => in_graph_gen_tac *)
+(*   end. *)
+
+(* Obligation Tactic := gen. *)
+
+(* MetaCoq Run (in_graph_gen unit). *)
+(* MetaCoq Run (in_graph_gen nat). *)
+(* MetaCoq Run (desc_gen tt). *)
+(* MetaCoq Run (desc_gen S). *)
 (* Check <% tt %>. *)
 
 (* MetaCoq Run (in_graph_gen unit). *)
-(* MetaCoq Run (rep_gen unit). *)
 (* MetaCoq Run (desc_gen tt). *)
 
 (* (* Print new_obligation_1. *) *)
@@ -216,7 +223,7 @@ Obligation Tactic := reconstructing.
 
 
 (* MetaCoq Run (in_graph_gen nat). *)
-(* Instance Rep_ *)
+(* Instance InGraph_ *)
 (* (* MetaCoq Run (rep_gen nat). *) *)
 (* MetaCoq Run (descs_gen unit). *)
 (* MetaCoq Run (desc_gen O). *)

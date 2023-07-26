@@ -31,6 +31,21 @@ Notation "e1 ;; e2" :=
 Notation "x <- c1 ;; c2" :=
   (@C.bind _ _ c1 (fun x => c2)) (at level 61, c1 at next level, right associativity).
 
+(*
+Module Array2D.
+  Definition runM {A} (rows cols : nat) (init : elt) (m : C.M A) : A :=
+    C.runM (rows * cols) init m.
+
+  Definition get {cols : nat} (row col : nat) : C.M elt :=
+    C.get (row * cols + col).
+
+  Definition set {cols : nat} (row col : nat) (x : elt) : C.M unit :=
+    C.set (row * cols + col) x.
+End Array2D.
+
+Check (Array2D.runM 3 3 0 (Array2D.set 0 0 1 ;; Array2D.get 0 0)).
+*)
+
 Require Import List.
 Import ListNotations.
 
@@ -69,7 +84,7 @@ Definition mode (xs : list elt) : option elt :=
 
 Definition prog := mode [1;2;3;2;3;2;4].
 
-(* 
+(*
 Definition fib (len : nat) : nat :=
   let fix aux (n : nat) (fuel : nat) {struct fuel} : C.M unit :=
     match fuel with

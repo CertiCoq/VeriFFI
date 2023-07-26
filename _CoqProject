@@ -9,10 +9,10 @@ verification/graph_add.v
 library/meta.v
 
 generator/gen_utils.v
+generator/GraphPredicate.v
 generator/InGraph.v
-generator/Rep.v
 generator/Desc.v
-generator/all.v
+generator/Rep.v
 
 library/isomorphism.v
 library/modelled.v
@@ -37,3 +37,7 @@ examples/compose/glue.v
 examples/array/prog.v
 examples/array/model.v
 examples/array/glue.v
+
+examples/bytestring/prog.v
+# examples/bytestring/model.v
+# examples/bytestring/glue.v

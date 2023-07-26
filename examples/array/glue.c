@@ -3,15 +3,6 @@ typedef void * __attribute((aligned(8))) int_or_ptr64;
 struct closure;
 struct stack_frame;
 struct thread_info;
-struct Coq_Init_Datatypes_Some_args;
-struct Coq_Init_Datatypes_None_args;
-struct Coq_Init_Datatypes_O_args;
-struct Coq_Init_Datatypes_S_args;
-struct Coq_Init_Datatypes_tt_args;
-struct prog_C_pureI_args;
-struct prog_C_bindI_args;
-struct prog_C_setI_args;
-struct prog_C_getI_args;
 struct closure {
   void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
   int_or_ptr64 env;
@@ -32,48 +23,11 @@ struct thread_info {
   unsigned long long nalloc;
 };
 
-struct Coq_Init_Datatypes_Some_args {
-  int_or_ptr64 Coq_Init_Datatypes_Some_arg_0;
-};
-
-struct Coq_Init_Datatypes_None_args {
-};
-
-struct Coq_Init_Datatypes_O_args {
-};
-
-struct Coq_Init_Datatypes_S_args {
-  int_or_ptr64 Coq_Init_Datatypes_S_arg_0;
-};
-
-struct Coq_Init_Datatypes_tt_args {
-};
-
-struct prog_C_pureI_args {
-  int_or_ptr64 prog_C_pureI_arg_0;
-  int_or_ptr64 prog_C_pureI_arg_1;
-};
-
-struct prog_C_bindI_args {
-  int_or_ptr64 prog_C_bindI_arg_0;
-  int_or_ptr64 prog_C_bindI_arg_1;
-  int_or_ptr64 prog_C_bindI_arg_2;
-  int_or_ptr64 prog_C_bindI_arg_3;
-};
-
-struct prog_C_setI_args {
-  int_or_ptr64 prog_C_setI_arg_0;
-  int_or_ptr64 prog_C_setI_arg_1;
-};
-
-struct prog_C_getI_args {
-  int_or_ptr64 prog_C_getI_arg_0;
-};
-
 extern int printf(signed char *);
 extern _Bool is_ptr(int_or_ptr64);
 unsigned int get_unboxed_ordinal(int_or_ptr64);
 unsigned int get_boxed_ordinal(int_or_ptr64);
+int_or_ptr64 *get_args(int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_option_Some(int_or_ptr64, int_or_ptr64 *);
 int_or_ptr64 alloc_make_Coq_Init_Datatypes_option_Some(struct thread_info *, int_or_ptr64);
 int_or_ptr64 make_Coq_Init_Datatypes_option_None(void);
@@ -93,15 +47,6 @@ unsigned int get_Coq_Init_Datatypes_option_tag(int_or_ptr64);
 unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
 unsigned int get_Coq_Init_Datatypes_unit_tag(int_or_ptr64);
 unsigned int get_prog_C_MI_tag(int_or_ptr64);
-struct Coq_Init_Datatypes_Some_args *get_Coq_Init_Datatypes_Some_args(int_or_ptr64);
-struct Coq_Init_Datatypes_None_args *get_Coq_Init_Datatypes_None_args(int_or_ptr64);
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64);
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64);
-struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(int_or_ptr64);
-struct prog_C_pureI_args *get_prog_C_pureI_args(int_or_ptr64);
-struct prog_C_bindI_args *get_prog_C_bindI_args(int_or_ptr64);
-struct prog_C_setI_args *get_prog_C_setI_args(int_or_ptr64);
-struct prog_C_getI_args *get_prog_C_getI_args(int_or_ptr64);
 void print_Coq_Init_Datatypes_option(int_or_ptr64, void (*)(int_or_ptr64));
 void print_Coq_Init_Datatypes_nat(int_or_ptr64);
 void print_Coq_Init_Datatypes_unit(int_or_ptr64);
@@ -129,6 +74,11 @@ unsigned int get_unboxed_ordinal(int_or_ptr64 $v)
 unsigned int get_boxed_ordinal(int_or_ptr64 $v)
 {
   return *((unsigned long long *) $v + -1LL) & 255LL;
+}
+
+int_or_ptr64 *get_args(int_or_ptr64 $v)
+{
+  return (int_or_ptr64 *) $v;
 }
 
 signed char const names_of_Coq_Init_Datatypes_option[2][5] = { 83, 111, 109,
@@ -329,51 +279,6 @@ unsigned int get_prog_C_MI_tag(int_or_ptr64 $v)
   return $t;
 }
 
-struct Coq_Init_Datatypes_Some_args *get_Coq_Init_Datatypes_Some_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_Some_args *) $v;
-}
-
-struct Coq_Init_Datatypes_None_args *get_Coq_Init_Datatypes_None_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_None_args *) 0;
-}
-
-struct Coq_Init_Datatypes_O_args *get_Coq_Init_Datatypes_O_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_O_args *) 0;
-}
-
-struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_S_args *) $v;
-}
-
-struct Coq_Init_Datatypes_tt_args *get_Coq_Init_Datatypes_tt_args(int_or_ptr64 $v)
-{
-  return (struct Coq_Init_Datatypes_tt_args *) 0;
-}
-
-struct prog_C_pureI_args *get_prog_C_pureI_args(int_or_ptr64 $v)
-{
-  return (struct prog_C_pureI_args *) $v;
-}
-
-struct prog_C_bindI_args *get_prog_C_bindI_args(int_or_ptr64 $v)
-{
-  return (struct prog_C_bindI_args *) $v;
-}
-
-struct prog_C_setI_args *get_prog_C_setI_args(int_or_ptr64 $v)
-{
-  return (struct prog_C_setI_args *) $v;
-}
-
-struct prog_C_getI_args *get_prog_C_getI_args(int_or_ptr64 $v)
-{
-  return (struct prog_C_getI_args *) $v;
-}
-
 void print_Coq_Init_Datatypes_option(int_or_ptr64 $v, void $print_param_A(int_or_ptr64))
 {
   register unsigned int $tag;
@@ -381,7 +286,7 @@ void print_Coq_Init_Datatypes_option(int_or_ptr64 $v, void $print_param_A(int_or
   $tag = get_Coq_Init_Datatypes_option_tag($v);
   switch ($tag) {
     case 0:
-      $args = get_Coq_Init_Datatypes_Some_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_Coq_Init_Datatypes_option + $tag));
       printf(space_lit);
@@ -405,7 +310,7 @@ void print_Coq_Init_Datatypes_nat(int_or_ptr64 $v)
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       break;
     case 1:
-      $args = get_Coq_Init_Datatypes_S_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_Coq_Init_Datatypes_nat + $tag));
       printf(space_lit);
@@ -430,7 +335,7 @@ void print_prog_C_MI(int_or_ptr64 $v)
   $tag = get_prog_C_MI_tag($v);
   switch ($tag) {
     case 0:
-      $args = get_prog_C_pureI_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_prog_C_MI + $tag));
       printf(space_lit);
@@ -440,7 +345,7 @@ void print_prog_C_MI(int_or_ptr64 $v)
       printf(rparen_lit);
       break;
     case 1:
-      $args = get_prog_C_bindI_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_prog_C_MI + $tag));
       printf(space_lit);
@@ -453,7 +358,7 @@ void print_prog_C_MI(int_or_ptr64 $v)
       printf(rparen_lit);
       break;
     case 2:
-      $args = get_prog_C_setI_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_prog_C_MI + $tag));
       printf(space_lit);
@@ -463,7 +368,7 @@ void print_prog_C_MI(int_or_ptr64 $v)
       printf(rparen_lit);
       break;
     case 3:
-      $args = get_prog_C_getI_args($v);
+      $args = get_args($v);
       printf(lparen_lit);
       printf(*(names_of_prog_C_MI + $tag));
       printf(space_lit);

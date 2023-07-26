@@ -14,18 +14,18 @@ Module FM <: Compose.
     fun x => g (f x).
 End FM.
 
-Definition Rep_fun {A B : Type} `{Rep A} `{Rep B} : Rep (A -> B).
+Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
 Admitted.
 
 Module Compose_Proofs.
   Definition compose_ep : extern_properties :=
     {| type_desc :=
-       @TYPEPARAM (fun A Rep_A =>
-         @TYPEPARAM (fun B Rep_B =>
-           @TYPEPARAM (fun C Rep_C =>
-             @TRANSPARENT (B -> C) Rep_fun (Some (fun g =>
-               @TRANSPARENT (A -> B) Rep_fun (Some (fun f =>
-                 @TRANSPARENT (A -> C) Rep_fun None)))))))
+       @TYPEPARAM (fun A InGraph_A =>
+         @TYPEPARAM (fun B InGraph_B =>
+           @TYPEPARAM (fun C InGraph_C =>
+             @TRANSPARENT (B -> C) InGraph_fun (Some (fun g =>
+               @TRANSPARENT (A -> B) InGraph_fun (Some (fun f =>
+                 @TRANSPARENT (A -> C) InGraph_fun None)))))))
      ; prim_fn := @C.compose
      ; model_fn := @FM.compose
      ; c_name := "compose"
