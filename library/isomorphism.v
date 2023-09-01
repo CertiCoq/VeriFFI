@@ -49,6 +49,11 @@ Proof.
   intros A B C [f1 t1 pf1 pt1] [f2 t2 pf2 pt2] x; simpl; auto.
 Defined.
 
+Lemma to_switch : forall A B `(M : Isomorphism A B) (a : A) (b : B),
+    to b = a -> b = from a.
+Proof.
+  intros A B M a b eq; rewrite <- eq; rewrite to_from; auto.
+Defined.
 
 Require Import Coq.Logic.FunctionalExtensionality.
 

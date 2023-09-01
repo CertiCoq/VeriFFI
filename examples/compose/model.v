@@ -18,7 +18,7 @@ Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B)
 Admitted.
 
 Module Compose_Proofs.
-  Definition compose_ep : extern_properties :=
+  Definition compose_ep : fn_desc :=
     {| type_desc :=
        @TYPEPARAM _ (fun A R_A =>
          @TYPEPARAM _ (fun B R_B =>

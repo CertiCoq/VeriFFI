@@ -7,6 +7,7 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
+Unset MetaCoq Strict Unquote Universe Mode.
 Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for Z).
@@ -44,61 +45,65 @@ Module FM <: UInt63.
 End FM.
 
 Module UInt63_Proofs.
-  Axiom Isomorphism_t : Isomorphism C.t FM.t.
-  Axiom InGraph_t : InGraph C.t.
+  Axiom Isomorphism_t : Isomorphism FM.t C.t.
   Existing Instance Isomorphism_t.
-  Existing Instance InGraph_t.
 
-  Definition from_Z_ep : extern_properties :=
+  Instance InGraph_t : InGraph FM.t. Admitted.
+
+  Definition from_Z_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ Z (@TRANSPARENT _ _) (fun _ =>
-          @RES _ C.t (@OPAQUE _ _ _ _))
+        @ARG _ Z transparent (fun _ =>
+          @RES _ FM.t (opaque C.t))
      ; prim_fn := C.from_Z
      ; model_fn := FM.from_Z
+     ; f_arity := 1
      ; c_name := "int63_from_Z"
-     |}.
+    |}.
 
-  Definition to_Z_ep : extern_properties :=
+  Definition to_Z_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @RES _ Z (@TRANSPARENT _ _))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @RES _ Z transparent)
      ; prim_fn := C.to_Z
      ; model_fn := FM.to_Z
+     ; f_arity := 1
      ; c_name := "int63_to_Z"
      |}.
 
-  Definition add_ep : extern_properties :=
+  Definition add_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-            @RES _ C.t (@OPAQUE _ _ _ _)))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @ARG _ FM.t (opaque C.t) (fun _ =>
+            @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.add
      ; model_fn := FM.add
+     ; f_arity := 2
      ; c_name := "int63_add"
      |}.
 
-  Definition mul_ep : extern_properties :=
+  Definition mul_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-            @RES _ C.t (@OPAQUE _ _ _ _)))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @ARG _ FM.t (opaque C.t) (fun _ =>
+            @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.mul
      ; model_fn := FM.mul
+     ; f_arity := 2
      ; c_name := "int63_mul"
      |}.
 
-  Axiom from_Z_properties : model_spec from_Z_ep.
-  Axiom to_Z_properties : model_spec to_Z_ep.
-  Axiom add_properties : model_spec add_ep.
-  Axiom mul_properties : model_spec mul_ep.
+  Axiom from_Z_spec : model_spec from_Z_desc.
+  Axiom to_Z_spec : model_spec to_Z_desc.
+  Axiom add_spec : model_spec add_desc.
+  Axiom mul_spec : model_spec mul_desc.
 
   Lemma seven : C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)) = 7%Z.
   Proof.
-    props from_Z_properties.
-    props to_Z_properties.
-    props add_properties.
+    props from_Z_spec.
+    props add_spec.
+    props to_Z_spec.
+    repeat rewrite ?from_to, ?to_from.
     repeat eq_refl_match.
-    rewrite !from_to, !to_from.
     unfold FM.to_Z, FM.add, FM.from_Z.
     simpl.
     rewrite Z.mod_small.
@@ -111,11 +116,10 @@ Module UInt63_Proofs.
     C.to_Z (C.add (C.add (C.from_Z x) (C.from_Z y)) (C.from_Z z)).
   Proof.
     intros x y z.
-    props from_Z_properties.
-    props to_Z_properties.
-    props add_properties.
-    repeat eq_refl_match.
-    rewrite !from_to, !to_from.
+    props from_Z_spec.
+    props to_Z_spec.
+    props add_spec.
+    repeat rewrite ?from_to, ?to_from.
     unfold FM.add, FM.from_Z, FM.to_Z.
     simpl.
     rewrite <- !(Z.add_mod y z).
@@ -131,12 +135,11 @@ Module UInt63_Proofs.
     C.to_Z (C.add (C.mul (C.from_Z x) (C.from_Z y)) (C.mul (C.from_Z x) (C.from_Z z))).
   Proof.
     intros x y z.
-    props from_Z_properties.
-    props to_Z_properties.
-    props add_properties.
-    props mul_properties.
-    repeat eq_refl_match.
-    rewrite !from_to, !to_from.
+    props from_Z_spec.
+    props to_Z_spec.
+    props add_spec.
+    props mul_spec.
+    repeat rewrite ?from_to, ?to_from.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
@@ -152,12 +155,11 @@ Module UInt63_Proofs.
     C.to_Z (C.add (C.mul (C.from_Z x) (C.from_Z z)) (C.mul (C.from_Z y) (C.from_Z z))).
   Proof.
     intros x y z.
-    props from_Z_properties.
-    props to_Z_properties.
-    props add_properties.
-    props mul_properties.
-    repeat eq_refl_match.
-    rewrite !from_to, !to_from.
+    props from_Z_spec.
+    props to_Z_spec.
+    props add_spec.
+    props mul_spec.
+    repeat rewrite ?from_to, ?to_from.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (x' := Z.modulo y (Z.pow_pos 2 63)); fold x'.

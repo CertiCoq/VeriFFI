@@ -17,88 +17,6 @@ Require Import VeriFFI.library.meta.
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
 Import ListNotations.
 
-(*Unset Strict Unquote Universe Mode.*) (* There is no flag or option with this name *)
-
-Ltac destruct_conj H :=
-  match type of H with
-  | @ex _ _ =>
-    let p := fresh "_p" in
-    let m := fresh "_M" in
-    destruct H as [p m]; destruct_conj m
-  | @and _ _ =>
-    let m1 := fresh "_M" in
-    let m2 := fresh "_M" in
-    destruct H as [m1 m2]; destruct_conj m2
-  | _ => idtac
-  end.
-
-Ltac prove_has_v :=
-  intros g x v;
-  destruct x; intros H; simpl in *;
-  try contradiction ; try (destruct_conj H; intuition).
-
-Ltac prove_monotone_with_IH :=
-  match goal with
-  | [IH : forall (_ : rep_type), _ |- _ ] =>
-    eapply IH; simpl; eauto
-  end.
-
-Ltac prove_monotone_with_IH' :=
-  match goal with
-  | [IH : forall (_ : @eq _ _ _) (_ : rep_type), _ |- _ ] =>
-    eapply IH; simpl; eauto
-  end.
-
-Axiom graph_cRep_add_node : forall g to lb e p ts ps,
-  add_node_compatible g (GCGraph.new_copied_v g to) e
-   -> GCGraph.graph_has_gen g to
-   -> graph_cRep g p ts ps
-   -> graph_cRep (add_node g to lb e) p ts ps.
-
-Ltac mon n :=
-  let i := fresh "_i" in
-  match goal with
-  | [|- graph_predicate _ n _] =>
-    let t := type of n in
-    epose (i := @is_monotone t _ _ _ _ _ _ _ _ _ _)
-  end;
-  eapply i.
-
-Ltac loop_over_app C :=
-  match C with
-  | ?a ?b =>
-    match a with
-    | ?c ?d => loop_over_app a ; mon d
-    | ?e => mon b
-    end
-  | _ => idtac
-  end.
-
-Ltac prove_monotone :=
-  intros g to lb e x p C G; revert p;
-  induction x;
-  unshelve (match goal with
-  | [|- forall _ _, graph_predicate _ ?this _] =>
-    let p := fresh "p" in
-    let H := fresh "H" in
-    intros p H;
-    hnf in H;
-    destruct_conj H;
-    repeat eexists;
-    repeat split;
-    loop_over_app this;
-    try prove_monotone_with_IH;
-    try (eauto || (eapply graph_cRep_add_node; eauto))
-  end); auto.
-
-Ltac disc_gen_tac :=
-  intros;
-  repeat (match goal with
-          | [R : Discrimination _ |- _] => destruct R
-          end);
-  unshelve econstructor;
-  [apply graph_predicate | prove_has_v | prove_monotone].
-
 From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
@@ -110,14 +28,24 @@ Import monad_utils.MCMonadNotation
 
 Require Import VeriFFI.generator.GraphPredicate.
 
+Definition Discriminator (A : Type) (descs : list ctor_desc) : Type :=
+  Discrimination A.
+
+Ltac disc_gen_tac :=
+  idtac.
+  (* intros; *)
+  (* repeat (match goal with *)
+  (*         | [R : Discrimination _ |- _] => destruct R *)
+  (*         end); *)
+  (* unshelve econstructor. *)
+  (* [apply graph_predicate | prove_has_v | prove_monotone]. *)
+
 Definition generate_Discrimination_instance_type
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body) : TemplateMonad named_term :=
   generate_instance_type ind mut one
-    (fun ty_name t =>
-      let n := "Discrimination_" ++ ty_name in
-      tProd (mkBindAnn (nNamed n) Relevant) (tApp <% Discrimination %> [tVar ty_name]) t)
+    (fun ty_name t => t)
     (fun t => apply_to_pi_base (fun t' => tApp <% Discrimination %> [t']) t).
 
 (* Constructs the instance type for the type at hand,
@@ -151,31 +79,52 @@ Fixpoint find_missing_instances
       ret nil
     end.
 
-Definition add_instances_aux (kn : kername)
-                   (mut : mutual_inductive_body)
-                   (singles_tys : list (aname * named_term))
-                   (singles: list (def named_term)) : TemplateMonad _ :=
+Definition make_desc_list (ind : inductive)
+                          (ctors : list constructor_body) : TemplateMonad term :=
+  l <- monad_map_i
+    (fun i _ =>
+       t <- tmUnquoteTyped Type (tApp <% @Desc %> [hole; tConstruct ind i []]) ;;
+       o <- tmInferInstance (Some all) t ;;
+       match o with
+       | my_Some inst =>
+           t_inst <- tmQuote inst ;;
+           tmUnquoteTyped ctor_desc
+                          (tApp <% @desc %> [hole; tConstruct ind i []; t_inst])
+       | my_None => tmFail "No Desc instance for constructor"%bs
+       end) ctors ;;
+  tmQuote l. 
+
+Definition add_instances_aux
+           (kn : kername)
+           (mut : mutual_inductive_body) : TemplateMonad _ :=
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-       quantified <- quantified ind mut one "Discrimination_" <% Discrimination %> ;;
-       (* Now what can we do with this? *)
-       (*    Let's start by going to its named representation. *)
-       (* The reified type of the fully applied type constructor, *)
-       (*    but with free variables! *)
-       let tau := strip_quantifiers quantified in
-       let quantifiers : list (aname * named_term) :=
-           get_quantifiers id quantified in
-       extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
-                                                          (tApp <% Discrimination %> [tau])) ;;
-       instance_ty <- tmUnquoteTyped Type extra_quantified ;;
-       (* tmPrint prog';; *)
-       (* tmMsg "Inst" ;; *)
-       (* tmPrint instance ;; *)
+       (* quantified <- generate_Discrimination_instance_type ind mut one ;; *)
+       desc_list <- make_desc_list ind (ind_ctors one) ;;
+       quantified_before <- generate_instance_type ind mut one
+         (fun ty_name t => t)
+         (* (fun t => apply_to_pi_base (fun t' => tApp <% Discrimination %> [t']) t) ;; *)
+         (fun t => apply_to_pi_base (fun t' => tApp <% Discriminator %> [t'; desc_list]) t) ;;
+                 (* [tApp <% holding %> [t'; <% @nil ctor_desc %>]]) t) ;; *)
+       quantified_after <- generate_instance_type ind mut one
+         (fun ty_name t => t)
+         (fun t => apply_to_pi_base (fun t' => tApp <% Discrimination %> [t']) t) ;;
+
+       
+       instance_ty_before <- DB.deBruijn quantified_before >>= tmUnquoteTyped Type ;;
+       quantified_after' <- DB.deBruijn quantified_after ;;
+       instance_ty_after <- tmUnquoteTyped Type quantified_after' ;;
+
        (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
        (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("Discrimination_" ++ ind_name one)%bs ;;
-       tmLemma name instance_ty ;;
+       name_before <- tmFreshName =<< tmEval all ("Discriminator_" ++ ind_name one)%bs ;;
+       lemma <- tmLemma name_before instance_ty_before >>= tmQuote ;;
+
+       name_after <- tmFreshName =<< tmEval all ("Discrimination_" ++ ind_name one)%bs ;;
+       let def : term := tCast lemma Cast quantified_after' in
+       instance <- tmUnquoteTyped instance_ty_after def ;;
+       @tmDefinition name_after instance_ty_after instance ;;
 
        (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
        (*    because of a mysterious type error. (Coq's type errors in monadic *)
@@ -194,7 +143,7 @@ Definition add_instances_aux (kn : kername)
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
-       tmExistingInstance (ConstRef (mp, name)) ;;
+       tmExistingInstance (ConstRef (mp, name_after)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added Discrimination instance for " ++ string_of_kername fake_kn) ;;
@@ -202,11 +151,7 @@ Definition add_instances_aux (kn : kername)
 
 Definition add_instances (kn : kername) : TemplateMonad unit :=
   mut <- tmQuoteInductive kn ;;
-  singles_tys <- singles_tys kn mut ;;
-  (* tmEval all singles_tys >>= tmPrint ;; *)
-  singles <- singles kn mut singles_tys ;;
-  (* tmEval all singles >>= tmPrint ;; *)
-  add_instances_aux kn mut singles_tys singles ;;
+  add_instances_aux kn mut ;;
   ret tt.
 
 
@@ -217,62 +162,68 @@ Definition disc_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
-Obligation Tactic := disc_gen_tac.
+Ltac discriminating :=
+  match goal with
+  | [ |- @Discriminator _ ?l ] => set l as descs
+  end;
+  unfold Discriminator; intros;
+  constructor; intros x;
+  match goal with
+  (* one for each number of constructors, unfortunately *)
+  | [ descs := nil |- _ ] =>
+      case x eqn:eq_x; idtac
+  | [ descs := ?d1 :: nil |- _ ] =>
+      case x eqn:eq_x; exists d1
+  | [ descs := ?d1 :: ?d2 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: ?d6 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 | exists d6 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: ?d6 :: ?d7 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 | exists d6 | exists d7 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: ?d6 :: ?d7 :: ?d8 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 | exists d6 | exists d7 | exists d8 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: ?d6 :: ?d7 :: ?d8 :: ?d9 :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 | exists d6 | exists d7 | exists d8 | exists d9 ]
+  | [ descs := ?d1 :: ?d2 :: ?d3 :: ?d4 :: ?d5 :: ?d6 :: ?d7 :: ?d8 :: ?d9 :: ?d10  :: nil |- _ ] =>
+      case x eqn:eq_x; [ exists d1 | exists d2 | exists d3 | exists d4 | exists d5 | exists d6 | exists d7 | exists d8 | exists d9 | exists d10 ]
+  end;
+  match goal with
+  (* one for each constructor arity, unfortunately *)
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5 ?v6 ?v7 ?v8 ?v9 ?v10) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; (v6; (v7; (v8; (v9; (v10; tt))))))))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5 ?v6 ?v7 ?v8 ?v9) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; (v6; (v7; (v8; (v9; tt)))))))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5 ?v6 ?v7 ?v8) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; (v6; (v7; (v8; tt))))))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5 ?v6 ?v7) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; (v6; (v7; tt)))))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5 ?v6) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; (v6; tt))))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4 ?v5) |- _ ] => exists (v1; (v2; (v3; (v4; (v5; tt)))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3 ?v4) |- _ ] => exists (v1; (v2; (v3; (v4; tt))))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2 ?v3) |- _ ] => exists (v1; (v2; (v3; tt)))
+  | [ eq_x : @eq _ _ (_ ?v1 ?v2) |- _ ] => exists (v1; (v2; tt))
+  | [ eq_x : @eq _ _ (_ ?v1) |- _ ] => exists (v1; tt)
+  | [ eq_x : @eq _ _ _ |- _ ] => exists tt
+  end;
+  auto.
 
-(* Require Import VeriFFI.generator.GraphPredicate. *)
-(* MetaCoq Run (graph_predicate_gen nat). *)
-(* MetaCoq Run (disc_gen nat). *)
-(* Print Discrimination_nat. *)
+Require Import VeriFFI.generator.InGraph.
+Require Import VeriFFI.generator.Desc.
+Ltac gen :=
+  match goal with
+  | [ |- @Discriminator _ _ ] => discriminating
+  | [ |- @reflector _ _ _ _ ] => reflecting
+  | _ => in_graph_gen_tac
+  end.
 
+Obligation Tactic := gen.
+
+(* Unset MetaCoq Strict Unquote Universe Mode. *)
+(* MetaCoq Run (in_graph_gen option). *)
+(* MetaCoq Run (descs_gen option). *)
+
+(* MetaCoq Run (in_graph_gen list). *)
+(* MetaCoq Run (descs_gen list). *)
 (* MetaCoq Run (disc_gen list). *)
-(* Instance Discrimination_list : forall A `{Discrimination_A: Discrimination A}, Discrimination (list A). *)
-(*   (* intros. destruct Discrimination_A. *) *)
-(*   disc_gen_tac. *)
-(* Defined. *)
-
-(* MetaCoq Run (disc_gen nat). *)
-(* Instance Discrimination_nat : Discrimination nat. *)
-(*   disc_gen_tac. *)
-(* Defined. *)
-
-(* MetaCoq Run (disc_gen bool). *)
-(* Instance Discrimination_bool : Discrimination bool. *)
-(* econstructor. *)
-(* prove_has_v. *)
-(* prove_monotone. *)
-(* Defined. *)
-
-(* Inductive T := *)
-(* | C1 : T *)
-(* | C2 : bool -> T *)
-(* | C3 : bool -> bool -> T -> T. *)
-
-(* MetaCoq Run (disc_gen T). *)
-(* Instance Discrimination_T : Discrimination T. *)
-(* econstructor. *)
-(* prove_has_v. *)
-(* prove_monotone. *)
-(* Defined. *)
-
-
-(* MetaCoq Run (disc_gen option). *)
-(* Definition Discrimination_option : forall A `{Discrimination_A: Discrimination A}, Discrimination (option A). *)
-(* intros. destruct Discrimination_A. *)
-(* econstructor. *)
-(* prove_has_v. *)
-(* prove_monotone. *)
-(* Defined. *)
-
-(* MetaCoq Run (disc_gen prod). *)
-(* Definition Discrimination_prod : forall A `{Discrimination_A: Discrimination A} B `{Discrimination_B : Discrimination B}, Discrimination (prod A B). *)
-(* intros. destruct Discrimination_A. destruct Discrimination_B. *)
-(* econstructor. *)
-(* prove_has_v. *)
-(* prove_monotone. *)
-(* Defined. *)
-
-
-(* Inductive vec (A : Type) : nat -> Type := *)
-(* | vnil : vec A O *)
-(* | vcons : forall n, A -> vec A n -> vec A (S n). *)
-(* MetaCoq Run (disc_gen vec). *)

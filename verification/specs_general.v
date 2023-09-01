@@ -92,7 +92,7 @@ Definition alloc_make_nat_S : funspec :=
 
 (* move ps to the spec args somehow instead of WITH args *)
 Definition alloc_make_spec_general
-           (c : constructor_description)
+           (c : ctor_desc)
            (n : nat) : (* ident * *) funspec :=
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reified c), roots : roots_t, sh : share,

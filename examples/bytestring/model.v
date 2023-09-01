@@ -71,7 +71,7 @@ Module Bytestring_Proofs.
   Qed.
   *)
 
-  Definition pure_ep : extern_properties :=
+  Definition pure_ep : fn_desc :=
     {| type_desc :=
         @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
           @TRANSPARENT A Rep_A (Some (fun arr =>
@@ -81,7 +81,7 @@ Module Bytestring_Proofs.
      ; c_name := "m_pure"
      |}.
 
-  Definition bind_ep : extern_properties :=
+  Definition bind_ep : fn_desc :=
     {| type_desc :=
         @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
           @TYPEPARAM (fun (B : Type) `{Rep_B : Rep B} =>
@@ -93,7 +93,7 @@ Module Bytestring_Proofs.
      ; c_name := "m_bind"
      |}.
 
-  Definition runM_ep : extern_properties :=
+  Definition runM_ep : fn_desc :=
     {| type_desc :=
         @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
           @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _)
@@ -103,7 +103,7 @@ Module Bytestring_Proofs.
      ; c_name := "m_runM"
      |}.
 
-  Definition print_ep : extern_properties :=
+  Definition print_ep : fn_desc :=
     {| type_desc :=
         @OPAQUE C.bytestring FM.bytestring Isomorphism_bytestring (Some (fun n =>
           @OPAQUE (C.M unit) (FM.M unit) (Isomorphism_M _) None))
@@ -112,7 +112,7 @@ Module Bytestring_Proofs.
      ; c_name := "print"
      |}.
 
-  Definition scan_ep : extern_properties :=
+  Definition scan_ep : fn_desc :=
     {| type_desc :=
         @TRANSPARENT nat Rep_nat (Some (fun n =>
           @OPAQUE (C.M C.bytestring) (FM.M FM.bytestring) (Isomorphism_M Isomorphism_bytestring) None))

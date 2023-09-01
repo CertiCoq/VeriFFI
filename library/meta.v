@@ -18,35 +18,48 @@ Require Import CertiGraph.CertiGC.GCGraph.
 
 Notation " ( x ; p ) " := (existT _ x p).
 
+(* Set Universe Polymorphism. *)
+(* Set Polymorphic Inductive Cumulativity. *)
+
 (* The type class to describe how a Coq type is represented in the CertiCoq heap graph.
    We also have some lemmas about this representation as a part of the type class. *)
 (* GraphPredicate is only for internal use, just to make automatic generation easier *)
 Class GraphPredicate (A : Type) :=
   { graph_predicate : graph -> A -> rep_type -> Prop }.
 Class InGraph (A : Type) : Type :=
-  { is_in_graph : graph -> A -> rep_type -> Prop
+  { in_graph_pred : GraphPredicate A
   ; has_v :
-      forall (g : graph) (n : A) (v : VType), is_in_graph g n (repNode v) -> graph_has_v g v
+      forall (g : graph) (n : A) (v : VType), graph_predicate g n (repNode v) -> graph_has_v g v
   ; is_monotone :
       forall (g : graph) (to : nat) (lb : raw_vertex_block)
             (e : list (EType * (VType * VType))) (n : A) (p : rep_type),
       add_node_compatible g (new_copied_v g to) e ->
-      graph_has_gen g to -> is_in_graph g n p -> is_in_graph (add_node g to lb e) n p
+      graph_has_gen g to -> graph_predicate g n p -> graph_predicate (add_node g to lb e) n p
   }.
+
+Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> A -> rep_type -> Prop :=
+  @graph_predicate A (@in_graph_pred A IA).
+
+#[export] Instance GraphPredicate_Prop : GraphPredicate Prop :=
+  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
+#[export] Instance GraphPredicate_Set : GraphPredicate Set :=
+  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
+#[export] Instance GraphPredicate_Type : GraphPredicate Type :=
+  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
 
 #[export] Instance InGraph_Prop : InGraph Prop.
 Proof.
-  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  refine (@Build_InGraph _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
 Defined.
 #[export] Instance InGraph_Set : InGraph Set.
 Proof.
-  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  refine (@Build_InGraph _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
 Defined.
 #[export] Instance InGraph_Type : InGraph Type.
 Proof.
-  refine (@Build_InGraph _ (fun g x p => graph_cRep g p (enum 0) []) _ _).
+  refine (@Build_InGraph _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
 Defined.
 
@@ -54,14 +67,19 @@ Defined.
    a Coq value being in the heap graph.
    Unprovable because it requires proving False.
    Useful because traversing HOAS-style annotations
-   (like reified and annotated) requires a Rep instance.
+   (like reified and annotated) requires a InGraph instance.
    However, make sure you don't declare these as global instances.
    They should only be available in cases like this. *)
+Theorem GraphPredicate_any : forall {A : Type}, GraphPredicate A.
+Proof.
+  intros. constructor. exact (fun g x p => False).
+Defined.
 Theorem InGraph_any : forall {A : Type}, InGraph A.
 Proof.
   intros.
-  refine (@Build_InGraph A (fun g x p => False) _ _);
-  intros; simpl in *; contradiction.
+  unshelve econstructor.
+  apply GraphPredicate_any.
+  all: intros; simpl in *; contradiction.
 Defined.
 
 (* Explain why we have type specific defs and proofs computed by tactics/metaprograms, instead of going from a deep embedded type desc to the proofs.  *)
@@ -164,11 +182,11 @@ Definition S_reified : reified :=
   @ARG nat Rep_nat (@RES nat Rep_nat).
 Set Printing Universes.
 
-Polymorphic Inductive plist (A : Type) :=
+Inductive plist (A : Type) :=
 | pnil : plist A
 | pcons : A -> plist A -> plist A.
 Check <%% plist %%>.
-Polymorphic Cumulative Inductive pprod (A B : Type) :=
+Cumulative Inductive pprod (A B : Type) :=
 | ppair : A -> B -> pprod A B.
 Check <%% @pprod %%>.
 Check tSort.
@@ -240,7 +258,7 @@ Check <%% vec %%>.
 (* GENERATION *)
 (* Require Import MetaCoq.Template.All. *)
 Require Import MetaCoq.Template.utils.MCString.
-Record constructor_description :=
+Record ctor_desc :=
   { ctor_name : string
   ; ctor_reified : reified ctor_ann
   ; ctor_reflected : reflect ctor_reified
@@ -249,7 +267,7 @@ Record constructor_description :=
   }.
 
 Class Desc {T : Type} (ctor_val : T) :=
-  { desc : constructor_description
+  { desc : ctor_desc
   (* Think about an addition like the following: *)
   (* ; proof : ctor_val = curry ctor_real *)
   }.
@@ -259,7 +277,7 @@ Require Import JMeq.
 (* pattern match class? *)
 Class Discrimination (A : Type) :=
   { get_desc : forall (x : A),
-      { c : constructor_description &
+      { c : ctor_desc &
           { y : args (ctor_reified c) &
               JMeq (ctor_reflected c y) x }  }
   }.
@@ -277,7 +295,12 @@ Defined.
 
 Class Rep (A : Type) :=
   { in_graph : InGraph A
-  ; disc : Discrimination A
+  ; discrimination : Discrimination A
   }.
+
+Instance Rep_implied (A : Type) `(InGraph_A : InGraph A) `(Discrimination_A : Discrimination A) : Rep A :=
+ {| in_graph := InGraph_A
+  ; discrimination := Discrimination_A
+  |}.
 
 Definition Reppyish := option ({A : Type & Rep A}).

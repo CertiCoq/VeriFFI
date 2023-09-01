@@ -18,15 +18,16 @@ Require Import VeriFFI.examples.array.prog.
 Variable InGraph_elt : InGraph elt.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
-Module FM <: Array.
+Module FM.
+(* Module FM <: Array. *) (* UH OH, WE GIVE THIS UP *)
   Definition state : Type :=
     (list elt * elt). (* the internal list and the default element *)
   Definition M (A : Type) : Type := state -> A * state.
-  Definition pure {A} (a : A) : M A := fun s => (a, s).
-  Definition bind {A B} (m : M A) (f : A -> M B) : M B :=
+  Definition pure {A} `{prim_ann A} (a : A) : M A := fun s => (a, s).
+  Definition bind {A} `{prim_ann A} {B} `{prim_ann B} (m : M A) (f : A -> M B) : M B :=
     fun s => f (fst (m s)) (snd (m s)).
     (* fun s => let '(a, s') := m s in f a s'. *)
-  Definition runM {A} (len : nat) (init: elt) (m : M A) : A :=
+  Definition runM {A} `{prim_ann A} (len : nat) (init: elt) (m : M A) : A :=
     fst (m (repeat init len, init)).
 
   Definition set (index : nat) (x : elt) : M unit :=
@@ -42,78 +43,75 @@ Admitted.
 Module Array_Proofs.
   (* Axiom Isomorphism_state : Isomorphism C.state FM.state. *)
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),
-                        Isomorphism (C.M A) (FM.M A').
-  Axiom InGraph_M : forall {A : Type} `{InGraph A}, InGraph (C.M A).
+                        Isomorphism (FM.M A) (C.M A').
   Existing Instance Isomorphism_M.
-  Existing Instance InGraph_M.
 
-  (*
-  Definition Isomorphism_M
-             {A A' : Type} (I : Isomorphism A A')
-             : Isomorphism (C.M A) (FM.M A').
-  Proof.
-    eauto using Isomorphism_fn, Isomorphism_state, Isomorphism_pair.
-  Qed.
-  *)
+  Instance InGraph_M : forall {A : Type} `{InGraph A}, InGraph (FM.M A).
+  Admitted.
 
-  Definition pure_ep : extern_properties :=
+  Definition pure_desc : fn_desc :=
     {| type_desc :=
         @TYPEPARAM _ (fun A (P_A : prim_ann A) =>
           @ARG _ A P_A (fun a =>
-            @RES _ (C.M A) (@OPAQUE _ (FM.M A) (@InGraph_M A (prim_in_graph P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
+            @RES _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@prim_in_graph _ P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
      ; prim_fn := @C.pure
      ; model_fn := @FM.pure
+     ; f_arity := 2
      ; c_name := "m_pure"
      |}.
 
-  Definition bind_ep : extern_properties :=
+  Definition bind_desc : fn_desc :=
     {| type_desc :=
         @TYPEPARAM _ (fun (A : Type) (P_A : prim_ann A) =>
           @TYPEPARAM _ (fun (B : Type) (P_B : prim_ann B) =>
-            @ARG _ (C.M A) (@OPAQUE (C.M A) (FM.M A) (@InGraph_M A (prim_in_graph P_A)) (Isomorphism_M _)) (fun m =>
-              @ARG _ (A -> C.M B) (@OPAQUE (A -> C.M B) (A -> FM.M B) (@InGraph_fun _ _ (prim_in_graph P_A) (@InGraph_M B (prim_in_graph P_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
-                                                                                                                    @RES _ (C.M B) (@OPAQUE (C.M B) (FM.M B) (@InGraph_M B (prim_in_graph P_B)) (Isomorphism_M _))))))
+            @ARG _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@prim_in_graph _ P_A)) (Isomorphism_M _)) (fun m =>
+              @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@prim_in_graph _ P_A) (@InGraph_M B (@prim_in_graph _ P_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
+                                                                                                                    @RES _ (FM.M B) (@opaque _ (C.M B) (@InGraph_M B (@prim_in_graph _ P_B)) (Isomorphism_M _))))))
      ; prim_fn := @C.bind
      ; model_fn := @FM.bind
+     ; f_arity := 4
      ; c_name := "m_bind"
      |}.
 
-  Definition runM_ep : extern_properties :=
+  Definition runM_desc : fn_desc :=
     {| type_desc :=
         @TYPEPARAM _ (fun (A : Type) (P_A : prim_ann A) =>
-          @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun len =>
-            @ARG _ _ (@TRANSPARENT elt InGraph_elt) (fun init =>
-              @ARG _ _ (@OPAQUE (C.M A) (FM.M A) (@InGraph_M _ (prim_in_graph P_A)) (Isomorphism_M _)) (fun f =>
-                @RES _ _ (@TRANSPARENT A (prim_in_graph P_A))))))
+          @ARG _ _ (@transparent nat InGraph_nat) (fun len =>
+            @ARG _ _ (@transparent elt InGraph_elt) (fun init =>
+              @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M _ (@prim_in_graph _ P_A)) (Isomorphism_M _)) (fun f =>
+                @RES _ _ (@transparent A (@prim_in_graph _ P_A))))))
      ; prim_fn := @C.runM
      ; model_fn := @FM.runM
+     ; f_arity := 4
      ; c_name := "m_runM"
      |}.
 
-  Definition set_ep : extern_properties :=
+  Definition set_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun n =>
-          @ARG _ _ (@TRANSPARENT elt InGraph_elt) (fun a =>
-            @RES _ _ (@OPAQUE (C.M unit) (FM.M unit) (InGraph_M) (Isomorphism_M _))))
+        @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
+          @ARG _ _ (@transparent elt InGraph_elt) (fun a =>
+            @RES _ _ (@opaque (FM.M unit) _ (InGraph_M) (Isomorphism_M _))))
      ; prim_fn := @C.set
      ; model_fn := @FM.set
+     ; f_arity := 2
      ; c_name := "array_set"
      |}.
 
-  Definition get_ep : extern_properties :=
+  Definition get_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun n =>
-          @RES _ _ (@OPAQUE (C.M elt) (FM.M elt) (InGraph_M) (Isomorphism_M _)))
+        @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
+          @RES _ _ (@opaque (FM.M elt) (C.M elt) (InGraph_M) (Isomorphism_M _)))
      ; prim_fn := @C.get
      ; model_fn := @FM.get
+     ; f_arity := 1
      ; c_name := "array_get"
      |}.
 
-  Axiom pure_properties : model_spec pure_ep.
-  Axiom bind_properties : model_spec bind_ep.
-  Axiom runM_properties : model_spec runM_ep.
-  Axiom set_properties : model_spec set_ep.
-  Axiom get_properties : model_spec get_ep.
+  Axiom pure_spec : model_spec pure_desc.
+  Axiom bind_spec : model_spec bind_desc.
+  Axiom runM_spec : model_spec runM_desc.
+  Axiom set_spec : model_spec set_desc.
+  Axiom get_spec : model_spec get_desc.
 
   Arguments from A B {_}.
   Arguments to A B {_}.
@@ -126,17 +124,17 @@ Module Array_Proofs.
   Proof.
     intros n len bound init to_set.
 
-    props runM_properties.
+    props runM_spec.
     prim_rewrites.
     unfold FM.runM.
 
-    props bind_properties.
-    props pure_properties.
+    props bind_spec.
+    props pure_spec.
     unfold FM.bind, FM.pure.
     prim_rewrites.
 
-    props set_properties.
-    props get_properties.
+    props set_spec.
+    props get_spec.
     prim_rewrites.
 
     eapply invariants.nth_replace_nth.

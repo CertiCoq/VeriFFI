@@ -96,8 +96,7 @@ Ltac in_graph_gen_tac :=
   repeat (match goal with
           | [R : InGraph _ |- _] => destruct R
           end);
-  unshelve econstructor;
-  [apply graph_predicate | prove_has_v | prove_monotone].
+  econstructor; [prove_has_v | prove_monotone].
 
 From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
@@ -223,13 +222,12 @@ Obligation Tactic := in_graph_gen_tac.
 (* Require Import VeriFFI.generator.GraphPredicate. *)
 (* MetaCoq Run (graph_predicate_gen nat). *)
 (* MetaCoq Run (in_graph_gen nat). *)
-(* Print InGraph_nat. *)
 
+(* MetaCoq Run (graph_predicate_gen list). *)
 (* MetaCoq Run (in_graph_gen list). *)
-(* Instance InGraph_list : forall A `{InGraph_A: InGraph A}, InGraph (list A). *)
-(*   (* intros. destruct InGraph_A. *) *)
-(*   in_graph_gen_tac. *)
-(* Defined. *)
+
+(* MetaCoq Run (graph_predicate_gen prod). *)
+(* MetaCoq Run (in_graph_gen prod). *)
 
 (* MetaCoq Run (in_graph_gen nat). *)
 (* Instance InGraph_nat : InGraph nat. *)
