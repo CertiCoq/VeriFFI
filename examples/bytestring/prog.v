@@ -64,11 +64,11 @@ CertiCoq Compile prog
     C.pack => "pack" with tinfo,
     C.unpack => "unpack" with tinfo,
     C.runM => "runM" with tinfo,
-    C.get_stdin => "get_stdin",
-    C.get_stdout => "get_stdout"
+    C.get_stdin => "get_stdin" with tinfo,
+    C.get_stdout => "get_stdout" with tinfo
   ]
   Include [ "prims.h" ].
 
-CertiCoq Generate Glue -file "glue" [ unit, nat, C.MI ].
+CertiCoq Generate Glue -file "glue" [ unit, nat, bool, string, C.MI ].
 
 

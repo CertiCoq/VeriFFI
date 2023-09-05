@@ -4,10 +4,11 @@ Require Import List.
 Require Import String.
 Open Scope string.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (gen_for string).
+MetaCoq Run (gen_for unit).
 
 Require Import VeriFFI.library.meta.
 Require Import VeriFFI.library.modelled.
@@ -15,25 +16,18 @@ Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.bytestring.prog.
 
-Module FM <: Bytestring.
+Module FM.
   Definition bytestring : Type := string.
 
   Definition append (x y : bytestring) := append x y.
   Definition pack (x : string) : bytestring := x.
   Definition unpack (x : bytestring) : string := x.
 
-  Record world := {
-    state : Type;
-    initial_state : state;
-    input : state -> bytestring * state -> Prop;
-    output : bytestring * state -> state -> Prop;
-  }.
-
   Definition state : Type :=
     (string * string). (* the input stream and the output stream *)
-  Definition M (w : World) (A : Type) : Type := state w -> A * state w.
-  Definition pure {A} (a : A) : M A := fun s => (a, s).
-  Definition bind {A B} (m : M A) (f : A -> M B) : M B :=
+  Definition M (A : Type) : Type := state -> A * state.
+  Definition pure {A} `{prim_ann A} (a : A) : M A := fun s => (a, s).
+  Definition bind {A} `{prim_ann A} {B} `{prim_ann B} (m : M A) (f : A -> M B) : M B :=
     fun s => f (fst (m s)) (snd (m s)).
     (* fun s => let '(a, s') := m s in f a s'. *)
 
@@ -44,109 +38,191 @@ Module FM <: Bytestring.
     fun '(input, output) => (substring 0 n input,
         (substring n (length input) input, append output "x")).
 
-(*   Definition stream : Type := string. *)
-(*   Definition get_stdin (_ : unit) : stream := "". *)
-(*   Definition get_stdout (_ : unit) : stream := "". *)
+  Definition stream : Type := string.
+  Definition get_stdin (_ : unit) : stream := "".
+  Definition get_stdout (_ : unit) : stream := "".
 
-(*   Definition runM {A} (instream outstream : stream) (m : M A) : A := *)
-(*     fst (m (instream, outstream)). *)
+  Definition runM {A} `{prim_ann A} (instream outstream : stream) (m : M A) : A :=
+    fst (m (instream, outstream)).
+
+  (* Joomy's note: We wrote this definition in a meeting but I'm not
+  sure how it fits in the pattern we designed. I'm leaving it here in
+  case anyone wants to play around with it.
+
+  Record world := {
+    state : Type;
+    initial_state : state;
+    input : state -> bytestring * state -> Prop;
+    output : bytestring * state -> state -> Prop;
+  }.
+  Definition M (w : World) (A : Type) : Type := state w -> A * state w.
 
   Definition runM (w : world) (m : M unit) : unit :=
     fst (m (initial_state w)).
-
-
+  *)
 End FM.
 
 Module Bytestring_Proofs.
-  Axiom Isomorphism_bytestring : Isomorphism C.bytestring FM.bytestring.
+  Axiom Isomorphism_bytestring : Isomorphism FM.bytestring C.bytestring.
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),
-                        Isomorphism (C.M A) (FM.M A').
+                        Isomorphism (FM.M A) (C.M A').
+  Axiom Isomorphism_stream : Isomorphism FM.stream C.stream.
+  Existing Instance Isomorphism_bytestring.
+  Existing Instance Isomorphism_M.
+  Existing Instance Isomorphism_stream.
 
-  (*
-  Definition Isomorphism_M
-             {A A' : Type} (I : Isomorphism A A')
-             : Isomorphism (C.M A) (FM.M A').
-  Proof.
-    eauto using Isomorphism_fn, Isomorphism_state, Isomorphism_pair.
-  Qed.
-  *)
+  Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring.
+    refine {| graph_predicate g x p := _ |}.
+    (* TODO this is where we describe how an OCaml bytestring 
+            is represented within the graph *)
+    Admitted.
+  Instance InGraph_bytestring : InGraph FM.bytestring.
+    econstructor.
+    (*  TODO this is where we prove lemmas about the graph predicate above *)
+    * admit.
+    * admit.
+    Admitted.
+  Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
+    refine {| graph_predicate g x p := _ |}.
+    (* TODO this is where we describe how the monad type
+            is represented within the graph *)
+    Admitted.
+  Instance InGraph_M {A : Type} `{GP : InGraph A} : InGraph (FM.M A).
+    econstructor.
+    (*  TODO this is where we prove lemmas about the graph predicate above *)
+    * admit.
+    * admit.
+    Admitted.
+  Instance GraphPredicate_stream : GraphPredicate FM.stream.
+    refine {| graph_predicate g x p := _ |}.
+    (* TODO this is where we describe how a stream is represented within the graph *)
+    Admitted.
+  Instance InGraph_stream : InGraph FM.stream.
+    econstructor.
+    (*  TODO this is where we prove lemmas about the graph predicate above *)
+    * admit.
+    * admit.
+    Admitted.
 
-  Definition pure_ep : fn_desc :=
+  Definition append_desc : fn_desc :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TRANSPARENT A Rep_A (Some (fun arr =>
-            @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) None)))
+        @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
+          @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
+            @RES _ FM.bytestring (opaque C.bytestring)))
+     ; prim_fn := C.append
+     ; model_fn := FM.append
+     ; f_arity := 2
+     ; c_name := "append"
+     |}.
+
+  Definition pack_desc : fn_desc :=
+    {| type_desc :=
+        @ARG _ string transparent (fun _ =>
+          @RES _ FM.bytestring (opaque C.bytestring))
+     ; prim_fn := C.pack
+     ; model_fn := FM.pack
+     ; f_arity := 1
+     ; c_name := "pack"
+     |}.
+
+  Definition unpack_desc : fn_desc :=
+    {| type_desc :=
+        @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
+          @RES _ string transparent)
+     ; prim_fn := C.unpack
+     ; model_fn := FM.unpack
+     ; f_arity := 1
+     ; c_name := "unpack"
+     |}.
+
+  Definition pure_desc : fn_desc :=
+    {| type_desc :=
+        @TYPEPARAM _ (fun (A : Type) (H_A : prim_ann A) =>
+          @ARG _ _ (@transparent A (@prim_in_graph _ H_A)) (fun _ =>
+            @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _))))
      ; prim_fn := @C.pure
      ; model_fn := @FM.pure
+     ; f_arity := 2
      ; c_name := "m_pure"
      |}.
 
-  Definition bind_ep : fn_desc :=
+  Definition bind_desc : fn_desc :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @TYPEPARAM (fun (B : Type) `{Rep_B : Rep B} =>
-            @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) (Some (fun m =>
-              @OPAQUE (A -> C.M B) (A -> FM.M B) (Isomorphism_fn _ (Isomorphism_M _)) (Some (fun f =>
-                @OPAQUE (C.M B) (FM.M B) (Isomorphism_M _) None))))))
+        @TYPEPARAM _ (fun (A : Type) `(H_A : prim_ann A) =>
+          @TYPEPARAM _ (fun (B : Type) `(H_B : prim_ann B) =>
+            @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _)) (fun m =>
+              @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@prim_in_graph _ H_A) (@InGraph_M B (@prim_in_graph _ H_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
+                @RES _ _ (@opaque (FM.M B) (C.M B) (@InGraph_M B (@prim_in_graph _ H_B)) (Isomorphism_M _))))))
      ; prim_fn := @C.bind
      ; model_fn := @FM.bind
+     ; f_arity := 4
      ; c_name := "m_bind"
      |}.
 
-  Definition runM_ep : fn_desc :=
+  Definition runM_desc : fn_desc :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{Rep_A : Rep A} =>
-          @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _)
-                  (Some (fun f => @TRANSPARENT A Rep_A None)))
+        @TYPEPARAM _ (fun (A : Type) `(H_A : prim_ann A) =>
+          @ARG _ _ (@opaque FM.stream C.stream InGraph_stream Isomorphism_stream) (fun _ =>
+            @ARG _ _ (@opaque FM.stream C.stream InGraph_stream Isomorphism_stream) (fun _ =>
+              @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _)) (fun _ =>
+                @RES _ _ (@transparent A (@prim_in_graph _ H_A))))))
      ; prim_fn := @C.runM
      ; model_fn := @FM.runM
+     ; f_arity := 4
      ; c_name := "m_runM"
      |}.
 
-  Definition print_ep : fn_desc :=
+  Definition print_desc : fn_desc :=
     {| type_desc :=
-        @OPAQUE C.bytestring FM.bytestring Isomorphism_bytestring (Some (fun n =>
-          @OPAQUE (C.M unit) (FM.M unit) (Isomorphism_M _) None))
+        @ARG _ _ (@opaque FM.bytestring C.bytestring InGraph_bytestring Isomorphism_bytestring) (fun n =>
+          @RES _ _ (@opaque (FM.M unit) (C.M unit) (@InGraph_M unit InGraph_unit) (Isomorphism_M _)))
      ; prim_fn := @C.print
      ; model_fn := @FM.print
+     ; f_arity := 1
      ; c_name := "print"
      |}.
 
-  Definition scan_ep : fn_desc :=
+  Definition scan_desc : fn_desc :=
     {| type_desc :=
-        @TRANSPARENT nat Rep_nat (Some (fun n =>
-          @OPAQUE (C.M C.bytestring) (FM.M FM.bytestring) (Isomorphism_M Isomorphism_bytestring) None))
+        @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
+          @RES _ _ (@opaque (FM.M FM.bytestring) (C.M C.bytestring) _ (Isomorphism_M Isomorphism_bytestring)))
      ; prim_fn := @C.scan
      ; model_fn := @FM.scan
+     ; f_arity := 1
      ; c_name := "scan"
      |}.
 
-  Axiom pure_properties : model_spec pure_ep.
-  Axiom bind_properties : model_spec bind_ep.
-  Axiom runM_properties : model_spec runM_ep.
-  Axiom print_properties : model_spec print_ep.
-  Axiom scan_properties : model_spec scan_ep.
+  (* Maybe also get_stdin and get_stdout? *)
+
+  Axiom append_spec : model_spec append_desc.
+  Axiom pack_spec : model_spec pack_desc.
+  Axiom unpack_spec : model_spec unpack_desc.
+  Axiom pure_spec : model_spec pure_desc.
+  Axiom bind_spec : model_spec bind_desc.
+  Axiom runM_spec : model_spec runM_desc.
+  Axiom print_spec : model_spec print_desc.
+  Axiom scan_spec : model_spec scan_desc.
 
   Arguments from A B {_}.
   Arguments to A B {_}.
 
   Lemma print_steps :
     forall (a b : C.bytestring),
-      (C.runM (C.bind (C.print a) (fun _ => C.print b)))
+      (C.runM (C.get_stdin tt) (C.get_stdout tt) (C.bind (C.print a) (fun _ => C.print b)))
         =
-      (C.runM (C.print (C.append a b))).
+      (C.runM (C.get_stdin tt) (C.get_stdout tt) (C.print (C.append a b))).
   Proof.
     intros a b.
 
-    props runM_properties.
+    props runM_spec.
     prim_rewrites.
     unfold FM.runM.
 
-    props bind_properties.
+    props bind_spec.
     unfold FM.bind.
     prim_rewrites.
 
-    props print_properties.
+    props print_spec.
     prim_rewrites.
 
     auto.

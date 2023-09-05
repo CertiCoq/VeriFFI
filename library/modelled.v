@@ -16,7 +16,7 @@ Ltac eq_refl_match :=
 
 Ltac prim_rewrites :=
   repeat eq_refl_match;
-  rewrite ?from_to, ?to_from.
+  repeat rewrite ?from_to, ?to_from.
 
 Ltac props x :=
   let P := fresh in
@@ -83,20 +83,10 @@ Fixpoint to_prim_fn_type (r : reified prim_ann) : Type :=
   | RES _ ann => secondary
   end.
 
-Inductive no_ann (A : Type) : Type :=
-| empty_ann : no_ann A.
-
-Fixpoint remove_ann (r : reified prim_ann) : reified no_ann :=
-  match r with
-  | TYPEPARAM f => @TYPEPARAM _ (fun A _ => remove_ann (f A (@transparent _ InGraph_any)))
-  | ARG A H f => @ARG _ A (empty_ann _) (fun a => remove_ann (f a))
-  | RES A H => @RES _ A (empty_ann _)
-  end.
-
 Fixpoint uncurry (r : reified prim_ann)
-                 (mt : to_model_fn_type r) {struct r} : reflector mt r.
+                 (mt : to_model_fn_type r) {struct r} : reflect r.
 Proof.
-  destruct r; simpl in mt; intros P; unfold reflector, reflect in *.
+  destruct r; simpl in mt; intros P; unfold reflect in *.
   * destruct P as [A [ H rest ]].
     specialize (mt _ H).
     simpl in *.
@@ -118,7 +108,7 @@ Record fn_desc :=
   ; c_name : string
   }.
 
-Definition uncurried_model_fn (d : fn_desc) : reflector (model_fn d) (type_desc d) :=
+Definition uncurried_model_fn (d : fn_desc) : reflect (type_desc d) :=
   uncurry (type_desc d) (model_fn d).
 
 (*

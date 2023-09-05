@@ -37,9 +37,6 @@ Module FM.
     fun '(l, init) => (nth index l init, (l, init)).
 End FM.
 
-Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
-Admitted.
-
 Module Array_Proofs.
   (* Axiom Isomorphism_state : Isomorphism C.state FM.state. *)
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),

@@ -95,6 +95,18 @@ Module UInt63_Proofs.
   Axiom add_spec : model_spec add_desc.
   Axiom mul_spec : model_spec mul_desc.
 
+  (* Class HasSpec {A} (f : A) : Type := *)
+  (*   { get_spec : {d : fn_desc & model_spec d} }. *)
+
+  (* Instance HasSpec_from_nat : HasSpec C.from_nat := *)
+  (*   {| get_spec := (from_nat_desc; from_nat_spec) |}. *)
+  (* Instance HasSpec_to_nat : HasSpec C.to_nat := *)
+  (*   {| get_spec := (to_nat_desc; to_nat_spec) |}. *)
+  (* Instance HasSpec_add : HasSpec C.add := *)
+  (*   {| get_spec := (add_desc; add_spec) |}. *)
+  (* Instance HasSpec_mul : HasSpec C.mul := *)
+  (*   {| get_spec := (mul_desc; mul_spec) |}. *)
+
 (* commented out to reduce chatter in build
   Eval cbn in model_spec from_nat_desc.
   Eval cbn in model_spec to_nat_desc.
@@ -104,11 +116,12 @@ Module UInt63_Proofs.
     C.to_nat (C.add (C.from_nat x) (C.add (C.from_nat y) (C.from_nat z))) =
     C.to_nat (C.add (C.add (C.from_nat x) (C.from_nat y)) (C.from_nat z)).
   Proof.
+    (* let o := open_constr:(HasSpec C.to_nat) in unshelve evar (x:o); [typeclasses eauto|]. *)
     intros x y z.
-    props from_nat_spec.
     props to_nat_spec.
     props add_spec.
-    repeat rewrite ?from_to, ?to_from.
+    props from_nat_spec.
+    prim_rewrites.
     unfold FM.add, FM.from_nat, FM.to_nat.
     (* the rest is just a proof about the functional model *)
     unfold proj1_sig.

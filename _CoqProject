@@ -41,6 +41,7 @@ examples/array/prog.v
 examples/array/model.v
 examples/array/glue.v
 
-# examples/bytestring/prog.v
-# examples/bytestring/model.v
-# examples/bytestring/glue.v
+examples/bytestring/prog.v
+examples/bytestring/model.v
+examples/bytestring/glue.v
+examples/bytestring/Verif_prog.v

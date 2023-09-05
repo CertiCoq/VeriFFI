@@ -63,6 +63,10 @@ Proof.
   intros; simpl in *. intuition. induction p; intuition.
 Defined.
 
+#[export] Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
+(* TODO we will have to define this when we do "call" *)
+Admitted.
+
 (* This is an unprovable but useful predicate about
    a Coq value being in the heap graph.
    Unprovable because it requires proving False.

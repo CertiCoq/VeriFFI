@@ -5,7 +5,7 @@ Require Import Psatz.
 
 Require Import VeriFFI.verification.specs_general.
 
-Require Import VeriFFI.generator.all.
+Require Import VeriFFI.generator.Rep.
 
 Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
