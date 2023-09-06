@@ -55,7 +55,7 @@ Module UInt63_Proofs.
         @ARG _ Z transparent (fun _ =>
           @RES _ FM.t (opaque C.t))
      ; prim_fn := C.from_Z
-     ; model_fn := FM.from_Z
+     ; model_fn := fun '(x; tt) => FM.from_Z x
      ; f_arity := 1
      ; c_name := "int63_from_Z"
     |}.
@@ -65,7 +65,7 @@ Module UInt63_Proofs.
         @ARG _ FM.t (opaque C.t) (fun _ =>
           @RES _ Z transparent)
      ; prim_fn := C.to_Z
-     ; model_fn := FM.to_Z
+     ; model_fn := fun '(x; tt) => FM.to_Z x
      ; f_arity := 1
      ; c_name := "int63_to_Z"
      |}.
@@ -76,7 +76,7 @@ Module UInt63_Proofs.
           @ARG _ FM.t (opaque C.t) (fun _ =>
             @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.add
-     ; model_fn := FM.add
+     ; model_fn := fun '(x; (y; tt)) => FM.add x y
      ; f_arity := 2
      ; c_name := "int63_add"
      |}.
@@ -87,7 +87,7 @@ Module UInt63_Proofs.
           @ARG _ FM.t (opaque C.t) (fun _ =>
             @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.mul
-     ; model_fn := FM.mul
+     ; model_fn := fun '(x; (y; tt)) => FM.mul x y
      ; f_arity := 2
      ; c_name := "int63_mul"
      |}.
@@ -102,8 +102,7 @@ Module UInt63_Proofs.
     props from_Z_spec.
     props add_spec.
     props to_Z_spec.
-    repeat rewrite ?from_to, ?to_from.
-    repeat eq_refl_match.
+    prim_rewrites.
     unfold FM.to_Z, FM.add, FM.from_Z.
     simpl.
     rewrite Z.mod_small.
@@ -119,7 +118,7 @@ Module UInt63_Proofs.
     props from_Z_spec.
     props to_Z_spec.
     props add_spec.
-    repeat rewrite ?from_to, ?to_from.
+    prim_rewrites.
     unfold FM.add, FM.from_Z, FM.to_Z.
     simpl.
     rewrite <- !(Z.add_mod y z).
@@ -139,7 +138,7 @@ Module UInt63_Proofs.
     props to_Z_spec.
     props add_spec.
     props mul_spec.
-    repeat rewrite ?from_to, ?to_from.
+    prim_rewrites.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
@@ -159,7 +158,7 @@ Module UInt63_Proofs.
     props to_Z_spec.
     props add_spec.
     props mul_spec.
-    repeat rewrite ?from_to, ?to_from.
+    prim_rewrites.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (x' := Z.modulo y (Z.pow_pos 2 63)); fold x'.

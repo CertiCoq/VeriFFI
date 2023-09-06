@@ -26,8 +26,8 @@ Module FM.
   Definition state : Type :=
     (string * string). (* the input stream and the output stream *)
   Definition M (A : Type) : Type := state -> A * state.
-  Definition pure {A} `{prim_ann A} (a : A) : M A := fun s => (a, s).
-  Definition bind {A} `{prim_ann A} {B} `{prim_ann B} (m : M A) (f : A -> M B) : M B :=
+  Definition pure {A} (a : A) : M A := fun s => (a, s).
+  Definition bind {A B} (m : M A) (f : A -> M B) : M B :=
     fun s => f (fst (m s)) (snd (m s)).
     (* fun s => let '(a, s') := m s in f a s'. *)
 
@@ -42,7 +42,7 @@ Module FM.
   Definition get_stdin (_ : unit) : stream := "".
   Definition get_stdout (_ : unit) : stream := "".
 
-  Definition runM {A} `{prim_ann A} (instream outstream : stream) (m : M A) : A :=
+  Definition runM {A} (instream outstream : stream) (m : M A) : A :=
     fst (m (instream, outstream)).
 
   (* Joomy's note: We wrote this definition in a meeting but I'm not
@@ -110,7 +110,7 @@ Module Bytestring_Proofs.
           @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
             @RES _ FM.bytestring (opaque C.bytestring)))
      ; prim_fn := C.append
-     ; model_fn := FM.append
+     ; model_fn := fun '(a; (b; tt)) =>  FM.append a b
      ; f_arity := 2
      ; c_name := "append"
      |}.
@@ -120,7 +120,7 @@ Module Bytestring_Proofs.
         @ARG _ string transparent (fun _ =>
           @RES _ FM.bytestring (opaque C.bytestring))
      ; prim_fn := C.pack
-     ; model_fn := FM.pack
+     ; model_fn := fun '(x; tt) => FM.pack x
      ; f_arity := 1
      ; c_name := "pack"
      |}.
@@ -130,7 +130,7 @@ Module Bytestring_Proofs.
         @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
           @RES _ string transparent)
      ; prim_fn := C.unpack
-     ; model_fn := FM.unpack
+     ; model_fn := fun '(x; tt) => FM.unpack x
      ; f_arity := 1
      ; c_name := "unpack"
      |}.
@@ -141,7 +141,7 @@ Module Bytestring_Proofs.
           @ARG _ _ (@transparent A (@prim_in_graph _ H_A)) (fun _ =>
             @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _))))
      ; prim_fn := @C.pure
-     ; model_fn := @FM.pure
+     ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a
      ; f_arity := 2
      ; c_name := "m_pure"
      |}.
@@ -154,7 +154,7 @@ Module Bytestring_Proofs.
               @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@prim_in_graph _ H_A) (@InGraph_M B (@prim_in_graph _ H_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
                 @RES _ _ (@opaque (FM.M B) (C.M B) (@InGraph_M B (@prim_in_graph _ H_B)) (Isomorphism_M _))))))
      ; prim_fn := @C.bind
-     ; model_fn := @FM.bind
+     ; model_fn := fun '(A; (_; (B; (_; (m; (f; tt)))))) => @FM.bind A B m f
      ; f_arity := 4
      ; c_name := "m_bind"
      |}.
@@ -167,7 +167,7 @@ Module Bytestring_Proofs.
               @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _)) (fun _ =>
                 @RES _ _ (@transparent A (@prim_in_graph _ H_A))))))
      ; prim_fn := @C.runM
-     ; model_fn := @FM.runM
+     ; model_fn := fun '(A; (_; (i; (o; (m; tt))))) => @FM.runM A i o m
      ; f_arity := 4
      ; c_name := "m_runM"
      |}.
@@ -177,7 +177,7 @@ Module Bytestring_Proofs.
         @ARG _ _ (@opaque FM.bytestring C.bytestring InGraph_bytestring Isomorphism_bytestring) (fun n =>
           @RES _ _ (@opaque (FM.M unit) (C.M unit) (@InGraph_M unit InGraph_unit) (Isomorphism_M _)))
      ; prim_fn := @C.print
-     ; model_fn := @FM.print
+     ; model_fn := fun '(x; tt) => @FM.print x
      ; f_arity := 1
      ; c_name := "print"
      |}.
@@ -187,7 +187,7 @@ Module Bytestring_Proofs.
         @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
           @RES _ _ (@opaque (FM.M FM.bytestring) (C.M C.bytestring) _ (Isomorphism_M Isomorphism_bytestring)))
      ; prim_fn := @C.scan
-     ; model_fn := @FM.scan
+     ; model_fn := fun '(x; tt) => @FM.scan x
      ; f_arity := 1
      ; c_name := "scan"
      |}.

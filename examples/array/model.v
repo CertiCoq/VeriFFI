@@ -18,16 +18,15 @@ Require Import VeriFFI.examples.array.prog.
 Variable InGraph_elt : InGraph elt.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
-Module FM.
-(* Module FM <: Array. *) (* UH OH, WE GIVE THIS UP *)
+Module FM <: Array.
   Definition state : Type :=
     (list elt * elt). (* the internal list and the default element *)
   Definition M (A : Type) : Type := state -> A * state.
-  Definition pure {A} `{prim_ann A} (a : A) : M A := fun s => (a, s).
-  Definition bind {A} `{prim_ann A} {B} `{prim_ann B} (m : M A) (f : A -> M B) : M B :=
+  Definition pure {A} (a : A) : M A := fun s => (a, s).
+  Definition bind {A B} (m : M A) (f : A -> M B) : M B :=
     fun s => f (fst (m s)) (snd (m s)).
     (* fun s => let '(a, s') := m s in f a s'. *)
-  Definition runM {A} `{prim_ann A} (len : nat) (init: elt) (m : M A) : A :=
+  Definition runM {A} (len : nat) (init: elt) (m : M A) : A :=
     fst (m (repeat init len, init)).
 
   Definition set (index : nat) (x : elt) : M unit :=
@@ -52,7 +51,7 @@ Module Array_Proofs.
           @ARG _ A P_A (fun a =>
             @RES _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@prim_in_graph _ P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
      ; prim_fn := @C.pure
-     ; model_fn := @FM.pure
+     ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a
      ; f_arity := 2
      ; c_name := "m_pure"
      |}.
@@ -65,7 +64,7 @@ Module Array_Proofs.
               @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@prim_in_graph _ P_A) (@InGraph_M B (@prim_in_graph _ P_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
                                                                                                                     @RES _ (FM.M B) (@opaque _ (C.M B) (@InGraph_M B (@prim_in_graph _ P_B)) (Isomorphism_M _))))))
      ; prim_fn := @C.bind
-     ; model_fn := @FM.bind
+     ; model_fn := fun '(A; (_; (B; (_; (m; (f; tt)))))) => @FM.bind A B m f
      ; f_arity := 4
      ; c_name := "m_bind"
      |}.
@@ -78,7 +77,7 @@ Module Array_Proofs.
               @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M _ (@prim_in_graph _ P_A)) (Isomorphism_M _)) (fun f =>
                 @RES _ _ (@transparent A (@prim_in_graph _ P_A))))))
      ; prim_fn := @C.runM
-     ; model_fn := @FM.runM
+     ; model_fn := fun '(A; (_; (len; (init; (f; tt))))) => @FM.runM A len init f
      ; f_arity := 4
      ; c_name := "m_runM"
      |}.
@@ -89,7 +88,7 @@ Module Array_Proofs.
           @ARG _ _ (@transparent elt InGraph_elt) (fun a =>
             @RES _ _ (@opaque (FM.M unit) _ (InGraph_M) (Isomorphism_M _))))
      ; prim_fn := @C.set
-     ; model_fn := @FM.set
+     ; model_fn := fun '(n; (a; tt)) => @FM.set n a
      ; f_arity := 2
      ; c_name := "array_set"
      |}.
@@ -99,7 +98,7 @@ Module Array_Proofs.
         @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
           @RES _ _ (@opaque (FM.M elt) (C.M elt) (InGraph_M) (Isomorphism_M _)))
      ; prim_fn := @C.get
-     ; model_fn := @FM.get
+     ; model_fn := fun '(n; tt) => @FM.get n
      ; f_arity := 1
      ; c_name := "array_get"
      |}.
@@ -127,8 +126,8 @@ Module Array_Proofs.
 
     props bind_spec.
     props pure_spec.
-    unfold FM.bind, FM.pure.
     prim_rewrites.
+    unfold FM.bind, FM.pure.
 
     props set_spec.
     props get_spec.

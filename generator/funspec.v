@@ -45,7 +45,7 @@ Fixpoint in_graphs
 
 Definition fn_desc_to_funspec_aux
            (c : reified prim_ann)
-           (uncurried_model_fn : meta.reflect c)
+           (model_fn : meta.reflect c)
            (arity : nat) : funspec :=
   WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
        xs : args c, ps : list rep_type, ti : val,
@@ -59,11 +59,11 @@ Definition fn_desc_to_funspec_aux
        EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
                 @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
-                  (uncurried_model_fn xs) p' ;
+                  (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots)
           RETURN  (rep_type_val g' p')
           SEP (full_gc g' t_info' roots outlier ti sh).
 
 Definition fn_desc_to_funspec (d : fn_desc) (xs : args (type_desc d)) : ident * funspec :=
   (ident_of_string (c_name d),
-   fn_desc_to_funspec_aux (type_desc d) (uncurried_model_fn d) (f_arity d)).
+   fn_desc_to_funspec_aux (type_desc d) (model_fn d) (f_arity d)).

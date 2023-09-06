@@ -53,7 +53,7 @@ Module UInt63_Proofs.
         @ARG _ nat transparent (fun _ =>
           @RES _ FM.t (opaque C.t))
      ; prim_fn := C.from_nat
-     ; model_fn := FM.from_nat
+     ; model_fn := fun '(x; tt) => FM.from_nat x
      ; f_arity := 1
      ; c_name := "int63_from_nat"
     |}.
@@ -63,7 +63,7 @@ Module UInt63_Proofs.
         @ARG _ FM.t (opaque C.t) (fun _ =>
           @RES _ nat transparent)
      ; prim_fn := C.to_nat
-     ; model_fn := FM.to_nat
+     ; model_fn := fun '(x; tt) => FM.to_nat x
      ; f_arity := 1
      ; c_name := "int63_to_nat"
      |}.
@@ -74,7 +74,7 @@ Module UInt63_Proofs.
           @ARG _ FM.t (opaque C.t) (fun _ =>
             @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.add
-     ; model_fn := FM.add
+     ; model_fn := fun '(x; (y; tt)) => FM.add x y
      ; f_arity := 2
      ; c_name := "int63_add"
      |}.
@@ -85,7 +85,7 @@ Module UInt63_Proofs.
           @ARG _ FM.t (opaque C.t) (fun _ =>
             @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.mul
-     ; model_fn := FM.mul
+     ; model_fn := fun '(x; (y; tt)) => FM.mul x y
      ; f_arity := 2
      ; c_name := "int63_mul"
      |}.
