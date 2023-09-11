@@ -20,7 +20,7 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
 
 Ltac gen :=
   match goal with
-  | [ |- @reconstructor _ _ _ _ ] => reconstructing
+  | [ |- @reflector _ _ _ _ ] => reflecting
   | _ => in_graph_gen_tac
   end.
 

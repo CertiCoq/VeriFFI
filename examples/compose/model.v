@@ -20,12 +20,12 @@ Admitted.
 Module Compose_Proofs.
   Definition compose_ep : extern_properties :=
     {| type_desc :=
-       @TYPEPARAM (fun A InGraph_A =>
-         @TYPEPARAM (fun B InGraph_B =>
-           @TYPEPARAM (fun C InGraph_C =>
-             @TRANSPARENT (B -> C) InGraph_fun (Some (fun g =>
-               @TRANSPARENT (A -> B) InGraph_fun (Some (fun f =>
-                 @TRANSPARENT (A -> C) InGraph_fun None)))))))
+       @TYPEPARAM _ (fun A R_A =>
+         @TYPEPARAM _ (fun B R_B =>
+           @TYPEPARAM _ (fun C R_C =>
+             @ARG _ (B -> C) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_B) (prim_in_graph R_C)) _) (fun g =>
+               @ARG _ (A -> B) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_A) (prim_in_graph R_B)) _) (fun f =>
+                 @RES _ (A -> C) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_A) (prim_in_graph R_C)) _))))))
      ; prim_fn := @C.compose
      ; model_fn := @FM.compose
      ; c_name := "compose"

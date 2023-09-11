@@ -6,6 +6,7 @@ Open Scope string.
 
 Require Import VeriFFI.generator.Rep.
 Obligation Tactic := gen.
+MetaCoq Run (gen_for unit).
 MetaCoq Run (gen_for nat).
 
 Require Import VeriFFI.library.meta.
@@ -35,10 +36,16 @@ Module FM <: Array.
     fun '(l, init) => (nth index l init, (l, init)).
 End FM.
 
+Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
+Admitted.
+
 Module Array_Proofs.
   (* Axiom Isomorphism_state : Isomorphism C.state FM.state. *)
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),
                         Isomorphism (C.M A) (FM.M A').
+  Axiom InGraph_M : forall {A : Type} `{InGraph A}, InGraph (C.M A).
+  Existing Instance Isomorphism_M.
+  Existing Instance InGraph_M.
 
   (*
   Definition Isomorphism_M
@@ -51,9 +58,9 @@ Module Array_Proofs.
 
   Definition pure_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
-          @TRANSPARENT A InGraph_A (Some (fun arr =>
-            @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) None)))
+        @TYPEPARAM _ (fun A (P_A : prim_ann A) =>
+          @ARG _ A P_A (fun a =>
+            @RES _ (C.M A) (@OPAQUE _ (FM.M A) (@InGraph_M A (prim_in_graph P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
      ; prim_fn := @C.pure
      ; model_fn := @FM.pure
      ; c_name := "m_pure"
@@ -61,11 +68,11 @@ Module Array_Proofs.
 
   Definition bind_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
-          @TYPEPARAM (fun (B : Type) `{InGraph_B : InGraph B} =>
-            @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _) (Some (fun m =>
-              @OPAQUE (A -> C.M B) (A -> FM.M B) (Isomorphism_fn _ (Isomorphism_M _)) (Some (fun f =>
-                @OPAQUE (C.M B) (FM.M B) (Isomorphism_M _) None))))))
+        @TYPEPARAM _ (fun (A : Type) (P_A : prim_ann A) =>
+          @TYPEPARAM _ (fun (B : Type) (P_B : prim_ann B) =>
+            @ARG _ (C.M A) (@OPAQUE (C.M A) (FM.M A) (@InGraph_M A (prim_in_graph P_A)) (Isomorphism_M _)) (fun m =>
+              @ARG _ (A -> C.M B) (@OPAQUE (A -> C.M B) (A -> FM.M B) (@InGraph_fun _ _ (prim_in_graph P_A) (@InGraph_M B (prim_in_graph P_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
+                                                                                                                    @RES _ (C.M B) (@OPAQUE (C.M B) (FM.M B) (@InGraph_M B (prim_in_graph P_B)) (Isomorphism_M _))))))
      ; prim_fn := @C.bind
      ; model_fn := @FM.bind
      ; c_name := "m_bind"
@@ -73,11 +80,11 @@ Module Array_Proofs.
 
   Definition runM_ep : extern_properties :=
     {| type_desc :=
-        @TYPEPARAM (fun (A : Type) `{InGraph_A : InGraph A} =>
-          @TRANSPARENT nat InGraph_nat (Some (fun len =>
-            @TRANSPARENT elt InGraph_elt (Some (fun init =>
-              @OPAQUE (C.M A) (FM.M A) (Isomorphism_M _)
-                      (Some (fun f => @TRANSPARENT A InGraph_A None)))))))
+        @TYPEPARAM _ (fun (A : Type) (P_A : prim_ann A) =>
+          @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun len =>
+            @ARG _ _ (@TRANSPARENT elt InGraph_elt) (fun init =>
+              @ARG _ _ (@OPAQUE (C.M A) (FM.M A) (@InGraph_M _ (prim_in_graph P_A)) (Isomorphism_M _)) (fun f =>
+                @RES _ _ (@TRANSPARENT A (prim_in_graph P_A))))))
      ; prim_fn := @C.runM
      ; model_fn := @FM.runM
      ; c_name := "m_runM"
@@ -85,9 +92,9 @@ Module Array_Proofs.
 
   Definition set_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT nat InGraph_nat (Some (fun n =>
-          @TRANSPARENT elt InGraph_elt (Some (fun a =>
-            @OPAQUE (C.M unit) (FM.M unit) (Isomorphism_M _) None))))
+        @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun n =>
+          @ARG _ _ (@TRANSPARENT elt InGraph_elt) (fun a =>
+            @RES _ _ (@OPAQUE (C.M unit) (FM.M unit) (InGraph_M) (Isomorphism_M _))))
      ; prim_fn := @C.set
      ; model_fn := @FM.set
      ; c_name := "array_set"
@@ -95,8 +102,8 @@ Module Array_Proofs.
 
   Definition get_ep : extern_properties :=
     {| type_desc :=
-        @TRANSPARENT nat InGraph_nat (Some (fun n =>
-          @OPAQUE (C.M elt) (FM.M elt) (Isomorphism_M _) None))
+        @ARG _ _ (@TRANSPARENT nat InGraph_nat) (fun n =>
+          @RES _ _ (@OPAQUE (C.M elt) (FM.M elt) (InGraph_M) (Isomorphism_M _)))
      ; prim_fn := @C.get
      ; model_fn := @FM.get
      ; c_name := "array_get"

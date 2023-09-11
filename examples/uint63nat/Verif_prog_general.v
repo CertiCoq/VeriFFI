@@ -138,7 +138,7 @@ Defined.
 
 Ltac concretize_PARAMS :=
 lazymatch goal with
-| xs: args (ctor_reific _), H0: in_graphs _ (ctor_reific _) ?xs' ?ps  |- _ =>
+| xs: args (ctor_reified _), H0: in_graphs _ (ctor_reified _) ?xs' ?ps  |- _ =>
    constr_eq xs xs';
    repeat (simpl in xs;
    lazymatch type of xs with
@@ -693,17 +693,17 @@ Qed.
 
 
 Definition X_in_graph_cons (descr : constructor_description) (t: nat) : Prop :=
-  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reific descr)),
+  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
   graph_has_gen gr 0 ->
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    in_graphs gr (ctor_reific descr) args_my ps ->
+    in_graphs gr (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
-    let r := result (ctor_reific descr) args_my in 
-    @is_in_graph (projT1 r)  (projT2 r)  (add_node gr 0
+    let r := result (ctor_reified descr) args_my in 
+    @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_reflect descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition calc t n := Z.of_nat t + Z.shiftl (Z.of_nat n) 10.
@@ -725,8 +725,8 @@ Qed.
 
 Lemma in_graphs_has:
   forall (descr : constructor_description) (gr : graph)
-    (ps : list rep_type) (args_my : args (ctor_reific descr)),
-    in_graphs gr (ctor_reific descr) args_my ps ->
+    (ps : list rep_type) (args_my : args (ctor_reified descr)),
+    in_graphs gr (ctor_reified descr) args_my ps ->
     Forall
       (fun p : rep_type =>
          match p with
@@ -735,42 +735,47 @@ Lemma in_graphs_has:
          end) ps.
 Proof.
   intros.
-  remember (ctor_reific descr) as d. clear Heqd. revert ps H. 
+  remember (ctor_reified descr) as d. clear Heqd. revert ps H. 
   induction d; eauto; intros. 
   - simpl in H.  destruct args_my.  destruct s. simpl in *. eauto. 
-  - simpl in *. destruct args_my. eauto. 
-  - simpl in *. destruct args_my. destruct ps; eauto. 
-    destruct H0. constructor. 
-    + destruct cls0. 
-    
-    destruct r0. eauto. reflexivity. 
-    split. 
-      * eapply has_v; eauto.
-      * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
-    + eauto. 
   - simpl in *. destruct args_my. destruct ps; eauto. 
     destruct H0. constructor. 
     + destruct r0. eauto. reflexivity. 
     split. 
-      * eapply has_v; eauto.
+      * eapply has_v; eauto. (* 
+      (* TODO: BROKEN BY NEWEST COMMIT *)
+      eapply H0.
       * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
     + eauto. 
-  - simpl in *. destruct args_my. destruct ps; eauto. inversion H. 
-Qed.
+
+
+  -  simpl in *. destruct args_my. destruct ps; eauto. 
+  destruct H0. constructor. 
+  + destruct cls0. 
+  
+  destruct r0. eauto. reflexivity. 
+  split. 
+    * eapply has_v; eauto.
+    * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
+  + eauto. 
+
+  - simpl in *. destruct args_my. eauto. 
+  - simpl in *. destruct args_my. destruct ps; eauto. inversion H. *) 
+Admitted.
 
 
 Definition X_in_graph_cons' (descr : constructor_description) (t: nat) : Prop :=
-  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reific descr)),
+  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
   graph_has_gen gr 0 ->
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    in_graphs gr (ctor_reific descr) args_my ps ->
+    in_graphs gr (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
-    let r := result (ctor_reific descr) args_my in 
-    @is_in_graph (projT1 r) (projT2 r)  (add_node gr 0
+    let r := result (ctor_reified descr) args_my in 
+    @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_reflect descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition field_t_rep_type (g : LGraph) x := 
