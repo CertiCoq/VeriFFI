@@ -3,7 +3,7 @@ struct closure;
 struct stack_frame;
 struct thread_info;
 struct closure {
-  void (*func)(struct thread_info, value, value);
+  value (*func)(struct thread_info, value, value);
   value env;
 };
 
@@ -405,10 +405,13 @@ value call(struct thread_info *$tinfo, value $clo, value $arg)
 {
   register unsigned long long *$f;
   register unsigned long long *$envi;
+  register value $tmp;
   $f = (*((struct closure *) $clo)).func;
   $envi = (*((struct closure *) $clo)).env;
-  ((void (*)(struct thread_info *, value, value)) $f)($tinfo, $envi, $arg);
-  return *((*$tinfo).args + 1LL);
+  $tmp =
+    ((value (*)(struct thread_info *, value, value)) $f)
+    ($tinfo, $envi, $arg);
+  return $tmp;
 }
 
 

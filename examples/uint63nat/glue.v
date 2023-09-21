@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.11".
+  Definition version := "3.12".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -32,6 +32,7 @@ Definition __f : ident := $"$f".
 Definition __t : ident := $"$t".
 Definition __tag : ident := $"$tag".
 Definition __tinfo : ident := $"$tinfo".
+Definition __tmp : ident := $"$tmp".
 Definition __v : ident := $"$v".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
@@ -149,6 +150,8 @@ Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
 Definition _t'1 : ident := 128%positive.
+Definition _t'10 : ident := 137%positive.
+Definition _t'11 : ident := 138%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
 Definition _t'4 : ident := 131%positive.
@@ -220,27 +223,25 @@ Definition v_prop_lit := {|
 Definition f_get_unboxed_ordinal := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
-(Sreturn (Some (Ebinop Oshr
-                 (Ecast (Etempvar __v (talignas 3%N (tptr tvoid))) tulong)
+(Sreturn (Some (Ebinop Oshr (Ecast (Etempvar __v tlong) tulong)
                  (Econst_long (Int64.repr 1) tlong) tulong)))
 |}.
 
 Definition f_get_boxed_ordinal := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Sset _t'1
     (Ederef
-      (Ebinop Oadd
-        (Ecast (Etempvar __v (talignas 3%N (tptr tvoid))) (tptr tulong))
+      (Ebinop Oadd (Ecast (Etempvar __v tlong) (tptr tulong))
         (Eunop Oneg (Econst_long (Int64.repr 1) tlong) tlong) (tptr tulong))
       tulong))
   (Sreturn (Some (Ebinop Oand (Etempvar _t'1 tulong)
@@ -248,14 +249,13 @@ Definition f_get_boxed_ordinal := {|
 |}.
 
 Definition f_get_args := {|
-  fn_return := (tptr (talignas 3%N (tptr tvoid)));
+  fn_return := (tptr tlong);
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (talignas 3%N (tptr tvoid))))))
+(Sreturn (Some (Ecast (Etempvar __v tlong) (tptr tlong))))
 |}.
 
 Definition v_names_of_Coq_Init_Datatypes_nat := {|
@@ -319,7 +319,7 @@ Definition v_names_of_prog_T := {|
 |}.
 
 Definition f_make_Coq_Init_Datatypes_nat_O := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -329,85 +329,71 @@ Definition f_make_Coq_Init_Datatypes_nat_O := {|
 |}.
 
 Definition f_make_Coq_Init_Datatypes_nat_S := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_params := ((__arg0, tlong) :: (__argv, (tptr tlong)) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
 (Ssequence
   (Sassign
     (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1024) tlong) (talignas 3%N (tptr tvoid))))
+      (Ebinop Oadd (Etempvar __argv (tptr tlong))
+        (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+    (Ecast (Econst_long (Int64.repr 1024) tlong) tlong))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+      (Etempvar __arg0 tlong))
+    (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                     (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))
 |}.
 
 Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
+                (__arg0, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_temps := ((__argv, (tptr tlong)) :: (_t'1, (tptr tlong)) :: nil);
   fn_body :=
 (Ssequence
   (Sset __argv
     (Efield
       (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
+        (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
       (Econst_long (Int64.repr 1024) tlong))
     (Ssequence
       (Sassign
         (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg0 tlong))
       (Ssequence
         (Ssequence
           (Sset _t'1
             (Efield
               (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
+                (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
           (Sassign
             (Efield
               (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
+                (Tstruct _thread_info noattr)) _alloc (tptr tlong))
+            (Ebinop Oadd (Etempvar _t'1 (tptr tlong))
+              (Econst_long (Int64.repr 2) tlong) (tptr tlong))))
+        (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                         (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))))
 |}.
 
 Definition f_make_Coq_Init_Datatypes_bool_true := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -417,7 +403,7 @@ Definition f_make_Coq_Init_Datatypes_bool_true := {|
 |}.
 
 Definition f_make_Coq_Init_Datatypes_bool_false := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -427,7 +413,7 @@ Definition f_make_Coq_Init_Datatypes_bool_false := {|
 |}.
 
 Definition f_make_prog_exp_etrue := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -437,7 +423,7 @@ Definition f_make_prog_exp_etrue := {|
 |}.
 
 Definition f_make_prog_exp_efalse := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -447,280 +433,256 @@ Definition f_make_prog_exp_efalse := {|
 |}.
 
 Definition f_make_prog_exp_eand := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_params := ((__arg0, tlong) :: (__arg1, tlong) ::
+                (__argv, (tptr tlong)) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
 (Ssequence
   (Sassign
     (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1024) tlong) (talignas 3%N (tptr tvoid))))
+      (Ebinop Oadd (Etempvar __argv (tptr tlong))
+        (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+    (Ecast (Econst_long (Int64.repr 2048) tlong) tlong))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+      (Etempvar __arg0 tlong))
+    (Ssequence
+      (Sassign
+        (Ederef
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg1 tlong))
+      (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                       (Econst_long (Int64.repr 1) tlong) (tptr tlong)))))))
 |}.
 
 Definition f_alloc_make_prog_exp_eand := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
+                (__arg0, tlong) :: (__arg1, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_temps := ((__argv, (tptr tlong)) :: (_t'1, (tptr tlong)) :: nil);
   fn_body :=
 (Ssequence
   (Sset __argv
     (Efield
       (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
+        (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 1024) tlong))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+      (Econst_long (Int64.repr 2048) tlong))
     (Ssequence
       (Sassign
         (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Ssequence
-          (Sset _t'1
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_make_prog_exp_eor := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 1025) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Sreturn (Some (Ebinop Oadd
-                     (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                     (Econst_long (Int64.repr 1) tlong)
-                     (tptr (talignas 3%N (tptr tvoid))))))))
-|}.
-
-Definition f_alloc_make_prog_exp_eor := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 1025) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Ssequence
-          (Sset _t'1
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid)))))
-          (Sassign
-            (Efield
-              (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                (Tstruct _thread_info noattr)) _alloc
-              (tptr (talignas 3%N (tptr tvoid))))
-            (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_make_prog_exp_eif := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 3074) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg0 tlong))
       (Ssequence
         (Sassign
           (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 3) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg1 tlong))
+        (Ssequence
+          (Ssequence
+            (Sset _t'1
+              (Efield
+                (Ederef
+                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
+                  (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
+            (Sassign
+              (Efield
+                (Ederef
+                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
+                  (Tstruct _thread_info noattr)) _alloc (tptr tlong))
+              (Ebinop Oadd (Etempvar _t'1 (tptr tlong))
+                (Econst_long (Int64.repr 3) tlong) (tptr tlong))))
+          (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                           (Econst_long (Int64.repr 1) tlong) (tptr tlong)))))))))
 |}.
 
-Definition f_alloc_make_prog_exp_eif := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+Definition f_make_prog_exp_eor := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((__arg0, tlong) :: (__arg1, tlong) ::
+                (__argv, (tptr tlong)) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Ssequence
+  (Sassign
+    (Ederef
+      (Ebinop Oadd (Etempvar __argv (tptr tlong))
+        (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+    (Ecast (Econst_long (Int64.repr 2049) tlong) tlong))
+  (Ssequence
+    (Sassign
+      (Ederef
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+      (Etempvar __arg0 tlong))
+    (Ssequence
+      (Sassign
+        (Ederef
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg1 tlong))
+      (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                       (Econst_long (Int64.repr 1) tlong) (tptr tlong)))))))
+|}.
+
+Definition f_alloc_make_prog_exp_eor := {|
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) :: nil);
+                (__arg0, tlong) :: (__arg1, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_temps := ((__argv, (tptr tlong)) :: (_t'1, (tptr tlong)) :: nil);
   fn_body :=
 (Ssequence
   (Sset __argv
     (Efield
       (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
+        (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+      (Econst_long (Int64.repr 2049) tlong))
+    (Ssequence
+      (Sassign
+        (Ederef
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg0 tlong))
+      (Ssequence
+        (Sassign
+          (Ederef
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg1 tlong))
+        (Ssequence
+          (Ssequence
+            (Sset _t'1
+              (Efield
+                (Ederef
+                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
+                  (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
+            (Sassign
+              (Efield
+                (Ederef
+                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
+                  (Tstruct _thread_info noattr)) _alloc (tptr tlong))
+              (Ebinop Oadd (Etempvar _t'1 (tptr tlong))
+                (Econst_long (Int64.repr 3) tlong) (tptr tlong))))
+          (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                           (Econst_long (Int64.repr 1) tlong) (tptr tlong)))))))))
+|}.
+
+Definition f_make_prog_exp_eif := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((__arg0, tlong) :: (__arg1, tlong) :: (__arg2, tlong) ::
+                (__argv, (tptr tlong)) :: nil);
+  fn_vars := nil;
+  fn_temps := nil;
+  fn_body :=
+(Ssequence
+  (Sassign
+    (Ederef
+      (Ebinop Oadd (Etempvar __argv (tptr tlong))
+        (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+    (Ecast (Econst_long (Int64.repr 3074) tlong) tlong))
+  (Ssequence
+    (Sassign
+      (Ederef
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+      (Etempvar __arg0 tlong))
+    (Ssequence
+      (Sassign
+        (Ederef
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg1 tlong))
+      (Ssequence
+        (Sassign
+          (Ederef
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 3) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg2 tlong))
+        (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                         (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))))
+|}.
+
+Definition f_alloc_make_prog_exp_eif := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
+                (__arg0, tlong) :: (__arg1, tlong) :: (__arg2, tlong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((__argv, (tptr tlong)) :: (_t'1, (tptr tlong)) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset __argv
+    (Efield
+      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
+        (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
+  (Ssequence
+    (Sassign
+      (Ederef
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
       (Econst_long (Int64.repr 3074) tlong))
     (Ssequence
       (Sassign
         (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg0 tlong))
       (Ssequence
         (Sassign
           (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg1 tlong))
         (Ssequence
           (Sassign
             (Ederef
-              (Ebinop Oadd
-                (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))
-              (talignas 3%N (tptr tvoid)))
-            (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
+              (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                (Econst_long (Int64.repr 3) tlong) (tptr tlong)) tlong)
+            (Etempvar __arg2 tlong))
           (Ssequence
             (Ssequence
               (Sset _t'1
                 (Efield
                   (Ederef
                     (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid)))))
+                    (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
               (Sassign
                 (Efield
                   (Ederef
                     (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid))))
-                (Ebinop Oadd
-                  (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                  (Econst_long (Int64.repr 4) tlong)
-                  (tptr (talignas 3%N (tptr tvoid))))))
-            (Sreturn (Some (Ebinop Oadd
-                             (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                             (Econst_long (Int64.repr 1) tlong)
-                             (tptr (talignas 3%N (tptr tvoid))))))))))))
+                    (Tstruct _thread_info noattr)) _alloc (tptr tlong))
+                (Ebinop Oadd (Etempvar _t'1 (tptr tlong))
+                  (Econst_long (Int64.repr 4) tlong) (tptr tlong))))
+            (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                             (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))))))
 |}.
 
 Definition f_make_Coq_Init_Datatypes_unit_tt := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
@@ -730,126 +692,100 @@ Definition f_make_Coq_Init_Datatypes_unit_tt := {|
 |}.
 
 Definition f_make_prog_T_mkT := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_params := ((__arg0, tlong) :: (__arg1, tlong) :: (__arg2, tlong) ::
+                (__argv, (tptr tlong)) :: nil);
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
 (Ssequence
   (Sassign
     (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 3072) tlong) (talignas 3%N (tptr tvoid))))
+      (Ebinop Oadd (Etempvar __argv (tptr tlong))
+        (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
+    (Ecast (Econst_long (Int64.repr 3072) tlong) tlong))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+      (Etempvar __arg0 tlong))
     (Ssequence
       (Sassign
         (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg1 tlong))
       (Ssequence
         (Sassign
           (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 3) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 3) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg2 tlong))
+        (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                         (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))))
 |}.
 
 Definition f_alloc_make_prog_T_mkT := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) :: nil);
+                (__arg0, tlong) :: (__arg1, tlong) :: (__arg2, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+  fn_temps := ((__argv, (tptr tlong)) :: (_t'1, (tptr tlong)) :: nil);
   fn_body :=
 (Ssequence
   (Sset __argv
     (Efield
       (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
+        (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
   (Ssequence
     (Sassign
       (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
+        (Ebinop Oadd (Etempvar __argv (tptr tlong))
+          (Econst_long (Int64.repr 0) tlong) (tptr tlong)) tlong)
       (Econst_long (Int64.repr 3072) tlong))
     (Ssequence
       (Sassign
         (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
+          (Ebinop Oadd (Etempvar __argv (tptr tlong))
+            (Econst_long (Int64.repr 1) tlong) (tptr tlong)) tlong)
+        (Etempvar __arg0 tlong))
       (Ssequence
         (Sassign
           (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
+            (Ebinop Oadd (Etempvar __argv (tptr tlong))
+              (Econst_long (Int64.repr 2) tlong) (tptr tlong)) tlong)
+          (Etempvar __arg1 tlong))
         (Ssequence
           (Sassign
             (Ederef
-              (Ebinop Oadd
-                (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))
-              (talignas 3%N (tptr tvoid)))
-            (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
+              (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                (Econst_long (Int64.repr 3) tlong) (tptr tlong)) tlong)
+            (Etempvar __arg2 tlong))
           (Ssequence
             (Ssequence
               (Sset _t'1
                 (Efield
                   (Ederef
                     (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid)))))
+                    (Tstruct _thread_info noattr)) _alloc (tptr tlong)))
               (Sassign
                 (Efield
                   (Ederef
                     (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid))))
-                (Ebinop Oadd
-                  (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                  (Econst_long (Int64.repr 4) tlong)
-                  (tptr (talignas 3%N (tptr tvoid))))))
-            (Sreturn (Some (Ebinop Oadd
-                             (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                             (Econst_long (Int64.repr 1) tlong)
-                             (tptr (talignas 3%N (tptr tvoid))))))))))))
+                    (Tstruct _thread_info noattr)) _alloc (tptr tlong))
+                (Ebinop Oadd (Etempvar _t'1 (tptr tlong))
+                  (Econst_long (Int64.repr 4) tlong) (tptr tlong))))
+            (Sreturn (Some (Ebinop Oadd (Etempvar __argv (tptr tlong))
+                             (Econst_long (Int64.repr 1) tlong) (tptr tlong))))))))))
 |}.
 
 Definition f_get_Coq_Init_Datatypes_nat_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
                (_t'2, tuint) :: (_t'1, tbool) :: nil);
@@ -857,18 +793,16 @@ Definition f_get_Coq_Init_Datatypes_nat_tag := {|
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _is_ptr (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil) tbool
-                      cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _is_ptr (Tfunction (Tcons tlong Tnil) tbool cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __b (Ecast (Etempvar _t'1 tbool) tbool)))
   (Sifthenelse (Etempvar __b tbool)
     (Ssequence
       (Ssequence
         (Scall (Some _t'2)
-          (Evar _get_boxed_ordinal (Tfunction
-                                     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+          (Evar _get_boxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                     cc_default))
+          ((Etempvar __v tlong) :: nil))
         (Sset __t (Etempvar _t'2 tuint)))
       (Sswitch (Etempvar __t tuint)
         (LScons (Some 0)
@@ -877,10 +811,9 @@ Definition f_get_Coq_Init_Datatypes_nat_tag := {|
     (Ssequence
       (Ssequence
         (Scall (Some _t'3)
-          (Evar _get_unboxed_ordinal (Tfunction
-                                       (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+          (Evar _get_unboxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                       cc_default))
+          ((Etempvar __v tlong) :: nil))
         (Sset __t (Etempvar _t'3 tuint)))
       (Sswitch (Etempvar __t tuint)
         (LScons (Some 0)
@@ -891,17 +824,16 @@ Definition f_get_Coq_Init_Datatypes_nat_tag := {|
 Definition f_get_Coq_Init_Datatypes_bool_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_unboxed_ordinal (Tfunction
-                                   (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                   tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_unboxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                   cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __t (Etempvar _t'1 tuint)))
   (Sreturn (Some (Etempvar __t tuint))))
 |}.
@@ -909,7 +841,7 @@ Definition f_get_Coq_Init_Datatypes_bool_tag := {|
 Definition f_get_prog_exp_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
                (_t'2, tuint) :: (_t'1, tbool) :: nil);
@@ -917,18 +849,16 @@ Definition f_get_prog_exp_tag := {|
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _is_ptr (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil) tbool
-                      cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _is_ptr (Tfunction (Tcons tlong Tnil) tbool cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __b (Ecast (Etempvar _t'1 tbool) tbool)))
   (Sifthenelse (Etempvar __b tbool)
     (Ssequence
       (Ssequence
         (Scall (Some _t'2)
-          (Evar _get_boxed_ordinal (Tfunction
-                                     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+          (Evar _get_boxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                     cc_default))
+          ((Etempvar __v tlong) :: nil))
         (Sset __t (Etempvar _t'2 tuint)))
       (Sswitch (Etempvar __t tuint)
         (LScons (Some 0)
@@ -941,10 +871,9 @@ Definition f_get_prog_exp_tag := {|
     (Ssequence
       (Ssequence
         (Scall (Some _t'3)
-          (Evar _get_unboxed_ordinal (Tfunction
-                                       (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+          (Evar _get_unboxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                       cc_default))
+          ((Etempvar __v tlong) :: nil))
         (Sset __t (Etempvar _t'3 tuint)))
       (Sswitch (Etempvar __t tuint)
         (LScons (Some 0)
@@ -957,17 +886,16 @@ Definition f_get_prog_exp_tag := {|
 Definition f_get_Coq_Init_Datatypes_unit_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_unboxed_ordinal (Tfunction
-                                   (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                   tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_unboxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                   cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __t (Etempvar _t'1 tuint)))
   (Sreturn (Some (Etempvar __t tuint))))
 |}.
@@ -975,17 +903,15 @@ Definition f_get_Coq_Init_Datatypes_unit_tag := {|
 Definition f_get_prog_T_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_boxed_ordinal (Tfunction
-                                 (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                 tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_boxed_ordinal (Tfunction (Tcons tlong Tnil) tuint
+                                 cc_default)) ((Etempvar __v tlong) :: nil))
     (Sset __t (Etempvar _t'1 tuint)))
   (Sreturn (Some (Etempvar __t tuint))))
 |}.
@@ -993,20 +919,17 @@ Definition f_get_prog_T_tag := {|
 Definition f_print_Coq_Init_Datatypes_nat := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr tlong)) :: (_t'1, tuint) :: (_t'3, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_Coq_Init_Datatypes_nat_tag (Tfunction
-                                              (Tcons
-                                                (talignas 3%N (tptr tvoid))
-                                                Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_Coq_Init_Datatypes_nat_tag (Tfunction (Tcons tlong Tnil)
+                                              tuint cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
@@ -1024,12 +947,9 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
         (Ssequence
           (Ssequence
             (Scall (Some _t'2)
-              (Evar _get_args (Tfunction
-                                (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                (tptr (talignas 3%N (tptr tvoid)))
-                                cc_default))
-              ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-            (Sset __args (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
+              (Evar _get_args (Tfunction (Tcons tlong Tnil) (tptr tlong)
+                                cc_default)) ((Etempvar __v tlong) :: nil))
+            (Sset __args (Etempvar _t'2 (tptr tlong))))
           (Ssequence
             (Scall None
               (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1054,18 +974,14 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
                     (Sset _t'3
                       (Ederef
                         (Ebinop Oadd
-                          (Ecast (Etempvar __args (tptr tvoid))
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (Econst_int (Int.repr 0) tint)
-                          (tptr (talignas 3%N (tptr tvoid))))
-                        (talignas 3%N (tptr tvoid))))
+                          (Ecast (Etempvar __args (tptr tvoid)) (tptr tlong))
+                          (Econst_int (Int.repr 0) tint) (tptr tlong)) tlong))
                     (Scall None
                       (Evar _print_Coq_Init_Datatypes_nat (Tfunction
-                                                            (Tcons
-                                                              (talignas 3%N (tptr tvoid))
+                                                            (Tcons tlong
                                                               Tnil) tvoid
                                                             cc_default))
-                      ((Etempvar _t'3 (talignas 3%N (tptr tvoid))) :: nil)))
+                      ((Etempvar _t'3 tlong) :: nil)))
                   (Ssequence
                     (Scall None
                       (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
@@ -1078,18 +994,16 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
 Definition f_print_Coq_Init_Datatypes_bool := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (_t'1, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_Coq_Init_Datatypes_bool_tag (Tfunction
-                                               (Tcons
-                                                 (talignas 3%N (tptr tvoid))
-                                                 Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_Coq_Init_Datatypes_bool_tag (Tfunction (Tcons tlong Tnil)
+                                               tuint cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Scall None
     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))
@@ -1103,25 +1017,19 @@ Definition f_print_Coq_Init_Datatypes_bool := {|
 Definition f_print_prog_exp := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'3, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'9, (talignas 3%N (tptr tvoid))) ::
-               (_t'8, (talignas 3%N (tptr tvoid))) ::
-               (_t'7, (talignas 3%N (tptr tvoid))) ::
-               (_t'6, (talignas 3%N (tptr tvoid))) ::
-               (_t'5, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'4, (tptr tlong)) :: (_t'3, (tptr tlong)) ::
+               (_t'2, (tptr tlong)) :: (_t'1, tuint) :: (_t'11, tlong) ::
+               (_t'10, tlong) :: (_t'9, tlong) :: (_t'8, tlong) ::
+               (_t'7, tlong) :: (_t'6, tlong) :: (_t'5, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_prog_exp_tag (Tfunction
-                                (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_prog_exp_tag (Tfunction (Tcons tlong Tnil) tuint cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
@@ -1150,13 +1058,9 @@ Definition f_print_prog_exp := {|
           (Ssequence
             (Ssequence
               (Scall (Some _t'2)
-                (Evar _get_args (Tfunction
-                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                  (tptr (talignas 3%N (tptr tvoid)))
-                                  cc_default))
-                ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-              (Sset __args
-                (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
+                (Evar _get_args (Tfunction (Tcons tlong Tnil) (tptr tlong)
+                                  cc_default)) ((Etempvar __v tlong) :: nil))
+              (Sset __args (Etempvar _t'2 (tptr tlong))))
             (Ssequence
               (Scall None
                 (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1178,37 +1082,50 @@ Definition f_print_prog_exp := {|
                     ((Evar _space_lit (tarray tschar 2)) :: nil))
                   (Ssequence
                     (Ssequence
-                      (Sset _t'9
+                      (Sset _t'11
                         (Ederef
                           (Ebinop Oadd
                             (Ecast (Etempvar __args (tptr tvoid))
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (Econst_int (Int.repr 0) tint)
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (talignas 3%N (tptr tvoid))))
+                              (tptr tlong)) (Econst_int (Int.repr 0) tint)
+                            (tptr tlong)) tlong))
                       (Scall None
-                        (Evar _print_prog_exp (Tfunction
-                                                (Tcons
-                                                  (talignas 3%N (tptr tvoid))
-                                                  Tnil) tvoid cc_default))
-                        ((Etempvar _t'9 (talignas 3%N (tptr tvoid))) :: nil)))
+                        (Evar _print_prog_exp (Tfunction (Tcons tlong Tnil)
+                                                tvoid cc_default))
+                        ((Etempvar _t'11 tlong) :: nil)))
                     (Ssequence
                       (Scall None
                         (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
                                         tint cc_default))
-                        ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                      Sbreak))))))
+                        ((Evar _space_lit (tarray tschar 2)) :: nil))
+                      (Ssequence
+                        (Ssequence
+                          (Sset _t'10
+                            (Ederef
+                              (Ebinop Oadd
+                                (Ecast (Etempvar __args (tptr tvoid))
+                                  (tptr tlong))
+                                (Econst_int (Int.repr 1) tint) (tptr tlong))
+                              tlong))
+                          (Scall None
+                            (Evar _print_prog_exp (Tfunction
+                                                    (Tcons tlong Tnil) tvoid
+                                                    cc_default))
+                            ((Etempvar _t'10 tlong) :: nil)))
+                        (Ssequence
+                          (Scall None
+                            (Evar _printf (Tfunction
+                                            (Tcons (tptr tschar) Tnil) tint
+                                            cc_default))
+                            ((Evar _rparen_lit (tarray tschar 2)) :: nil))
+                          Sbreak))))))))
           (LScons (Some 3)
             (Ssequence
               (Ssequence
                 (Scall (Some _t'3)
-                  (Evar _get_args (Tfunction
-                                    (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                    (tptr (talignas 3%N (tptr tvoid)))
+                  (Evar _get_args (Tfunction (Tcons tlong Tnil) (tptr tlong)
                                     cc_default))
-                  ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-                (Sset __args
-                  (Etempvar _t'3 (tptr (talignas 3%N (tptr tvoid))))))
+                  ((Etempvar __v tlong) :: nil))
+                (Sset __args (Etempvar _t'3 (tptr tlong))))
               (Ssequence
                 (Scall None
                   (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1230,39 +1147,50 @@ Definition f_print_prog_exp := {|
                       ((Evar _space_lit (tarray tschar 2)) :: nil))
                     (Ssequence
                       (Ssequence
-                        (Sset _t'8
+                        (Sset _t'9
                           (Ederef
                             (Ebinop Oadd
                               (Ecast (Etempvar __args (tptr tvoid))
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (Econst_int (Int.repr 0) tint)
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (talignas 3%N (tptr tvoid))))
+                                (tptr tlong)) (Econst_int (Int.repr 0) tint)
+                              (tptr tlong)) tlong))
                         (Scall None
-                          (Evar _print_prog_exp (Tfunction
-                                                  (Tcons
-                                                    (talignas 3%N (tptr tvoid))
-                                                    Tnil) tvoid cc_default))
-                          ((Etempvar _t'8 (talignas 3%N (tptr tvoid))) ::
-                           nil)))
+                          (Evar _print_prog_exp (Tfunction (Tcons tlong Tnil)
+                                                  tvoid cc_default))
+                          ((Etempvar _t'9 tlong) :: nil)))
                       (Ssequence
                         (Scall None
                           (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
                                           tint cc_default))
-                          ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                        Sbreak))))))
+                          ((Evar _space_lit (tarray tschar 2)) :: nil))
+                        (Ssequence
+                          (Ssequence
+                            (Sset _t'8
+                              (Ederef
+                                (Ebinop Oadd
+                                  (Ecast (Etempvar __args (tptr tvoid))
+                                    (tptr tlong))
+                                  (Econst_int (Int.repr 1) tint)
+                                  (tptr tlong)) tlong))
+                            (Scall None
+                              (Evar _print_prog_exp (Tfunction
+                                                      (Tcons tlong Tnil)
+                                                      tvoid cc_default))
+                              ((Etempvar _t'8 tlong) :: nil)))
+                          (Ssequence
+                            (Scall None
+                              (Evar _printf (Tfunction
+                                              (Tcons (tptr tschar) Tnil) tint
+                                              cc_default))
+                              ((Evar _rparen_lit (tarray tschar 2)) :: nil))
+                            Sbreak))))))))
             (LScons (Some 4)
               (Ssequence
                 (Ssequence
                   (Scall (Some _t'4)
-                    (Evar _get_args (Tfunction
-                                      (Tcons (talignas 3%N (tptr tvoid))
-                                        Tnil)
-                                      (tptr (talignas 3%N (tptr tvoid)))
-                                      cc_default))
-                    ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-                  (Sset __args
-                    (Etempvar _t'4 (tptr (talignas 3%N (tptr tvoid))))))
+                    (Evar _get_args (Tfunction (Tcons tlong Tnil)
+                                      (tptr tlong) cc_default))
+                    ((Etempvar __v tlong) :: nil))
+                  (Sset __args (Etempvar _t'4 (tptr tlong))))
                 (Ssequence
                   (Scall None
                     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1288,17 +1216,14 @@ Definition f_print_prog_exp := {|
                             (Ederef
                               (Ebinop Oadd
                                 (Ecast (Etempvar __args (tptr tvoid))
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (talignas 3%N (tptr tvoid))))
+                                  (tptr tlong))
+                                (Econst_int (Int.repr 0) tint) (tptr tlong))
+                              tlong))
                           (Scall None
                             (Evar _print_prog_exp (Tfunction
-                                                    (Tcons
-                                                      (talignas 3%N (tptr tvoid))
-                                                      Tnil) tvoid cc_default))
-                            ((Etempvar _t'7 (talignas 3%N (tptr tvoid))) ::
-                             nil)))
+                                                    (Tcons tlong Tnil) tvoid
+                                                    cc_default))
+                            ((Etempvar _t'7 tlong) :: nil)))
                         (Ssequence
                           (Scall None
                             (Evar _printf (Tfunction
@@ -1311,18 +1236,14 @@ Definition f_print_prog_exp := {|
                                 (Ederef
                                   (Ebinop Oadd
                                     (Ecast (Etempvar __args (tptr tvoid))
-                                      (tptr (talignas 3%N (tptr tvoid))))
+                                      (tptr tlong))
                                     (Econst_int (Int.repr 1) tint)
-                                    (tptr (talignas 3%N (tptr tvoid))))
-                                  (talignas 3%N (tptr tvoid))))
+                                    (tptr tlong)) tlong))
                               (Scall None
                                 (Evar _print_prog_exp (Tfunction
-                                                        (Tcons
-                                                          (talignas 3%N (tptr tvoid))
-                                                          Tnil) tvoid
-                                                        cc_default))
-                                ((Etempvar _t'6 (talignas 3%N (tptr tvoid))) ::
-                                 nil)))
+                                                        (Tcons tlong Tnil)
+                                                        tvoid cc_default))
+                                ((Etempvar _t'6 tlong) :: nil)))
                             (Ssequence
                               (Scall None
                                 (Evar _printf (Tfunction
@@ -1335,18 +1256,15 @@ Definition f_print_prog_exp := {|
                                     (Ederef
                                       (Ebinop Oadd
                                         (Ecast (Etempvar __args (tptr tvoid))
-                                          (tptr (talignas 3%N (tptr tvoid))))
+                                          (tptr tlong))
                                         (Econst_int (Int.repr 2) tint)
-                                        (tptr (talignas 3%N (tptr tvoid))))
-                                      (talignas 3%N (tptr tvoid))))
+                                        (tptr tlong)) tlong))
                                   (Scall None
                                     (Evar _print_prog_exp (Tfunction
-                                                            (Tcons
-                                                              (talignas 3%N (tptr tvoid))
+                                                            (Tcons tlong
                                                               Tnil) tvoid
                                                             cc_default))
-                                    ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) ::
-                                     nil)))
+                                    ((Etempvar _t'5 tlong) :: nil)))
                                 (Ssequence
                                   (Scall None
                                     (Evar _printf (Tfunction
@@ -1361,18 +1279,16 @@ Definition f_print_prog_exp := {|
 Definition f_print_Coq_Init_Datatypes_unit := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (_t'1, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_Coq_Init_Datatypes_unit_tag (Tfunction
-                                               (Tcons
-                                                 (talignas 3%N (tptr tvoid))
-                                                 Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_Coq_Init_Datatypes_unit_tag (Tfunction (Tcons tlong Tnil)
+                                               tuint cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Scall None
     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint cc_default))
@@ -1386,32 +1302,26 @@ Definition f_print_Coq_Init_Datatypes_unit := {|
 Definition f_print_prog_T := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'5, (talignas 3%N (tptr tvoid))) ::
-               (_t'4, (talignas 3%N (tptr tvoid))) ::
-               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr tlong)) :: (_t'1, tuint) :: (_t'5, tlong) ::
+               (_t'4, tlong) :: (_t'3, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
-      (Evar _get_prog_T_tag (Tfunction
-                              (Tcons (talignas 3%N (tptr tvoid)) Tnil) tuint
-                              cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
+      (Evar _get_prog_T_tag (Tfunction (Tcons tlong Tnil) tuint cc_default))
+      ((Etempvar __v tlong) :: nil))
     (Sset __tag (Etempvar _t'1 tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
       (Ssequence
         (Ssequence
           (Scall (Some _t'2)
-            (Evar _get_args (Tfunction
-                              (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                              (tptr (talignas 3%N (tptr tvoid))) cc_default))
-            ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-          (Sset __args (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
+            (Evar _get_args (Tfunction (Tcons tlong Tnil) (tptr tlong)
+                              cc_default)) ((Etempvar __v tlong) :: nil))
+          (Sset __args (Etempvar _t'2 (tptr tlong))))
         (Ssequence
           (Scall None
             (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1436,18 +1346,13 @@ Definition f_print_prog_T := {|
                   (Sset _t'5
                     (Ederef
                       (Ebinop Oadd
-                        (Ecast (Etempvar __args (tptr tvoid))
-                          (tptr (talignas 3%N (tptr tvoid))))
-                        (Econst_int (Int.repr 0) tint)
-                        (tptr (talignas 3%N (tptr tvoid))))
-                      (talignas 3%N (tptr tvoid))))
+                        (Ecast (Etempvar __args (tptr tvoid)) (tptr tlong))
+                        (Econst_int (Int.repr 0) tint) (tptr tlong)) tlong))
                   (Scall None
                     (Evar _print_Coq_Init_Datatypes_nat (Tfunction
-                                                          (Tcons
-                                                            (talignas 3%N (tptr tvoid))
-                                                            Tnil) tvoid
-                                                          cc_default))
-                    ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) :: nil)))
+                                                          (Tcons tlong Tnil)
+                                                          tvoid cc_default))
+                    ((Etempvar _t'5 tlong) :: nil)))
                 (Ssequence
                   (Scall None
                     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
@@ -1459,17 +1364,14 @@ Definition f_print_prog_T := {|
                         (Ederef
                           (Ebinop Oadd
                             (Ecast (Etempvar __args (tptr tvoid))
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (Econst_int (Int.repr 1) tint)
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (talignas 3%N (tptr tvoid))))
+                              (tptr tlong)) (Econst_int (Int.repr 1) tint)
+                            (tptr tlong)) tlong))
                       (Scall None
                         (Evar _print_Coq_Init_Datatypes_bool (Tfunction
-                                                               (Tcons
-                                                                 (talignas 3%N (tptr tvoid))
+                                                               (Tcons tlong
                                                                  Tnil) tvoid
                                                                cc_default))
-                        ((Etempvar _t'4 (talignas 3%N (tptr tvoid))) :: nil)))
+                        ((Etempvar _t'4 tlong) :: nil)))
                     (Ssequence
                       (Scall None
                         (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
@@ -1481,19 +1383,17 @@ Definition f_print_prog_T := {|
                             (Ederef
                               (Ebinop Oadd
                                 (Ecast (Etempvar __args (tptr tvoid))
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (talignas 3%N (tptr tvoid))))
+                                  (tptr tlong))
+                                (Econst_int (Int.repr 2) tint) (tptr tlong))
+                              tlong))
                           (Scall None
                             (Evar _print_Coq_Init_Datatypes_unit (Tfunction
                                                                    (Tcons
-                                                                    (talignas 3%N (tptr tvoid))
+                                                                    tlong
                                                                     Tnil)
                                                                    tvoid
                                                                    cc_default))
-                            ((Etempvar _t'3 (talignas 3%N (tptr tvoid))) ::
-                             nil)))
+                            ((Etempvar _t'3 tlong) :: nil)))
                         (Ssequence
                           (Scall None
                             (Evar _printf (Tfunction
@@ -1505,57 +1405,39 @@ Definition f_print_prog_T := {|
 |}.
 
 Definition f_call := {|
-  fn_return := (talignas 3%N (tptr tvoid));
+  fn_return := tlong;
   fn_callconv := cc_default;
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__clo, (talignas 3%N (tptr tvoid))) ::
-                (__arg, (talignas 3%N (tptr tvoid))) :: nil);
+                (__clo, tlong) :: (__arg, tlong) :: nil);
   fn_vars := nil;
   fn_temps := ((__f, (tptr tulong)) :: (__envi, (tptr tulong)) ::
-               (_t'1, (talignas 3%N (tptr tvoid))) :: nil);
+               (__tmp, tlong) :: (_t'1, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Sset __f
     (Efield
-      (Ederef
-        (Ecast (Etempvar __clo (talignas 3%N (tptr tvoid)))
-          (tptr (Tstruct _closure noattr))) (Tstruct _closure noattr)) _func
+      (Ederef (Ecast (Etempvar __clo tlong) (tptr (Tstruct _closure noattr)))
+        (Tstruct _closure noattr)) _func
       (tptr (Tfunction
               (Tcons (Tstruct _thread_info noattr)
-                (Tcons (talignas 3%N (tptr tvoid))
-                  (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
-              cc_default))))
+                (Tcons tlong (Tcons tlong Tnil))) tlong cc_default))))
   (Ssequence
     (Sset __envi
       (Efield
         (Ederef
-          (Ecast (Etempvar __clo (talignas 3%N (tptr tvoid)))
-            (tptr (Tstruct _closure noattr))) (Tstruct _closure noattr)) _env
-        (talignas 3%N (tptr tvoid))))
+          (Ecast (Etempvar __clo tlong) (tptr (Tstruct _closure noattr)))
+          (Tstruct _closure noattr)) _env tlong))
     (Ssequence
-      (Scall None
-        (Ecast (Etempvar __f (tptr tulong))
-          (tptr (Tfunction
-                  (Tcons (tptr (Tstruct _thread_info noattr))
-                    (Tcons (talignas 3%N (tptr tvoid))
-                      (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
-                  cc_default)))
-        ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
-         (Etempvar __envi (tptr tulong)) ::
-         (Etempvar __arg (talignas 3%N (tptr tvoid))) :: nil))
       (Ssequence
-        (Sset _t'1
-          (Ederef
-            (Ebinop Oadd
-              (Efield
-                (Ederef
-                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                  (Tstruct _thread_info noattr)) _args
-                (tarray (talignas 3%N (tptr tvoid)) 1024))
-              (Econst_long (Int64.repr 1) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid))))
-        (Sreturn (Some (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))))))
+        (Scall (Some _t'1)
+          (Ecast (Etempvar __f (tptr tulong))
+            (tptr (Tfunction
+                    (Tcons (tptr (Tstruct _thread_info noattr))
+                      (Tcons tlong (Tcons tlong Tnil))) tlong cc_default)))
+          ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
+           (Etempvar __envi (tptr tulong)) :: (Etempvar __arg tlong) :: nil))
+        (Sset __tmp (Etempvar _t'1 tlong)))
+      (Sreturn (Some (Etempvar __tmp tlong))))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -1563,21 +1445,17 @@ Definition composites : list composite_definition :=
    (Member_plain _func
       (tptr (Tfunction
               (Tcons (Tstruct _thread_info noattr)
-                (Tcons (talignas 3%N (tptr tvoid))
-                  (Tcons (talignas 3%N (tptr tvoid)) Tnil))) tvoid
-              cc_default)) ::
-    Member_plain _env (talignas 3%N (tptr tvoid)) :: nil)
+                (Tcons tlong (Tcons tlong Tnil))) tlong cc_default)) ::
+    Member_plain _env tlong :: nil)
    noattr ::
  Composite _stack_frame Struct
-   (Member_plain _next (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _root (tptr (talignas 3%N (tptr tvoid))) ::
+   (Member_plain _next (tptr tlong) :: Member_plain _root (tptr tlong) ::
     Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)
    noattr ::
  Composite _thread_info Struct
-   (Member_plain _alloc (tptr (talignas 3%N (tptr tvoid))) ::
-    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
+   (Member_plain _alloc (tptr tlong) :: Member_plain _limit (tptr tlong) ::
     Member_plain _heap (tptr (Tstruct _heap noattr)) ::
-    Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
+    Member_plain _args (tarray tlong 1024) ::
     Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
     Member_plain _nalloc tulong :: nil)
    noattr :: nil).
@@ -1857,11 +1735,11 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_is_ptr,
    Gfun(External (EF_external "is_ptr"
                    (mksignature (AST.Tlong :: nil) AST.Tint8unsigned
-                     cc_default)) (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-     tbool cc_default)) :: (_lparen_lit, Gvar v_lparen_lit) ::
- (_rparen_lit, Gvar v_rparen_lit) :: (_space_lit, Gvar v_space_lit) ::
- (_fun_lit, Gvar v_fun_lit) :: (_type_lit, Gvar v_type_lit) ::
- (_unk_lit, Gvar v_unk_lit) :: (_prop_lit, Gvar v_prop_lit) ::
+                     cc_default)) (Tcons tlong Tnil) tbool cc_default)) ::
+ (_lparen_lit, Gvar v_lparen_lit) :: (_rparen_lit, Gvar v_rparen_lit) ::
+ (_space_lit, Gvar v_space_lit) :: (_fun_lit, Gvar v_fun_lit) ::
+ (_type_lit, Gvar v_type_lit) :: (_unk_lit, Gvar v_unk_lit) ::
+ (_prop_lit, Gvar v_prop_lit) ::
  (_get_unboxed_ordinal, Gfun(Internal f_get_unboxed_ordinal)) ::
  (_get_boxed_ordinal, Gfun(Internal f_get_boxed_ordinal)) ::
  (_get_args, Gfun(Internal f_get_args)) ::
