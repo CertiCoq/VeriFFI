@@ -1,16 +1,14 @@
-FROM ocaml/opam
+FROM yforster/coq:8.17.0--clang-11--compcert-3.12--extlib-0.11.8--equations-1.3--elpi.1.17.1
 
 MAINTAINER Joomy Korkut <joomy@cs.princeton.edu>
 
-RUN sudo apt-get update && sudo apt-get install -y libgmp-dev
-RUN opam switch create 4.10.2 && eval $(opam env)
-ENV PATH="/home/opam/.opam/4.10.2/bin:${PATH}"
-RUN opam repo add coq-released http://coq.inria.fr/opam/released && opam pin add coq 8.15.2
-RUN cd && git clone https://github.com/joom/certicoq && cd ~/certicoq && git checkout coq-8.15 && git submodule update --init
-RUN cd ~/certicoq && opam pin -n -y submodules/metacoq && opam pin -n -y . && opam install coq-certicoq --deps-only && sudo apt-get --assume-yes install clang
-RUN cd ~/certicoq && opam install coq-certicoq
-RUN cd && git clone https://github.com/PrincetonUniversity/VST && cd ~/VST && git checkout 013640e9837c0cdbe03d38a7f318171b01aaca87 && make BITSIZE=64 && make install
-RUN cd && git clone https://github.com/CertiGraph/CertiGraph && cd ~/CertiGraph && git checkout 1be51414c139f8bc16b3e22f72989e454c37ce3c 
-RUN cd ~/CertiGraph && make BITSIZE=64 -j4 certigc
-USER opam
+RUN cd && git clone https://github.com/CertiCoq/VeriFFI && cd VeriFFI && git submodule update --init --recursive
+RUN cd ~/VeriFFI/certicoq && opam pin -n -y .
+ENV PATH="/home/coq/.opam/4.13.1+flambda/bin:${PATH}"
+RUN cd ~/VeriFFI/certicoq && opam install -y coq-certicoq --deps-only
+RUN cd ~/VeriFFI/certicoq && opam install -y -v -j 4 coq-certicoq
+RUN opam install -y coq-vst.2.12
+# RUN cd ~/VeriFFI/CertiGraph && make BITSIZE=64 -j4 certigc
+USER coq
 RUN /bin/bash
+# RUN cd ~/VeriFFI/CertiGraph && git checkout 1be51414c139f8bc16b3e22f72989e454c37ce3c 
