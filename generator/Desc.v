@@ -9,7 +9,6 @@ Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.StateMonad
                ExtLib.Data.String.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
@@ -183,7 +182,7 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
         @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
         (* Declare the new definition a type class instance *)
         mp <- tmCurrentModPath tt ;;
-        tmExistingInstance (ConstRef (mp, name)) ;;
+        tmExistingInstance export (ConstRef (mp, name)) ;;
         ret tt
       end
     end
@@ -221,7 +220,7 @@ Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
       @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
       (* Declare the new definition a type class instance *)
       mp <- tmCurrentModPath tt ;;
-      tmExistingInstance (ConstRef (mp, name)) ;;
+      tmExistingInstance export (ConstRef (mp, name)) ;;
       ret tt
 
     in

@@ -67,37 +67,37 @@ Module Bytestring_Proofs.
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),
                         Isomorphism (FM.M A) (C.M A').
   Axiom Isomorphism_stream : Isomorphism FM.stream C.stream.
-  Existing Instance Isomorphism_bytestring.
-  Existing Instance Isomorphism_M.
-  Existing Instance Isomorphism_stream.
+  #[local] Existing Instance Isomorphism_bytestring.
+  #[local] Existing Instance Isomorphism_M.
+  #[local] Existing Instance Isomorphism_stream.
 
-  Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring.
+  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring.
     refine {| graph_predicate g x p := _ |}.
     (* TODO this is where we describe how an OCaml bytestring 
             is represented within the graph *)
     Admitted.
-  Instance InGraph_bytestring : InGraph FM.bytestring.
+  #[local] Instance InGraph_bytestring : InGraph FM.bytestring.
     econstructor.
     (*  TODO this is where we prove lemmas about the graph predicate above *)
     * admit.
     * admit.
     Admitted.
-  Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
+  #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
     refine {| graph_predicate g x p := _ |}.
     (* TODO this is where we describe how the monad type
             is represented within the graph *)
     Admitted.
-  Instance InGraph_M {A : Type} `{GP : InGraph A} : InGraph (FM.M A).
+  #[local] Instance InGraph_M {A : Type} `{GP : InGraph A} : InGraph (FM.M A).
     econstructor.
     (*  TODO this is where we prove lemmas about the graph predicate above *)
     * admit.
     * admit.
     Admitted.
-  Instance GraphPredicate_stream : GraphPredicate FM.stream.
+  #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream.
     refine {| graph_predicate g x p := _ |}.
     (* TODO this is where we describe how a stream is represented within the graph *)
     Admitted.
-  Instance InGraph_stream : InGraph FM.stream.
+  #[local] Instance InGraph_stream : InGraph FM.stream.
     econstructor.
     (*  TODO this is where we prove lemmas about the graph predicate above *)
     * admit.

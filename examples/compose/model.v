@@ -15,8 +15,6 @@ Module FM <: Compose.
 End FM.
 
 Module Compose_Proofs.
-  Check prim_in_graph.
-  Check C.compose.
   Definition compose_ep : fn_desc :=
     {| type_desc :=
        @TYPEPARAM _ (fun A R_A =>

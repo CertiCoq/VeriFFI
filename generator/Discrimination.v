@@ -17,7 +17,6 @@ Require Import VeriFFI.library.meta.
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
 Import ListNotations.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
@@ -79,24 +78,29 @@ Fixpoint find_missing_instances
       ret nil
     end.
 
+Definition tmInferInstance' (A : Type) (err : string) : TemplateMonad term :=
+  o <- tmInferInstance (Some all) A ;;
+  match o with
+  | my_Some inst => tmQuote inst
+  | my_None => tmFail err
+  end.
+  
 Definition make_desc_list (ind : inductive)
                           (ctors : list constructor_body) : TemplateMonad term :=
   l <- monad_map_i
     (fun i _ =>
        t <- tmUnquoteTyped Type (tApp <% @Desc %> [hole; tConstruct ind i []]) ;;
-       o <- tmInferInstance (Some all) t ;;
-       match o with
-       | my_Some inst =>
-           t_inst <- tmQuote inst ;;
-           tmUnquoteTyped ctor_desc
-                          (tApp <% @desc %> [hole; tConstruct ind i []; t_inst])
-       | my_None => tmFail "No Desc instance for constructor"%bs
-       end) ctors ;;
+       t_inst <- tmInferInstance' t "No Desc instance for constructor"%bs;;
+       tmUnquoteTyped ctor_desc
+                      (tApp <% @desc %> [hole; tConstruct ind i []; t_inst])) ctors ;;
   tmQuote l. 
+
+Definition tmLemmaQuote (id : ident) (A : Type) : TemplateMonad term :=
+  tmLemma id A >>= tmQuote.
 
 Definition add_instances_aux
            (kn : kername)
-           (mut : mutual_inductive_body) : TemplateMonad _ :=
+           (mut : mutual_inductive_body) : TemplateMonad (list unit) :=
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
@@ -110,40 +114,40 @@ Definition add_instances_aux
        quantified_after <- generate_instance_type ind mut one
          (fun ty_name t => t)
          (fun t => apply_to_pi_base (fun t' => tApp <% Discrimination %> [t']) t) ;;
-
        
        instance_ty_before <- DB.deBruijn quantified_before >>= tmUnquoteTyped Type ;;
        quantified_after' <- DB.deBruijn quantified_after ;;
        instance_ty_after <- tmUnquoteTyped Type quantified_after' ;;
 
-       (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
-       (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name_before <- tmFreshName =<< tmEval all ("Discriminator_" ++ ind_name one)%bs ;;
-       lemma <- tmLemma name_before instance_ty_before >>= tmQuote ;;
+       name_before <- tmFreshName ("Discriminator_" ++ ind_name one)%bs ;;
+       lemma <- tmLemmaQuote name_before instance_ty_before ;;
 
-       name_after <- tmFreshName =<< tmEval all ("Discrimination_" ++ ind_name one)%bs ;;
+       name_after <- tmFreshName ("Discrimination_" ++ ind_name one)%bs ;;
        let def : term := tCast lemma Cast quantified_after' in
-       instance <- tmUnquoteTyped instance_ty_after def ;;
-       @tmDefinition name_after instance_ty_after instance ;;
+       (* Tried this, didn't work: 
+         instance <- tmUnquoteTyped instance_ty_after def ;;
+         @tmDefinition name_after instance_ty_after instance ;;
+       *)
 
-       (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
-       (*    because of a mysterious type error. (Coq's type errors in monadic *)
-       (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
-       (*    a Σ-type. But when you project the second field out of that, *)
-       (*    the type doesn't get evaluated to [Discrimination _], it stays as *)
-       (*    [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
-       (*    which is the type of the second projection. When the user prints *)
-       (*    their [Discrimination] instance, Coq shows the unevaluated version. *)
-       (*    But we don't want to evaluate it [all] the way, that would unfoldd *)
-       (*    the references to other instances of [Discrimination]. We only want to get *)
-       (*    the head normal form with [hnf]. *)
-       (*    We have to do this both for the instance body and its type. *) *)
-       (* tmEval hnf (my_projT2 instance) >>= *)
-       (*   tmDefinitionRed_ false name (Some hnf) ;; *)
+       (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
+       (* because of a mysterious type error. (Coq's type errors in monadic *)
+       (* contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
+       (* a Σ-type. But when you project the second field out of that, *)
+       (* the type doesn't get evaluated to [Discrimination _], it stays as *)
+       (* [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
+       (* which is the type of the second projection. When the user prints *)
+       (* their [Discrimination] instance, Coq shows the unevaluated version. *)
+       (* But we don't want to evaluate it [all] the way, that would unfold *)
+       (* the references to other instances of [Discrimination]. We only want to get *)
+       (* the head normal form with [hnf]. *)
+       (* We have to do this both for the instance body and its type. *)
+       instance <- tmUnquote def ;;
+       tmEval hnf (my_projT2 instance) >>=
+         tmDefinitionRed_ false name_after (Some hnf) ;;
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
-       tmExistingInstance (ConstRef (mp, name_after)) ;;
+       tmExistingInstance export (ConstRef (mp, name_after)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added Discrimination instance for " ++ string_of_kername fake_kn) ;;
@@ -221,6 +225,10 @@ Ltac gen :=
 Obligation Tactic := gen.
 
 (* Unset MetaCoq Strict Unquote Universe Mode. *)
+(* MetaCoq Run (in_graph_gen bool). *)
+(* MetaCoq Run (descs_gen bool). *)
+(* MetaCoq Run (disc_gen bool). *)
+
 (* MetaCoq Run (in_graph_gen option). *)
 (* MetaCoq Run (descs_gen option). *)
 

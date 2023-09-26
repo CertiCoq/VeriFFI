@@ -40,9 +40,9 @@ Module Array_Proofs.
   (* Axiom Isomorphism_state : Isomorphism C.state FM.state. *)
   Axiom Isomorphism_M : forall {A A' : Type} (I : Isomorphism A A'),
                         Isomorphism (FM.M A) (C.M A').
-  Existing Instance Isomorphism_M.
+  #[local] Existing Instance Isomorphism_M.
 
-  Instance InGraph_M : forall {A : Type} `{InGraph A}, InGraph (FM.M A).
+  #[local] Instance InGraph_M : forall {A : Type} `{InGraph A}, InGraph (FM.M A).
   Admitted.
 
   Definition pure_desc : fn_desc :=

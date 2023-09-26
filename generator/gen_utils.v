@@ -8,8 +8,8 @@ Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.OptionMonad
                ExtLib.Data.String.
 
-From MetaCoq.Template Require Import BasicAst.
 Require MetaCoq.Template.All.
+Require Import MetaCoq.Common.BasicAst.
 
 (* Import monad_utils.MCMonadNotation. *)
 (* Open Scope monad_scope. *)
@@ -243,7 +243,6 @@ Module MetaCoqNotations.
   (* Compute <? option ?>. *)
 End MetaCoqNotations.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,

@@ -260,10 +260,10 @@ Check <%% vec %%>.
 *)
 
 (* GENERATION *)
-(* Require Import MetaCoq.Template.All. *)
-Require Import MetaCoq.Template.utils.MCString.
+Require Import MetaCoq.Template.All.
+Require Import MetaCoq.Utils.MCString.
 Record ctor_desc :=
-  { ctor_name : string
+  { ctor_name : MCString.string
   ; ctor_reified : reified ctor_ann
   ; ctor_reflected : reflect ctor_reified
   ; ctor_tag : nat
@@ -302,9 +302,12 @@ Class Rep (A : Type) :=
   ; discrimination : Discrimination A
   }.
 
-Instance Rep_implied (A : Type) `(InGraph_A : InGraph A) `(Discrimination_A : Discrimination A) : Rep A :=
- {| in_graph := InGraph_A
-  ; discrimination := Discrimination_A
-  |}.
+#[export] Instance Rep_implied
+                   (A : Type)
+                  `(InGraph_A : InGraph A)
+                  `(Discrimination_A : Discrimination A) : Rep A :=
+  {| in_graph := InGraph_A
+   ; discrimination := Discrimination_A
+   |}.
 
 Definition Reppyish := option ({A : Type & Rep A}).

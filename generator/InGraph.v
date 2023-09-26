@@ -98,7 +98,6 @@ Ltac in_graph_gen_tac :=
           end);
   econstructor; [prove_has_v | prove_monotone].
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
@@ -150,33 +149,36 @@ Fixpoint find_missing_instances
       ret nil
     end.
 
-Definition add_instances_aux (kn : kername)
-                   (mut : mutual_inductive_body)
-                   (singles_tys : list (aname * named_term))
-                   (singles: list (def named_term)) : TemplateMonad _ :=
+Definition tmLemma_ (id : ident) (A : Type) : TemplateMonad unit :=
+  tmLemma id A ;; ret tt.
+
+Definition add_instances_aux
+           (kn : kername)
+           (mut : mutual_inductive_body)
+           (singles_tys : list (aname * named_term))
+           (singles: list (def named_term)) : TemplateMonad (list unit) :=
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
        quantified <- quantified ind mut one "InGraph_" <% InGraph %> ;;
-       (* Now what can we do with this? *)
-       (*    Let's start by going to its named representation. *)
-       (* The reified type of the fully applied type constructor, *)
-       (*    but with free variables! *)
+       (* (* Now what can we do with this? *) *)
+       (* (*    Let's start by going to its named representation. *) *)
+       (* (* The reified type of the fully applied type constructor, *) *)
+       (* (*    but with free variables! *) *)
        let tau := strip_quantifiers quantified in
        let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
        extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
                                                           (tApp <% InGraph %> [tau])) ;;
        instance_ty <- tmUnquoteTyped Type extra_quantified ;;
-       (* tmPrint prog';; *)
-       (* tmMsg "Inst" ;; *)
-       (* tmPrint instance ;; *)
-       (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
-       (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("InGraph_" ++ ind_name one)%bs ;;
-       tmLemma name instance_ty ;;
+       (* (* tmPrint prog';; *) *)
+       (* (* tmMsg "Inst" ;; *) *)
+       (* (* tmPrint instance ;; *) *)
+       name <- tmFreshName ("InGraph_" ++ ind_name one)%bs ;;
+       tmLemma_ name instance_ty ;;
+       (* tmLemma name instance_ty ;; *)
 
-       (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
+       (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
        (*    because of a mysterious type error. (Coq's type errors in monadic *)
        (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
        (*    a Σ-type. But when you project the second field out of that, *)
@@ -187,13 +189,13 @@ Definition add_instances_aux (kn : kername)
        (*    But we don't want to evaluate it [all] the way, that would unfoldd *)
        (*    the references to other instances of [InGraph]. We only want to get *)
        (*    the head normal form with [hnf]. *)
-       (*    We have to do this both for the instance body and its type. *) *)
+       (*    We have to do this both for the instance body and its type. *)
        (* tmEval hnf (my_projT2 instance) >>= *)
        (*   tmDefinitionRed_ false name (Some hnf) ;; *)
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
-       tmExistingInstance (ConstRef (mp, name)) ;;
+       tmExistingInstance export (ConstRef (mp, name)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added InGraph instance for " ++ string_of_kername fake_kn) ;;

@@ -44,9 +44,9 @@ End FM.
 
 Module UInt63_Proofs.
   Axiom Isomorphism_t : Isomorphism FM.t C.t.
-  Existing Instance Isomorphism_t.
+  #[local] Existing Instance Isomorphism_t.
 
-  Instance InGraph_t : InGraph FM.t. Admitted.
+  #[local] Instance InGraph_t : InGraph FM.t. Admitted.
 
   Definition from_nat_desc : fn_desc :=
     {| type_desc :=

@@ -55,7 +55,6 @@ Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.OptionMonad
                ExtLib.Data.Monads.StateMonad.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
@@ -724,9 +723,7 @@ Definition add_instances_aux (kn : kername)
        instance <- tmUnquote prog' ;;
        (* tmMsg "Inst" ;; *)
        (* tmPrint instance ;; *)
-       (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
-       (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("GraphPredicate_" ++ ind_name one)%bs ;;
+       name <- tmFreshName ("GraphPredicate_" ++ ind_name one)%bs ;;
 
        (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
        (*    because of a mysterious type error. (Coq's type errors in monadic *)
@@ -745,7 +742,7 @@ Definition add_instances_aux (kn : kername)
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
-       tmExistingInstance (ConstRef (mp, name)) ;;
+       tmExistingInstance export (ConstRef (mp, name)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added GraphPredicate instance for " ++ string_of_kername fake_kn) ;;
