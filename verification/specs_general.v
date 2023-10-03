@@ -96,7 +96,7 @@ Definition alloc_make_spec_general
            (n : nat) : (* ident * *) funspec :=
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reified c), roots : roots_t, sh : share,
-         ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[ thread_info :: repeat int_or_ptr_type n ]]
        PROP (n = get_size (ctor_reified c) xs ;
              in_graphs g _ xs ps ;
