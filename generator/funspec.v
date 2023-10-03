@@ -49,7 +49,7 @@ Definition fn_desc_to_funspec_aux
            (arity : nat) : funspec :=
   WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
        xs : args c, ps : list rep_type, ti : val,
-       outlier : GCGraph.outlier_t, f_info : GCGraph.fun_info, t_info : GCGraph.thread_info
+       outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
    PRE [[ cons t_tinfo (repeat tvalue arity) ]]
        PROP (writable_share sh ;
               in_graphs g c xs ps)
