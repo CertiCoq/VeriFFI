@@ -58,13 +58,12 @@ Proof.
 Qed.
 
 (** Custom notation with a list for PRE to make the specification better readable. *)
-Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 , x8 : t8 , x9 : t9 , x10 : t10 'PRE'  [[ xs ]] P 'POST' [ tz ] Q" :=
-     (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7*t8*t9*t10)
-           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) => P%assert end)
-           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) => Q%assert end))
+Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 , x8 : t8 , x9 : t9 'PRE'  [[ xs ]] P 'POST' [ tz ] Q" :=
+     (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7*t8*t9)
+           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8,x9) => P%assert end)
+           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8,x9) => Q%assert end))
             (at level 200, x1 at level 0, x2 at level 0, x3 at level 0, x4 at level 0,
              x5 at level 0, x6 at level 0, x7 at level 0, x8 at level 0, x9 at level 0,
-              x10 at level 0,
              P at level 100, Q at level 100) : funspec_scope.
 
 
@@ -89,14 +88,14 @@ Definition alloc_make_nat_S : funspec :=
       RETURN  (rep_type_val g' p')
       SEP (full_gc g' t_info' roots outlier ti sh).
         *)
-
+Locate "WITH".
 (* move ps to the spec args somehow instead of WITH args *)
 Definition alloc_make_spec_general
            (c : ctor_desc)
            (n : nat) : (* ident * *) funspec :=
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reified c), roots : roots_t, sh : share,
-         ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[ thread_info :: repeat int_or_ptr_type n ]]
        PROP (n = get_size (ctor_reified c) xs ;
              in_graphs g _ xs ps ;

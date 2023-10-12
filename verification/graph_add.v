@@ -643,8 +643,9 @@ in  0 <= off <= total_space sp - used_space sp -> heap.
     rewrite Zlength_upd_Znth. apply spaces_size.
 Defined. 
 
-Definition add_node_ti (to : nat) (ti : GCGraph.thread_info) (off : Z) (H: 0 <= off <= total_space (nth_space ti to) - used_space (nth_space ti to)): GCGraph.thread_info := 
-Build_thread_info (ti_heap_p ti) (add_node_heap to (ti_heap ti) off H) (ti_args ti) (arg_size ti). 
+Definition add_node_ti (to : nat) (ti : GCGraph.thread_info) (off : Z) (H: 0 <= off <= total_space (nth_space (ti_heap ti) to) - used_space (nth_space (ti_heap ti) to)): GCGraph.thread_info := 
+Build_thread_info (ti_heap_p ti) (add_node_heap to (ti_heap ti) off H) (ti_args ti) (arg_size ti)
+         (ti_frames ti) (ti_nalloc ti). 
  
 Lemma add_node_heap_start to hp off H (sz : Z.of_nat to < Zlength (spaces hp)): 
    space_start (nth to (spaces (add_node_heap to hp off H)) null_space) = space_start (nth to (spaces hp) null_space). 
@@ -744,8 +745,9 @@ Qed.
 
 
 Lemma add_node_heap_ti_token_rep (to : nat) (ti : GCGraph.thread_info) (off : Z) H (size : 0 <= Z.of_nat to < Zlength (spaces (ti_heap ti))): 
-ti_token_rep (add_node_ti to ti off H) = ti_token_rep ti.
+ti_token_rep (ti_heap (add_node_ti to ti off H)) = ti_token_rep (ti_heap ti).
 Proof.
+  extensionality p.
   unfold ti_token_rep. simpl. f_equal.
   setoid_rewrite <- upd_Znth_unchanged with (i := Z.of_nat to) (l := spaces (ti_heap ti)) at 3; eauto. 
   rewrite !upd_Znth_unfold; eauto.
@@ -810,10 +812,13 @@ Proof.
     - subst. rewrite add_node_vlabel. eauto.
 Qed.
 
-Lemma add_node_graph_thread_compatible g t_info to lb es (off : Z) (H: 0 <= off <= total_space (nth_space t_info to) - used_space (nth_space t_info to)): 
-   Zlength (raw_fields lb) + 1 = off -> graph_has_gen g to -> no_dangling_dst g -> graph_thread_info_compatible g t_info -> graph_thread_info_compatible (add_node g to lb es) (add_node_ti to t_info off H). 
+Lemma add_node_graph_thread_compatible g (t_info: thread_info) to lb es (off : Z)
+    (H: 0 <= off <= total_space (nth_space (ti_heap t_info) to) - used_space (nth_space (ti_heap t_info) to)): 
+   Zlength (raw_fields lb) + 1 = off -> graph_has_gen g to -> no_dangling_dst g -> 
+    graph_heap_compatible g (ti_heap t_info) -> 
+   graph_heap_compatible (add_node g to lb es) (ti_heap (add_node_ti to t_info off H)). 
 Proof.
-  unfold graph_thread_info_compatible. intros L HH ND (A1&A2&A3). 
+  unfold graph_heap_compatible. intros L HH ND (A1&A2&A3). 
   assert (Datatypes.length (copy_v_mod_gen_info_list (g_gen (glabel g)) to) = Datatypes.length (g_gen (glabel g))) as LU.
   { simpl. unfold copy_v_mod_gen_info_list.
      rewrite !app_length. simpl. rewrite List.skipn_length. unfold graph_has_gen in HH.
@@ -1050,8 +1055,10 @@ Proof.
       assert (H' := number_of_vertices_increases g (vgeneration (copied_vertex (vlabel g v))) to lb es G). rep_lia.
 Qed.
 
-Lemma add_node_ti_size_spec (to : nat) (ti : GCGraph.thread_info) (off : Z) (H: 0 <= off <= total_space (nth_space ti to) - used_space (nth_space ti to)): 
-  Z.of_nat to < Zlength (spaces (ti_heap ti)) -> ti_size_spec ti -> ti_size_spec (add_node_ti to ti off H) . 
+Lemma add_node_ti_size_spec (to : nat) (ti : GCGraph.thread_info) (off : Z) 
+      (H: 0 <= off <= total_space (nth_space (ti_heap ti) to) - used_space (nth_space (ti_heap ti) to)): 
+  Z.of_nat to < Zlength (spaces (ti_heap ti)) -> ti_size_spec (ti_heap ti) -> 
+   ti_size_spec (ti_heap (add_node_ti to ti off H)). 
 Proof.
   intros ? A. unfold ti_size_spec in *. rewrite Forall_forall in *. 
   intros n B. specialize (A _ B). rewrite nat_inc_list_In_iff in B. unfold nth_gen_size_spec, nth_space in *. 

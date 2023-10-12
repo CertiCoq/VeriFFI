@@ -37,11 +37,11 @@ Definition array_type := int_or_ptr_type.
 
 (** Propositional conditions from the garbage collector specification and getting the isomorphism property for the garbage collector:
 The thread_info has to be a new one, roots and outlier stay preserved *)
-Definition gc_condition_prop g t_info roots outlier :=
+Definition gc_condition_prop g (t_info: GCGraph.thread_info) roots outlier :=
 
-graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec t_info (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
+graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec (ti_heap t_info) (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
 /\ safe_to_copy g
-/\ graph_thread_info_compatible g t_info /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
+/\ graph_heap_compatible g (ti_heap t_info) /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
 
 Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
@@ -56,6 +56,7 @@ Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
 
 (* Adapted from Shengyi to get the right GC *)
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=
+  CertiGraph.CertiGC.spatial_gcgraph.before_gc_thread_info_rep sh ti t. (*
   let nursery := heap_head ti.(ti_heap) in
   let p := nursery.(space_start) in
   let n_lim := offset_val (WORD_SIZE * nursery.(total_space)) p in
@@ -66,7 +67,9 @@ Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph
     sh ((p, (Vundef, n_lim))
           :: map space_tri (tl ti.(ti_heap).(spaces))) ti.(ti_heap_p) *
   heap_rest_rep ti.(ti_heap))%logic.
+*)
 
 (* Full condition for the garbage collector *)
-Definition full_gc g t_info roots outlier ti sh :=
-  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep t_info * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic.
+Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh :=
+  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic.
+
