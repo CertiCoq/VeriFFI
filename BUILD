@@ -56,6 +56,8 @@ opam install coq-vst.2.12 || exit 1
 # the CertiGraph submodule of VeriFFI us currently at commit 1be51414c139f8bc16b3e22f72989e454c37ce3c 
 # RUN cd && git clone https://github.com/CertiGraph/CertiGraph && cd ~/CertiGraph && git checkout 1be51414c139f8bc16b3e22f72989e454c37ce3c 
 
+echo "RUN: cd CertiGraph; make clightgen"
+(cd CertiGraph; make clightgen) || exit 1
 echo "RUN: cd CertiGraph; make -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo"
 (cd CertiGraph; make -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo) || exit 1
 
