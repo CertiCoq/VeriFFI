@@ -35,3 +35,4 @@ nra.cache
 Makefile.coq
 Makefile.coq.conf
 ./.{c,h}
+.vscode/

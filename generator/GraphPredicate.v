@@ -55,7 +55,6 @@ Require Import ExtLib.Structures.Monads
                ExtLib.Data.Monads.OptionMonad
                ExtLib.Data.Monads.StateMonad.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 Require Import VeriFFI.generator.gen_utils.
@@ -508,14 +507,18 @@ Definition make_prop
         tmMsg "IS IN GRAPH CALL: " ;;
         tmEval all nt >>= tmPrint ;;
         tmEval all call >>= tmPrint ;;
+        tmEval all t_arg >>= tmPrint ;;
+        tmEval all t_p >>= tmPrint ;;
         ret [tApp call [ t_g ; t_arg; t_p ]]
       | _ => ret nil
     end
   in
   arg_props <- monad_map_i make_arg_prop args ;;
   tmMsg "==== END OF make_arg_props ====" ;;
-  (* tmMsg "arg_props:" ;; *)
-  (* tmEval all arg_props >>= tmPrint ;; *)
+  tmMsg "args:" ;;
+  tmEval all args >>= tmPrint ;;
+  tmMsg "arg_props:" ;;
+  tmEval all arg_props >>= tmPrint ;;
   base <- make_prop_base ;;
   ret (fold_right t_and base (concat arg_props)).
 
@@ -565,7 +568,6 @@ Fixpoint count_quantifiers_to_skip (xs : context) : nat :=
   | nil => 0
   end.
 
-(* Check <% fun A => fun xs : list A => match xs with nil => true | cons y ys => false end %>. *)
 (* Generates a reified match expression *)
 Definition matchmaker
     (all_single_rep_tys : list (aname * named_term))
@@ -593,7 +595,7 @@ Definition matchmaker
               ; ci_relevance := Relevant
               |}
              {| puinst := []
-              ; pparams := params
+              ; pparams := rev params
               ; pcontext := [{| binder_name := nNamed "x"; binder_relevance := Relevant |}]
               ; preturn := <% Prop %>
               |}
@@ -639,7 +641,7 @@ Definition singles_tys (kn : kername)
                       (fun t => apply_to_pi_base (fun t' => tApp <% GraphPredicate %> [t']) t) ;;
       (* tmMsg "quantified:" ;; *)
       quantified <- tmEval all quantified ;;
-      (* ___GraphPredicate0, ___InGraph1 etc. are fake instances,
+      (* ___GraphPredicate0, ___GraphPredicate1 etc. are fake instances,
           gotta replace their usage with calls to graph_predicate0, graph_predicate1 etc later. *)
       let an := mkBindAnn (nNamed ("___GraphPredicate" ++ string_of_nat i)) Relevant in
       ret (an, quantified))
@@ -680,7 +682,7 @@ Definition add_instances_aux (kn : kername)
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-       quantified <- quantified ind mut one "GraphPredicate_" <% InGraph %> ;;
+       quantified <- quantified ind mut one "GraphPredicate_" <% GraphPredicate %> ;;
        (* Now what can we do with this? *)
        (*    Let's start by going to its named representation. *)
        (* The reified type of the fully applied type constructor, *)
@@ -705,7 +707,6 @@ Definition add_instances_aux (kn : kername)
                   (tFix singles i)
                   (build_quantifiers tProd quantifiers fn_ty)
                   (tApp (tVar "f") args_let) in
-
        let prog_named : named_term :=
            build_quantifiers tLambda quantifiers
                              (tApp <% @Build_GraphPredicate %>
@@ -718,13 +719,11 @@ Definition add_instances_aux (kn : kername)
        instance_ty <- tmUnquoteTyped Type extra_quantified ;;
        tmMsg "Prog" ;;
        prog' <- tmEval all prog ;;
-       tmPrint prog';;
+       tmPrint prog' ;;
        instance <- tmUnquote prog' ;;
        (* tmMsg "Inst" ;; *)
        (* tmPrint instance ;; *)
-       (* Remove [tmEval] when MetaCoq issue 455 is fixed: *)
-       (* https://github.com/MetaCoq/metacoq/issues/455 *)
-       name <- tmFreshName =<< tmEval all ("GraphPredicate_" ++ ind_name one)%bs ;;
+       name <- tmFreshName ("GraphPredicate_" ++ ind_name one)%bs ;;
 
        (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
        (*    because of a mysterious type error. (Coq's type errors in monadic *)
@@ -743,7 +742,7 @@ Definition add_instances_aux (kn : kername)
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
-       tmExistingInstance (ConstRef (mp, name)) ;;
+       tmExistingInstance export (ConstRef (mp, name)) ;;
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added GraphPredicate instance for " ++ string_of_kername fake_kn) ;;
@@ -766,11 +765,11 @@ Definition graph_predicate_gen {kind : Type} (Tau : kind) : TemplateMonad unit :
   monad_iter add_instances (rev missing).
 
 (* Playground: *)
-(* MetaCoq Run (in_graph_gen unit). *)
-(* MetaCoq Run (in_graph_gen nat). *)
-(* MetaCoq Run (in_graph_gen option). *)
-(* MetaCoq Run (in_graph_gen list). *)
-
+(* MetaCoq Run (graph_predicate_gen unit). *)
+(* MetaCoq Run (graph_predicate_gen nat). *)
+(* MetaCoq Run (graph_predicate_gen option). *)
+(* MetaCoq Run (graph_predicate_gen list). *)
+(* MetaCoq Run (graph_predicate_gen prod). *)
 
 (*
 
@@ -779,18 +778,18 @@ Inductive vec (A : Type) : nat -> Type :=
 | vcons : forall n, A -> vec A n -> vec A (S n).
 
 Check <%% vec %%>.
-MetaCoq Run (in_graph_gen nat).
+MetaCoq Run (graph_predicate_gen nat).
 
 (* Check <% fun (A : Type) (P1 : nat) (x : vec A P1) => *)
 (*            match x with vnil => False end %>. *)
 
 
-MetaCoq Run (in_graph_gen vec).
+MetaCoq Run (graph_predicate_gen vec).
 
-MetaCoq Run (in_graph_gen unit).
+MetaCoq Run (graph_predicate_gen unit).
 Print GraphPredicate_unit.
 
-MetaCoq Run (in_graph_gen option).
+MetaCoq Run (graph_predicate_gen option).
 Print GraphPredicate_option.
 
 Inductive option_indexed : Type -> Type :=
@@ -798,24 +797,24 @@ Inductive option_indexed : Type -> Type :=
 (* This is supposed to fail because if the type argument is not a parameter,
    then knowing how to represent things of that type statically is tricky,
    and often impossible. *)
-Fail MetaCoq Run (in_graph_gen option_indexed).
+Fail MetaCoq Run (graph_predicate_gen option_indexed).
 
-MetaCoq Run (in_graph_gen bool).
+MetaCoq Run (graph_predicate_gen bool).
 Print GraphPredicate_bool.
 
-MetaCoq Run (in_graph_gen prod).
+MetaCoq Run (graph_predicate_gen prod).
 Print GraphPredicate_prod.
 
 
 Inductive mylist (A B : Type) : Type :=
 | mynil : mylist A B
 | mycons : A -> option A -> option B -> mylist A B.
-MetaCoq Run (in_graph_gen mylist).
+MetaCoq Run (graph_predicate_gen mylist).
 
-MetaCoq Run (in_graph_gen nat).
+MetaCoq Run (graph_predicate_gen nat).
 Print GraphPredicate_nat.
 
-MetaCoq Run (in_graph_gen list).
+MetaCoq Run (graph_predicate_gen list).
 Print GraphPredicate_list.
 
 
@@ -824,7 +823,7 @@ Inductive T1 :=
 | c1 : T2 -> T1
 with T2 :=
 | c2 : T1 -> T2.
-MetaCoq Run (in_graph_gen T1).
+MetaCoq Run (graph_predicate_gen T1).
 
 Inductive tree (A : Type) : Type :=
 | tleaf : tree A
@@ -832,25 +831,25 @@ Inductive tree (A : Type) : Type :=
 with forest (A : Type) : Type :=
 | fnil : forest A
 | fcons : tree A -> forest A -> forest A.
-MetaCoq Run (in_graph_gen tree)
+MetaCoq Run (graph_predicate_gen tree)
 
 
 (* Testing dependent types: *)
 Inductive natty : nat -> nat -> Type :=
 | mynatty : forall n m, natty n m.
-MetaCoq Run (in_graph_gen natty).
+MetaCoq Run (graph_predicate_gen natty).
 
 Inductive D1 : nat -> Type :=
 | cd1 : forall n : nat, D1 n.
-MetaCoq Run (in_graph_gen D1).
+MetaCoq Run (graph_predicate_gen D1).
 
 Inductive D2 (n : nat) : Type :=
 | cd2 : D2 n.
-MetaCoq Run (in_graph_gen D2).
+MetaCoq Run (graph_predicate_gen D2).
 
 Inductive indexed : nat -> Type :=
 | bar : indexed O.
-MetaCoq Run (in_graph_gen indexed).
+MetaCoq Run (graph_predicate_gen indexed).
 
 | vcons : forall n, A -> vec A n -> vec A (S n).
 (* FIXME: this one doesn't work but should *)
@@ -858,16 +857,16 @@ MetaCoq Run (in_graph_gen indexed).
 Inductive fin : nat -> Set :=
 | F1 : forall {n}, fin (S n)
 | FS : forall {n}, fin n -> fin (S n).
-MetaCoq Run (in_graph_gen fin).
+MetaCoq Run (graph_predicate_gen fin).
 
 
 Inductive param_and_index (a b : nat) : a < b -> Type :=
 | foo : forall (pf : a < b), param_and_index a b pf.
-(* MetaCoq Run (in_graph_gen param_and_index). *)
+(* MetaCoq Run (graph_predicate_gen param_and_index). *)
 
 
 (*
-Instance GraphPredicate_vec (A : Type) (InGraph_A : InGraph A) (n : nat) : InGraph (vec A n) :=
+Instance GraphPredicate_vec (A : Type) (GraphPredicate_A : GraphPredicate A) (n : nat) : GraphPredicate (vec A n) :=
   let fix graph_predicate_vec (n : nat) (g : graph) (x : vec A n) (p : rep_type) {struct x} : Prop :=
     match x with
     | vnil => graph_cRep g p (enum 0) []
@@ -880,7 +879,7 @@ Instance GraphPredicate_vec (A : Type) (InGraph_A : InGraph A) (n : nat) : InGra
     end
   in @Build_GraphPredicate (vec A n) (rep_vec n).
 
-Instance GraphPredicate_fin (n : nat) : InGraph (fin n) :=
+Instance GraphPredicate_fin (n : nat) : GraphPredicate (fin n) :=
   let fix rep_fin (n : nat) (g : graph) (x : fin n) (p : rep_type) {struct x} : Prop :=
     match x with
     | @F1 arg0 =>
@@ -923,4 +922,4 @@ Inductive ntree (A : Type) : Type :=
 
 *)
 
-(* MetaCoq Run (in_graph_gen Rep). *)
+(* MetaCoq Run (graph_predicate_gen Rep). *)

@@ -14,6 +14,5 @@ int main(int argc, char *argv[]) {
   tinfo = make_tinfo();
   body(tinfo);
 
-  run_itree(tinfo, tinfo->args[1]);
   return 0;
 }

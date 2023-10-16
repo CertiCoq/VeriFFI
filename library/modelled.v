@@ -8,84 +8,103 @@ Import ListNotations.
 Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
-Ltac eq_refl_match :=
-  match goal with
-  | [ |- context[match ?x with | eq_refl => _ end] ] => destruct x
-  (* | [ _ : context[match ?x with | eq_refl => _ end] |- _] => destruct x *)
-  end.
+Class prim_ann (primary : Type) : Type :=
+  { prim_in_graph : InGraph primary
+  ; secondary : Type
+  ; prim_iso : Isomorphism primary secondary
+  }.
 
-Ltac prim_rewrites :=
-  repeat eq_refl_match;
-  rewrite ?from_to, ?to_from.
+Definition transparent {A : Type} `{IG_A : InGraph A} : prim_ann A :=
+  {| prim_in_graph := IG_A
+   ; secondary := A
+   ; prim_iso := Isomorphism_refl
+   |}.
 
-Ltac props x :=
-  let P := fresh in
-  pose proof x as P;
-  hnf in P;
-  simpl in P;
-  rewrite !P;
-  unfold id, eq_rect in *;
-  clear P.
+Definition opaque {A : Type} (B : Type)
+                 `{IG_A : InGraph A} `{Iso : Isomorphism A B} : prim_ann A :=
+  {| prim_in_graph := IG_A
+   ; secondary := B
+   ; prim_iso := Iso
+   |}.
 
-(* opaque and transparent *)
-(* Inductive annotated : Type := *)
-(* | TYPEPARAM : (forall (A : Type) `{InGraph A}, annotated) -> annotated *)
-(* | OPAQUE : forall (prim_type model_type : Type) *)
-(*                     `{Isomorphism prim_type model_type}, *)
-(*                     (option (prim_type -> annotated)) -> *)
-(*                     annotated *)
-(* | TRANSPARENT : forall (A : Type) `{InGraph A}, (option (A -> annotated)) -> annotated. *)
-
-Inductive prim_ann (actual_type : Type) : Type :=
-| OPAQUE : forall (model_type : Type) `{InGraph actual_type}, `{Isomorphism actual_type model_type} -> prim_ann actual_type
-| TRANSPARENT : `{InGraph actual_type} -> prim_ann actual_type.
-
-Definition prim_in_graph {A : Type} (p : prim_ann A) : InGraph A :=
-  match p with
-  | @OPAQUE _ mt ig _ => ig
-  | @TRANSPARENT _ ig => ig
-  end.
+Definition prim_ann_any {A} : prim_ann A := @transparent A InGraph_any.
 
 Fixpoint to_prim_fn_type (r : reified prim_ann) : Type :=
   match r with
   | TYPEPARAM f =>
       forall (A : Type),
-        to_prim_fn_type (f A (@TRANSPARENT A InGraph_any))
-  | ARG pt ann k =>
-      match ann with
-      | OPAQUE mt _ Iso => forall (p : pt), to_prim_fn_type (k p)
-      | TRANSPARENT InGraph_A => forall (x : pt), to_prim_fn_type (k x)
-      end
- | RES pt ann =>
-      match ann with
-      | OPAQUE mt _ Iso => pt
-      | TRANSPARENT InGraph_A => pt
-      end
+        to_prim_fn_type (f A prim_ann_any)
+  | ARG primary ann k =>
+      forall (m : secondary),
+        to_prim_fn_type (k (@to primary secondary prim_iso m))
+  | RES _ ann => secondary
   end.
+
+(*
+(* Old version with extra parameter: *)
+Fixpoint to_model_fn_type (r : reified prim_ann) : Type :=
+  match r with
+  | TYPEPARAM f =>
+      forall (A : Type) (H : prim_ann A),
+        to_model_fn_type (f A H)
+  | ARG primary ann k => forall (p : primary), to_model_fn_type (k p)
+  | RES primary ann => primary
+  end.
+
+Fixpoint uncurry (r : reified prim_ann)
+                 (mt : to_model_fn_type r) {struct r} : reflect r.
+Proof.
+  destruct r; simpl in mt; intros P; unfold reflect in *.
+  * destruct P as [A [ H rest ]].
+    specialize (mt _ H).
+    simpl in *.
+    specialize (uncurry _ mt).
+    auto.
+  * destruct P as [a rest].
+    specialize (mt a).
+    simpl in *.
+    specialize (uncurry _ mt).
+    auto.
+  * auto.
+Defined. 
+*)
 
 Fixpoint to_model_fn_type (r : reified prim_ann) : Type :=
   match r with
   | TYPEPARAM f =>
       forall (A : Type),
-        to_model_fn_type (f A (@TRANSPARENT A InGraph_any))
-  | ARG pt ann k =>
-      match ann with
-      | OPAQUE mt _ Iso => forall (m : mt), to_model_fn_type (k (@to pt mt Iso m))
-      | TRANSPARENT InGraph_A => forall (x : pt), to_model_fn_type (k x)
-      end
- | RES pt ann =>
-      match ann with
-      | OPAQUE mt _ Iso => mt
-      | TRANSPARENT InGraph_A => pt
-      end
+        to_model_fn_type (f A prim_ann_any)
+  | ARG primary ann k => forall (p : primary), to_model_fn_type (k p)
+  | RES primary ann => primary
   end.
 
-Record extern_properties :=
+Fixpoint curry_model_fn
+         (r : reified prim_ann)
+         (mt : reflect r) {struct r} : to_model_fn_type r.
+Proof.
+  unfold reflect in *.
+  destruct r.
+  * intro A.
+    refine (curry_model_fn (r A prim_ann_any) (fun P => _)).
+    change (projT1 (result (TYPEPARAM prim_ann r) (A; (prim_ann_any; P)))).
+    apply mt.
+  * intro a.
+    refine (curry_model_fn (r a) (fun P => _)).
+    change (projT1 (result (ARG prim_ann A r) (a; P))).
+    apply mt.
+  * exact (mt tt).
+Defined.
+
+Record fn_desc :=
   { type_desc : reified prim_ann
   ; prim_fn : to_prim_fn_type type_desc
-  ; model_fn : to_model_fn_type type_desc
+  ; model_fn : reflect type_desc
+  ; f_arity : nat
   ; c_name : string
   }.
+
+Definition curried_model_fn (d : fn_desc) : to_model_fn_type (type_desc d) :=
+  curry_model_fn (type_desc d) (model_fn d).
 
 (*
 From Equations Require Import Equations Signature.
@@ -97,44 +116,51 @@ Ltac rewrite_apply lem t :=
   apply m.
 
 Equations model_spec_aux
-          (a : annotated)
+          (a : reified prim_ann)
           (pt : to_prim_fn_type a)
           (mt : to_model_fn_type a) : Prop :=
 model_spec_aux (@TYPEPARAM f) pt mt :=
-  forall (A : Type), model_spec_aux (f A InGraph_any) (pt A) (mt A) ;
-model_spec_aux (@OPAQUE prim_type model_type Iso (Some k)) pt mt :=
-  forall (x : prim_type),
-    model_spec_aux (k x) (pt x)
-      (mt (ltac: (rewrite_apply from_to (@from prim_type model_type Iso x)))) ;
-      (* (ltac: (rewrite_apply from_to (mt (@from prim_type model_type Iso x)))) ; *)
-model_spec_aux (@OPAQUE prim_type model_type Iso None) pt mt :=
-  pt = to mt ;
-model_spec_aux (@TRANSPARENT A InGraph_A (Some k)) pt mt :=
-  forall (x : A), model_spec_aux (k x) (pt x) (mt x) ;
-model_spec_aux (@TRANSPARENT A InGraph_A None) pt mt :=
-  pt = mt.
-Check from_to.
+  forall (A : Type), model_spec_aux (f A prim_ann_any) (pt A) (mt A) ;
+model_spec_aux (@ARG primary ann k) pt mt :=
+  forall (x : secondary),
+    model_spec_aux (k (to x)) (pt x) (mt (to x)) ;
+model_spec_aux (@RES primary ann) pt mt :=
+  pt = @from _ _ prim_iso mt.
 *)
-
 
 Fixpoint model_spec_aux
          (a : reified prim_ann)
          (ft : to_prim_fn_type a)
          (mt : to_model_fn_type a) {struct a} : Prop.
 Proof.
-  destruct a as [f | prim_type ann k | A ann]; simpl in ft, mt.
+  destruct a as [f | primary ann k | A ann]; simpl in ft, mt.
   * exact (forall (A : Type),
-              model_spec_aux (f A (@TRANSPARENT A InGraph_any)) (ft A) (mt A)).
-  * destruct ann as [model_type Iso | R].
-    - refine (forall (x : prim_type), model_spec_aux (k x) (ft x) _).
-      pose (m := mt (@from prim_type model_type _ x)).
-      rewrite from_to in m.
-      exact m.
-    - exact (forall (x : prim_type), model_spec_aux (k x) (ft x) (mt x)).
-  * destruct ann as [model_type Iso | R].
-    - exact (ft = to mt).
-    - exact (ft = mt).
+              model_spec_aux (f A prim_ann_any) (ft A) (mt A)).
+  * destruct ann as [IG secondary Iso].
+    refine (forall (x : secondary), model_spec_aux (k (to x)) (ft x) (mt (to x))).
+  * destruct ann as [IG secondary Iso].
+    exact (ft = from mt).
 Defined.
 
-Definition model_spec (ep : extern_properties) : Prop :=
-  model_spec_aux (type_desc ep) (prim_fn ep) (model_fn ep).
+Definition model_spec (d : fn_desc) : Prop :=
+  model_spec_aux (type_desc d) (prim_fn d) (curried_model_fn d).
+
+Ltac eq_refl_match :=
+  match goal with
+  | [ |- context[match ?x with | eq_refl => _ end] ] => destruct x
+  (* | [ _ : context[match ?x with | eq_refl => _ end] |- _] => destruct x *)
+  end.
+
+Ltac prim_rewrites :=
+  unfold curried_model_fn, curry_model_fn; simpl;
+  repeat eq_refl_match;
+  repeat rewrite ?from_to, ?to_from.
+
+Ltac props x :=
+  let P := fresh in
+  pose proof x as P;
+  hnf in P;
+  simpl in P;
+  rewrite !P;
+  unfold id, eq_rect in *;
+  clear P.

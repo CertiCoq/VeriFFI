@@ -4,7 +4,6 @@ Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
 Require Import VeriFFI.generator.Desc.
 
-From MetaCoq.Template Require Import BasicAst.
 Require Import MetaCoq.Template.All.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,

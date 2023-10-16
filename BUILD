@@ -9,22 +9,22 @@
 # RUN opam switch create 4.10.2 && eval $(opam env)
 echo "RUN: opam update"
 opam update  # recommended
-echo "RUN: opam switch create veriffi-coq8.15.2 4.10.2"
-opam switch create veriffi-coq8.15.2 4.10.2  # this will fail if the switch already exists
-echo "RUN: opam switch veriffi-coq8.15.2"
-opam switch veriffi-coq8.15.2 # do this in case the previous command failed, harmless if succeeded
-eval $(opam env --switch=veriffi-coq8.15.2)
+echo "RUN: opam switch create veriffi-coq8.17.1 4.14.1"
+opam switch create veriffi-coq8.17.1 4.14.1  # this will fail if the switch already exists
+echo "RUN: opam switch veriffi-coq8.17.1"
+opam switch veriffi-coq8.17.1 # do this in case the previous command failed, harmless if succeeded
+eval $(opam env --switch=veriffi-coq8.17.1)
 
 # we don't need a shell command for this because it's part of "eval $(opam env)" above
 # ENV PATH="/home/opam/.opam/4.10.2/bin:${PATH}"
 
-# RUN opam repo add coq-released http://coq.inria.fr/opam/released && opam pin add coq 8.15.2
+# RUN opam repo add coq-released http://coq.inria.fr/opam/released && opam pin add coq 8.17.1
 echo "RUN: opam repo add coq-released http://coq.inria.fr/opam/released"
-opam repo add coq-released http://coq.inria.fr/opam/released
-echo "RUN: opam pin add coq 8.15.2"
-opam pin add coq 8.15.2 || exit 1
-echo "RUN: opam pin add coqide 8.15.2"
-opam pin add coqide 8.15.2  # all right if this one fails
+opam repo add coq-released https://coq.inria.fr/opam/released
+echo "RUN: opam pin add coq 8.17.1"
+opam pin add coq 8.17.1 || exit 1
+echo "RUN: opam pin add coqide 8.17.1"
+opam pin add coqide 8.17.1  # all right if this one fails
 
 echo "RUN: git submodule update --init --checkout --recursive"
 git submodule update --init --checkout --recursive  || exit 1
@@ -50,20 +50,20 @@ echo "RUN: cd certicoq; opam install coq-certicoq"
 # we are using coq-vst.2.11.1 instead of that commit 013640e (which is coq-vst-2.11),
 # and we're installing from the opam coq-released repository instead of just "make"
 # RUN cd && git clone https://github.com/PrincetonUniversity/VST && cd ~/VST && git checkout 013640e9837c0cdbe03d38a7f318171b01aaca87 && make BITSIZE=64 && make install
-echo "RUN: opam install coq-vst.2.11.1"
-opam install coq-vst.2.11.1 || exit 1
+echo "RUN: opam install coq-vst.2.12"
+opam install coq-vst.2.12 || exit 1
 
 # the CertiGraph submodule of VeriFFI us currently at commit 1be51414c139f8bc16b3e22f72989e454c37ce3c 
 # RUN cd && git clone https://github.com/CertiGraph/CertiGraph && cd ~/CertiGraph && git checkout 1be51414c139f8bc16b3e22f72989e454c37ce3c 
 
-# BITSIZE=64 is now the default for CertiGraph
-# RUN cd ~/CertiGraph && make BITSIZE=64 -j4 certigc
-echo "RUN: cd CertiGraph; make -j4 certigc"
-(cd CertiGraph; make -j4 certigc) || exit 1
+echo "RUN: cd CertiGraph; make clightgen"
+(cd CertiGraph; make clightgen) || exit 1
+echo "RUN: cd CertiGraph; make -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo"
+(cd CertiGraph; make -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo) || exit 1
 
 # Now build VeriFFI itself
 echo "RUN: make -kj4"
-make -kj4 || exit 1
+# make -kj4 || exit 1
 
 # USER opam
 # RUN /bin/bash

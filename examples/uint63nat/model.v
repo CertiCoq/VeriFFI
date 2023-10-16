@@ -43,69 +43,85 @@ Module FM <: UInt63.
 End FM.
 
 Module UInt63_Proofs.
-  Axiom Isomorphism_t : Isomorphism C.t FM.t.
-  Axiom InGraph_t : InGraph C.t.
-  Existing Instance Isomorphism_t.
-  Existing Instance InGraph_t.
+  Axiom Isomorphism_t : Isomorphism FM.t C.t.
+  #[local] Existing Instance Isomorphism_t.
 
-  Definition from_nat_ep : extern_properties :=
+  #[local] Instance InGraph_t : InGraph FM.t. Admitted.
+
+  Definition from_nat_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ nat (@TRANSPARENT _ _) (fun _ =>
-          @RES _ C.t (@OPAQUE _ _ _ _))
+        @ARG _ nat transparent (fun _ =>
+          @RES _ FM.t (opaque C.t))
      ; prim_fn := C.from_nat
-     ; model_fn := FM.from_nat
+     ; model_fn := fun '(x; tt) => FM.from_nat x
+     ; f_arity := 1
      ; c_name := "int63_from_nat"
-     |}.
+    |}.
 
-  Definition to_nat_ep : extern_properties :=
+  Definition to_nat_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @RES _ nat (@TRANSPARENT _ _))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @RES _ nat transparent)
      ; prim_fn := C.to_nat
-     ; model_fn := FM.to_nat
+     ; model_fn := fun '(x; tt) => FM.to_nat x
+     ; f_arity := 1
      ; c_name := "int63_to_nat"
      |}.
 
-  Definition add_ep : extern_properties :=
+  Definition add_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-            @RES _ C.t (@OPAQUE _ _ _ _)))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @ARG _ FM.t (opaque C.t) (fun _ =>
+            @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.add
-     ; model_fn := FM.add
+     ; model_fn := fun '(x; (y; tt)) => FM.add x y
+     ; f_arity := 2
      ; c_name := "int63_add"
      |}.
 
-  Definition mul_ep : extern_properties :=
+  Definition mul_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-          @ARG _ C.t (@OPAQUE _ _ _ _) (fun _ =>
-            @RES _ C.t (@OPAQUE _ _ _ _)))
+        @ARG _ FM.t (opaque C.t) (fun _ =>
+          @ARG _ FM.t (opaque C.t) (fun _ =>
+            @RES _ FM.t (opaque C.t)))
      ; prim_fn := C.mul
-     ; model_fn := FM.mul
+     ; model_fn := fun '(x; (y; tt)) => FM.mul x y
+     ; f_arity := 2
      ; c_name := "int63_mul"
      |}.
 
-  Axiom from_nat_properties : model_spec from_nat_ep.
-  Axiom to_nat_properties : model_spec to_nat_ep.
-  Axiom add_properties : model_spec add_ep.
-  Axiom mul_properties : model_spec mul_ep.
+  Axiom from_nat_spec : model_spec from_nat_desc.
+  Axiom to_nat_spec : model_spec to_nat_desc.
+  Axiom add_spec : model_spec add_desc.
+  Axiom mul_spec : model_spec mul_desc.
+
+  (* Class HasSpec {A} (f : A) : Type := *)
+  (*   { get_spec : {d : fn_desc & model_spec d} }. *)
+
+  (* Instance HasSpec_from_nat : HasSpec C.from_nat := *)
+  (*   {| get_spec := (from_nat_desc; from_nat_spec) |}. *)
+  (* Instance HasSpec_to_nat : HasSpec C.to_nat := *)
+  (*   {| get_spec := (to_nat_desc; to_nat_spec) |}. *)
+  (* Instance HasSpec_add : HasSpec C.add := *)
+  (*   {| get_spec := (add_desc; add_spec) |}. *)
+  (* Instance HasSpec_mul : HasSpec C.mul := *)
+  (*   {| get_spec := (mul_desc; mul_spec) |}. *)
 
 (* commented out to reduce chatter in build
-  Eval cbn in model_spec from_nat_ep.
-  Eval cbn in model_spec to_nat_ep.
-  Eval cbn in model_spec add_ep.
+  Eval cbn in model_spec from_nat_desc.
+  Eval cbn in model_spec to_nat_desc.
+  Eval cbn in model_spec add_desc.
 *)
   Lemma add_assoc : forall (x y z : nat),
     C.to_nat (C.add (C.from_nat x) (C.add (C.from_nat y) (C.from_nat z))) =
     C.to_nat (C.add (C.add (C.from_nat x) (C.from_nat y)) (C.from_nat z)).
   Proof.
+    (* let o := open_constr:(HasSpec C.to_nat) in unshelve evar (x:o); [typeclasses eauto|]. *)
     intros x y z.
-    props from_nat_properties.
-    props to_nat_properties.
-    props add_properties.
-    repeat eq_refl_match.
-    rewrite !from_to, !to_from.
+    props to_nat_spec.
+    props add_spec.
+    props from_nat_spec.
+    prim_rewrites.
     unfold FM.add, FM.from_nat, FM.to_nat.
     (* the rest is just a proof about the functional model *)
     unfold proj1_sig.

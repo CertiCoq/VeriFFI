@@ -1,6 +1,7 @@
 *prog.c
 *prog.h
 *prog.o
+prog
 
 gc.c
 gc.h

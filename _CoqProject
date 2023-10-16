@@ -12,6 +12,7 @@ generator/gen_utils.v
 generator/GraphPredicate.v
 generator/InGraph.v
 generator/Desc.v
+generator/Discrimination.v
 generator/Rep.v
 
 library/isomorphism.v
@@ -20,6 +21,8 @@ library/modelled.v
 verification/specs_library.v
 verification/specs_general.v
 # verification/proofs_library_general.v
+
+generator/funspec.v
 
 examples/uint63z/prog.v
 examples/uint63z/glue.v
@@ -31,14 +34,15 @@ examples/uint63nat/prims.v
 examples/uint63nat/model.v
 examples/uint63nat/specs.v
 examples/uint63nat/Verif_prog_general.v
-examples/compose/prog.v
-examples/compose/model.v
-examples/compose/glue.v
+# examples/compose/prog.v
+# examples/compose/model.v
+# examples/compose/glue.v
 
 examples/array/prog.v
 examples/array/model.v
 examples/array/glue.v
 
 examples/bytestring/prog.v
-# examples/bytestring/model.v
-# examples/bytestring/glue.v
+examples/bytestring/model.v
+examples/bytestring/glue.v
+examples/bytestring/Verif_prog.v

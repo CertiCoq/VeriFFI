@@ -1,37 +1,36 @@
-typedef void * __attribute((aligned(4))) int_or_ptr32;
-typedef void * __attribute((aligned(8))) int_or_ptr64;
+#include "values.h"
 struct closure;
 struct stack_frame;
 struct thread_info;
 struct closure {
-  void (*func)(struct thread_info, int_or_ptr64, int_or_ptr64);
-  int_or_ptr64 env;
+  value (*func)(struct thread_info, value, value);
+  value env;
 };
 
 struct stack_frame {
-  int_or_ptr64 *next;
-  int_or_ptr64 *root;
+  value *next;
+  value *root;
   struct stack_frame *prev;
 };
 
 struct thread_info {
-  int_or_ptr64 *alloc;
-  int_or_ptr64 *limit;
+  value *alloc;
+  value *limit;
   struct heap *heap;
-  int_or_ptr64 args[1024];
+  value args[1024];
   struct stack_frame *fp;
   unsigned long long nalloc;
 };
 
-extern unsigned int get_unboxed_ordinal(int_or_ptr64);
-extern unsigned int get_boxed_ordinal(int_or_ptr64);
-extern int_or_ptr64 *get_args(int_or_ptr64);
-extern int_or_ptr64 make_Coq_Init_Datatypes_nat_O(void);
-extern int_or_ptr64 make_Coq_Init_Datatypes_nat_S(int_or_ptr64, int_or_ptr64 *);
-extern int_or_ptr64 alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, int_or_ptr64);
-extern unsigned int get_Coq_Init_Datatypes_nat_tag(int_or_ptr64);
-extern void print_Coq_Init_Datatypes_nat(int_or_ptr64);
-extern int_or_ptr64 call(struct thread_info *, int_or_ptr64, int_or_ptr64);
+extern unsigned int get_unboxed_ordinal(value);
+extern unsigned int get_boxed_ordinal(value);
+extern value *get_args(value);
+extern value make_Coq_Init_Datatypes_nat_O(void);
+extern value make_Coq_Init_Datatypes_nat_S(value, value *);
+extern value alloc_make_Coq_Init_Datatypes_nat_S(struct thread_info *, value);
+extern unsigned int get_Coq_Init_Datatypes_nat_tag(value);
+extern void print_Coq_Init_Datatypes_nat(value);
+extern value call(struct thread_info *, value, value);
 extern signed char const lparen_lit[2];
 
 extern signed char const rparen_lit[2];

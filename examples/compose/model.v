@@ -14,20 +14,18 @@ Module FM <: Compose.
     fun x => g (f x).
 End FM.
 
-Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
-Admitted.
-
 Module Compose_Proofs.
-  Definition compose_ep : extern_properties :=
+  Definition compose_ep : fn_desc :=
     {| type_desc :=
        @TYPEPARAM _ (fun A R_A =>
          @TYPEPARAM _ (fun B R_B =>
            @TYPEPARAM _ (fun C R_C =>
-             @ARG _ (B -> C) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_B) (prim_in_graph R_C)) _) (fun g =>
-               @ARG _ (A -> B) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_A) (prim_in_graph R_B)) _) (fun f =>
-                 @RES _ (A -> C) (@OPAQUE _ _ (@InGraph_fun _ _ (prim_in_graph R_A) (prim_in_graph R_C)) _))))))
+             @ARG _ (B -> C) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph B R_B) (@prim_in_graph C R_C))) (fun g =>
+               @ARG _ (A -> B) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph A R_A) (@prim_in_graph B R_B))) (fun f =>
+                 @RES _ (A -> C) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph A R_A) (@prim_in_graph C R_C))))))))
      ; prim_fn := @C.compose
-     ; model_fn := @FM.compose
+     ; model_fn := fun '(A; (_; (B; (_; (C; (_; (g; (f; tt)))))))) => @FM.compose A B C g f
+     ; f_arity := 5
      ; c_name := "compose"
      |}.
 

@@ -3,7 +3,7 @@ struct closure;
 struct stack_frame;
 struct thread_info;
 struct closure {
-  void (*func)(struct thread_info, value, value);
+  value (*func)(struct thread_info, value, value);
   value env;
 };
 
