@@ -8,6 +8,6 @@ ENV PATH="/home/coq/.opam/4.13.1+flambda/bin:${PATH}"
 RUN cd ~/VeriFFI/certicoq && opam install -y coq-certicoq --deps-only
 RUN cd ~/VeriFFI/certicoq && opam install -y -v -j 4 coq-certicoq
 RUN opam install -y coq-vst.2.12
-RUN cd ~/VeriFFI/CertiGraph && make BITSIZE=64 -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo
+RUN cd ~/VeriFFI/CertiGraph && make clightgen && make BITSIZE=64 -j4 CertiGC/gc_correct.vo CertiGC/gc_spec.vo
 USER coq
 RUN /bin/bash

@@ -11,12 +11,24 @@
   tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
   a = __ROOT__[0]; \
   tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define LIVEPOINTERS1_(tinfo, exp, a) ({ \
+  value __ROOT__[1] = { a }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 1, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; exp; \
+  a = __ROOT__[0]; \
+  tinfo->fp = __FRAME__.prev; })
 #define LIVEPOINTERS2(tinfo, exp, a, b) ({ \
   value __ROOT__[2] = { a, b }; \
   struct stack_frame __FRAME__ = { __ROOT__ + 2, __ROOT__, tinfo->fp }; \
   tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
   a = __ROOT__[0]; b = __ROOT__[1]; \
   tinfo->fp = __FRAME__.prev; __TEMP__; })
+#define LIVEPOINTERS2_(tinfo, exp, a, b) ({ \
+  value __ROOT__[2] = { a, b }; \
+  struct stack_frame __FRAME__ = { __ROOT__ + 2, __ROOT__, tinfo->fp }; \
+  tinfo->fp = &__FRAME__; exp; \
+  a = __ROOT__[0]; b = __ROOT__[1]; \
+  tinfo->fp = __FRAME__.prev; })
 #define LIVEPOINTERS3(tinfo, exp, a, b, c) ({ \
   value __ROOT__[3] = { a, b, c }; \
   struct stack_frame __FRAME__ = { __ROOT__ + 3, __ROOT__, tinfo->fp }; \
@@ -28,30 +40,6 @@
   struct stack_frame __FRAME__ = { __ROOT__ + 4, __ROOT__, tinfo->fp }; \
   tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
   a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; \
-  tinfo->fp = __FRAME__.prev; __TEMP__; })
-#define LIVEPOINTERS5(tinfo, exp, a, b, c, d, e) ({ \
-  value __ROOT__[5] = { a, b, c, d, e }; \
-  struct stack_frame __FRAME__ = { __ROOT__ + 5, __ROOT__, tinfo->fp }; \
-  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
-  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; \
-  tinfo->fp = __FRAME__.prev; __TEMP__; })
-#define LIVEPOINTERS6(tinfo, exp, a, b, c, d, e, f) ({ \
-  value __ROOT__[6] = { a, b, c, d, e, f }; \
-  struct stack_frame __FRAME__ = { __ROOT__ + 6, __ROOT__, tinfo->fp }; \
-  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
-  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; \
-  tinfo->fp = __FRAME__.prev; __TEMP__; })
-#define LIVEPOINTERS7(tinfo, exp, a, b, c, d, e, f, g) ({ \
-  value __ROOT__[7] = { a, b, c, d, e, f, g }; \
-  struct stack_frame __FRAME__ = { __ROOT__ + 7, __ROOT__, tinfo->fp }; \
-  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
-  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; g = __ROOT__[6]; \
-  tinfo->fp = __FRAME__.prev; __TEMP__; })
-#define LIVEPOINTERS8(tinfo, exp, a, b, c, d, e, f, g, h) ({ \
-  value __ROOT__[8] = { a, b, c, d, e, f, g, h }; \
-  struct stack_frame __FRAME__ = { __ROOT__ + 8, __ROOT__, tinfo->fp }; \
-  tinfo->fp = &__FRAME__; value __TEMP__ = exp; \
-  a = __ROOT__[0]; b = __ROOT__[1]; c = __ROOT__[2]; d = __ROOT__[3]; e = __ROOT__[4]; f = __ROOT__[5]; g = __ROOT__[6]; h = __ROOT__[7]; \
   tinfo->fp = __FRAME__.prev; __TEMP__; })
 
 value bytestrlen(value s)
@@ -172,7 +160,7 @@ value append(struct thread_info *tinfo, value s1, value s2)
   value nalloc = (sum + pad_length) / sizeof(value) + 1;
   if (!(nalloc <= tinfo->limit - tinfo->alloc)) {
     tinfo->nalloc = nalloc;
-    LIVEPOINTERS2(tinfo, garbage_collect(tinfo), s1, s2);
+    LIVEPOINTERS2_(tinfo, garbage_collect(tinfo), s1, s2);
   }
 
   value *argv = (value *) tinfo->alloc;
@@ -211,7 +199,7 @@ value pack(struct thread_info *tinfo, value s)
   value nalloc = (len + pad_length) / sizeof(value) + 1;
   if (!(nalloc <= tinfo->limit - tinfo->alloc)) {
     tinfo->nalloc = nalloc;
-    LIVEPOINTERS1(tinfo, garbage_collect(tinfo), s);
+    LIVEPOINTERS1_(tinfo, garbage_collect(tinfo), s);
   }
 
   value *argv = (value *) tinfo->alloc;
@@ -241,7 +229,7 @@ value unpack(struct thread_info *tinfo, value bs)
   value nalloc = bytestrlen(bs) * (3 + 9);
   if (!(nalloc <= tinfo->limit - tinfo->alloc)) {
     tinfo->nalloc = nalloc;
-    LIVEPOINTERS1(tinfo, garbage_collect(tinfo), bs);
+    LIVEPOINTERS1_(tinfo, garbage_collect(tinfo), bs);
   }
 
   char *s = (char *) bs;
@@ -301,7 +289,7 @@ value scan_bytestring(struct thread_info *tinfo, value instream)
   value nalloc = (len + pad_length) / sizeof(value) + 1;
   if (!(nalloc <= tinfo->limit - tinfo->alloc)) {
     tinfo->nalloc = nalloc;
-    LIVEPOINTERS1(tinfo, garbage_collect(tinfo), instream);
+    LIVEPOINTERS1_(tinfo, garbage_collect(tinfo), instream);
   }
 
   value *argv = (value *) tinfo->alloc;
