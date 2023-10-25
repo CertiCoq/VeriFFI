@@ -34,5 +34,6 @@ nra.cache
 *.DS_Store
 Makefile.coq
 Makefile.coq.conf
-./.{c,h}
+/*.c
+/*.h
 .vscode/
