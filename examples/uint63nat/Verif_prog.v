@@ -456,15 +456,16 @@ Qed.
 Compute reptype thread_info_type.
 
 Lemma alloc_finish: forall
+ (c : ctor_desc)
+ (xs : args (ctor_reified c))
  (g : graph)
  (pl : list rep_type)
- (x : nat) 
  (roots : roots_t) 
  (sh : share) 
  (ti : val) 
  (outlier : outlier_t) 
  (t_info : GCGraph.thread_info)
- (H : Forall (@is_in_graph nat _ g x) pl)
+ (H : in_graphs g (ctor_reified c) xs pl)
  (heap := (ti_heap t_info : heap) : heap)
  (g0 := (heap_head heap : space) : space)
  (space := total_space g0 - used_space g0 : Z)
@@ -496,7 +497,10 @@ spatial_gcgraph.outlier_rep outlier
                  * (msl.iter_sepcon.iter_sepcon space_rest_rep (tl (spaces heap))
                       * (spatial_gcgraph.ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * spatial_gcgraph.graph_rep g)))))
 |-- EX (a : rep_type) (a0 : graph) (a1 : GCGraph.thread_info),
-    !! (@is_in_graph nat _ a0 (ctor_reflected desc (x; tt)) a /\
+    let '(A; IA_A) := result (ctor_reified c) xs in
+    !! (@is_in_graph (projT1 (result (ctor_reified c) xs))
+                     (@field_in_graph _ (projT2 (result (ctor_reified c) xs)))
+                     a0 (ctor_reflected c xs) a /\
         gc_graph_iso g roots a0 roots /\
         offset_val (WORD_SIZE * used_space g0 + sizeof int_or_ptr_type * 1)
           (space_start g0) = rep_type_val a0 a) && full_gc a0 a1 roots outlier ti sh.
