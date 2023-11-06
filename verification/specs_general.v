@@ -99,7 +99,7 @@ Definition alloc_make_spec_general
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reified c), roots : roots_t, sh : share,
          ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-    PRE  [[ thread_info :: repeat int_or_ptr_type n ]]
+    PRE  [[ thread_info :: repeat tlong n ]]
        PROP (n = get_size (ctor_reified c) xs ;
              in_graphs g _ xs ps ;
              (Z.of_nat n) < headroom t_info ;
@@ -107,7 +107,7 @@ Definition alloc_make_spec_general
        (PARAMSx (ti :: map (fun p => rep_type_val g p) ps)
        (GLOBALSx nil
        (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
-    POST [ int_or_ptr_type ]
+    POST [ tlong ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
               @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' (ctor_reflected c xs) p' ;

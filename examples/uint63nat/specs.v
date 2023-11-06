@@ -28,7 +28,7 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
           PARAMS ()
           GLOBALS ()
           SEP (spatial_gcgraph.graph_rep g)
-      POST [ (talignas 3%N (tptr tvoid)) ]  
+      POST [ tlong ]  
         EX (x : rep_type), 
         PROP (@is_in_graph nat _ g O x) 
         LOCAL (temp ret_temp (rep_type_val g x)) 
@@ -127,26 +127,44 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
    DECLARE _uint63_to_nat  
    WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-   PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
-      PROP ( 2 * (Z.of_nat n) < headroom t_info ; 
-            writable_share sh; 
+   PRE  [ tptr (Tstruct _thread_info noattr ),  tlong ]
+      PROP (  writable_share sh; 
             min_signed <= encode_Z (Z.of_nat n) <= max_signed
             )
       (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
       (GLOBALSx nil
       (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
-   POST [ (talignas 3%N (tptr tvoid)) ]
+   POST [ tlong ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
        PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
              gc_graph_iso g roots g' roots)
        RETURN  (rep_type_val g' p')
        SEP (full_gc g' t_info' roots outlier ti sh). 
 
+Definition uint63_to_nat_no_gc_spec :  ident *  funspec := 
+DECLARE _uint63_to_nat_no_gc
+WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
+      ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
+PRE  [ tptr (Tstruct _thread_info noattr ),  tlong ]
+    PROP ( 2 * (Z.of_nat n) < headroom t_info ; 
+          writable_share sh; 
+          min_signed <= encode_Z (Z.of_nat n) <= max_signed
+          )
+    (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
+    (GLOBALSx nil
+    (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+POST [ tlong ]
+  EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
+    PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
+          gc_graph_iso g roots g' roots)
+    RETURN  (rep_type_val g' p')
+    SEP (full_gc g' t_info' roots outlier ti sh). 
+
 Definition uint63_from_nat_spec :  ident *  funspec := 
 DECLARE _uint63_from_nat  
 WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-PRE  [ (talignas 3%N (tptr tvoid)) 
+PRE  [ tlong 
 ]
     PROP ( encode_Z (Z.of_nat n) <= max_signed; 
             @is_in_graph nat (@in_graph nat _) g n p ;
@@ -154,7 +172,7 @@ PRE  [ (talignas 3%N (tptr tvoid))
     (PARAMSx [ rep_type_val g p]
     (GLOBALSx nil
     (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
-POST [ (talignas 3%N (tptr tvoid)) ]
+POST [ tlong ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
     SEP (full_gc g t_info roots outlier ti sh). 
@@ -250,6 +268,7 @@ POST [ int_or_ptr_type ]
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
-                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec
+                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
+                      uint63_to_nat_no_gc_spec
                       (* _call, call_spec *)
                       ] .

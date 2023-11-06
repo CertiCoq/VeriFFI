@@ -23,14 +23,28 @@ value uint63_from_nat(value n) {
   return (value) ((i << 1) + 1);
 }
 
+value uint63_to_nat_no_gc (struct thread_info *tinfo, value t) {
+  uint64_t i = (value) (((uint64_t) t) >> 1);
+  value temp = make_Coq_Init_Datatypes_nat_O();
+  while (i) {
+   /* if (!(2 <= tinfo->limit - tinfo->alloc)) {
+      tinfo->nalloc = 2;
+      garbage_collect(tinfo);
+    } */
+    temp = alloc_make_Coq_Init_Datatypes_nat_S(tinfo, temp);
+    i--;
+  }
+  return temp;
+}
+
 value uint63_to_nat(struct thread_info *tinfo, value t) {
   uint64_t i = (value) (((uint64_t) t) >> 1);
   value temp = make_Coq_Init_Datatypes_nat_O();
   while (i) {
-    if (!(2 <= tinfo->limit - tinfo->alloc)) {
+   if (!(2 <= tinfo->limit - tinfo->alloc)) {
       tinfo->nalloc = 2;
       garbage_collect(tinfo);
-    }
+    } 
     temp = alloc_make_Coq_Init_Datatypes_nat_S(tinfo, temp);
     i--;
   }

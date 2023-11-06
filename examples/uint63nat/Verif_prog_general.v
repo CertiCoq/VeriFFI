@@ -486,7 +486,7 @@ end.
 
 Definition n_arguments (tag : Z) (n : nat) : funspec :=
       WITH sh_tinfo : share, sh_heap: share, ti : val, ps : vector val n, b : block, alloc: Z, limit: Z
-PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvoid)) n ]]
+PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat tlong n ]]
       PROP ( writable_share sh_tinfo;
       writable_share sh_heap; Int.min_signed <= tag <= Int.max_signed)
       (PARAMSx (ti :: to_list ps)
@@ -495,7 +495,7 @@ PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvo
                       :: @field_at env_graph_gc.CompSpecs sh_tinfo  thread_info_type [StructField gc._limit] (Vptr b (Ptrofs.repr limit)) ti
                       :: @data_at_ env_graph_gc.CompSpecs sh_heap (tarray (* KS *) int_or_ptr_type (1 + (Z.of_nat n))) (Vptr b (Ptrofs.repr alloc)) (* Space between alloc and limit? *)
                       :: nil))))
-POST [ (talignas 3%N (tptr tvoid)) ]
+POST [ tlong ]
     PROP ()
     RETURN (Vptr b (Ptrofs.repr (alloc + 8 (* KS: CHANGE sizeof (size_t) *))))
     SEP (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc._alloc] (offset_val (Z.of_nat (S n) * sizeof (* KS *) int_or_ptr_type) (Vptr b (Ptrofs.repr alloc))) ti;

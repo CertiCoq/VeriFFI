@@ -142,14 +142,10 @@ Definition _print_prog_T : ident := $"print_prog_T".
 Definition _print_prog_exp : ident := $"print_prog_exp".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
-Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
 Definition _rparen_lit : ident := $"rparen_lit".
-Definition _space : ident := $"space".
 Definition _space_lit : ident := $"space_lit".
-Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
-Definition _start : ident := $"start".
 Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
@@ -1445,15 +1441,7 @@ Definition f_call := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _space Struct
-   (Member_plain _start (tptr tlong) :: Member_plain _next (tptr tlong) ::
-    Member_plain _limit (tptr tlong) ::
-    Member_plain _rem_limit (tptr tlong) :: nil)
-   noattr ::
- Composite _heap Struct
-   (Member_plain _spaces (tarray (Tstruct _space noattr) 43) :: nil)
-   noattr ::
- Composite _stack_frame Struct
+(Composite _stack_frame Struct
    (Member_plain _next (tptr tlong) :: Member_plain _root (tptr tlong) ::
     Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)
    noattr ::

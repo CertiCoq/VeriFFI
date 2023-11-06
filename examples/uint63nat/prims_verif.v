@@ -86,10 +86,10 @@ Proof.
 Admitted. *)
 
 
-Lemma body_uint63_to_nat_spec :
+Lemma body_uint63_to_nat_no_gc_spec :
   semax_body Vprog Gprog
-             f_uint63_to_nat
-             uint63_to_nat_spec.
+             f_uint63_to_nat_no_gc
+             uint63_to_nat_no_gc_spec.
 Proof. 
   start_function.
   forward. unfold full_gc. Intros. 
@@ -103,20 +103,21 @@ Proof.
   (*   Print bool_type. *)
 
   forward_while 
-  (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info : GCGraph.thread_info),
+  (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
   PROP (is_in_graph g' m v; (m <= n)%nat; Z.of_nat (n - m) < headroom t_info; 
   gc_graph_iso g roots g' roots)
    LOCAL (temp _temp (rep_type_val g' v);
    temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
    temp _tinfo ti; temp _t (Vlong (Int64.repr (Z.of_nat n))))
-   SEP (full_gc g' t_info roots outlier ti sh)
+   SEP (full_gc g' t_info' roots outlier ti sh)
   ). 
 
   - (* Before the while *)
     Intros v. Exists v. Exists 0%nat. Exists g. Exists t_info. entailer!. 
-    + split.
+    + split3.
       * apply gc_graph_iso_refl.
       * repeat f_equal. lia.
+      * admit. 
     +  unfold full_gc. entailer!. 
   - (* Valid condition  *)
     entailer!. 
@@ -128,18 +129,27 @@ Proof.
       unfold Int64.zero in HRE. unfold Int64.eq in HRE. 
       if_tac in HRE; eauto. simpl in HRE. congruence.
     }
-    forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, f_info, t_info0). 
-    { (* Requiring to unfold - TODO: Generate example file for Joomy. *)
+    unfold full_gc. 
+    unfold before_gc_thread_info_rep.
+    unfold spatial_gcgraph.before_gc_thread_info_rep.
+    forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, t_info'). 
+    { (* Requiring to unfold. *)
        admit. }
     Intros v'.  destruct v' as ((v'&g'')&ti').
     unfold fst, snd in *. 
      forward. 
      Exists (v', S m, g'', ti').
-     entailer!. 
+     (* Don't know why this is diverging - this used to work. *)
+    
+    (*  entailer!. 
     split; eauto. 
      + eapply gc_graph_iso_trans; eauto.  
-     + repeat f_equal.  lia.  
-  - forward. 
+     + repeat f_equal.  lia.  *) 
+     admit.
+
+  -
+   (* TODO:     Diverges for some reason. 
+    forward. 
     { unfold full_gc. entailer!.  }
   
     Exists v. Exists g'. Exists t_info0.
@@ -158,9 +168,100 @@ unfold Int64.zero in HRE.
     unfold typed_false in HRE. simpl in HRE. 
     unfold Int64.eq in HRE. if_tac in HRE; simpl in *; try congruence. 
     revert H6. Search Int64.unsigned Int64.zero. 
-    rewrite Int64.unsigned_zero. 
+    rewrite Int64.unsigned_zero.
+    admit. *)
   admit. 
 Admitted.
 
 
 
+Lemma body_uint63_to_nat_spec :
+  semax_body Vprog Gprog
+             f_uint63_to_nat
+             uint63_to_nat_spec.
+Proof. 
+start_function.
+forward. unfold full_gc. Intros. 
+forward_call (gv, g). 
+assert ( Vlong (Int64.shru (Int64.repr (encode_Z (Z.of_nat n))) (Int64.repr (Int.unsigned (Int.repr 1)))) = Vlong (Int64.repr  (Z.of_nat n)))  as ->.
+  { unfold encode_Z. 
+  autorewrite with norm. Search Int64.shru . rewrite Int64.shru_div_two_p. 
+  unfold two_p.  Search Int64.unsigned Int64.repr. simpl. 
+  
+  admit. (* TODO *)  } 
+(*   Print bool_type. *)
+
+forward_while 
+(EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
+PROP (is_in_graph g' m v; (m <= n)%nat;
+gc_graph_iso g roots g' roots)
+LOCAL (temp _temp (rep_type_val g' v);
+temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
+temp _tinfo ti; temp _t (Vlong (Int64.repr (Z.of_nat n))))
+SEP (full_gc g' t_info' roots outlier ti sh)
+). 
+
+- (* Before the while *)
+  Intros v. Exists v. Exists 0%nat. Exists g. Exists t_info. entailer!. 
+  + split3.
+    * apply gc_graph_iso_refl.
+    * repeat f_equal. lia.
+    * admit. 
+  +  unfold full_gc. entailer!. 
+- (* Valid condition  *)
+  entailer!. 
+- (* During the loop *)
+  assert (n - m <> 0)%nat.
+  {  destruct (n-m)%nat eqn:EQ_mn; eauto. 
+    simpl in HRE. normalize in HRE. 
+    Print typed_true. unfold typed_true in HRE. simpl in HRE. 
+    unfold Int64.zero in HRE. unfold Int64.eq in HRE. 
+    if_tac in HRE; eauto. simpl in HRE. congruence.
+  }
+  unfold full_gc. 
+  unfold before_gc_thread_info_rep.
+  unfold spatial_gcgraph.before_gc_thread_info_rep.
+  (* KS: This is where the garbage collector comes in/the proof requires sth different. *)
+
+
+  (* Old proof: 
+  forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, t_info'). 
+  { (* Requiring to unfold. *)
+    admit. }
+  Intros v'.  destruct v' as ((v'&g'')&ti').
+  unfold fst, snd in *. 
+  forward. 
+  Exists (v', S m, g'', ti').
+  (* Don't know why this is diverging - this used to work. *)
+  
+  (*  entailer!. 
+  split; eauto. 
+  + eapply gc_graph_iso_trans; eauto.  
+  + repeat f_equal.  lia.  *) 
+  admit. *)
+
+-
+(* TODO:     Diverges for some reason. 
+  forward. 
+  { unfold full_gc. entailer!.  }
+
+  Exists v. Exists g'. Exists t_info0.
+  entailer!. 
+
+  enough (n- m = 0)%nat. 
+  { assert (n = m) by lia. subst. eauto. }
+  red in HRE.  
+  unfold strict_bool_val in HRE. simpl in HRE. 
+unfold Int64.zero in HRE. 
+  Search (Int64.eq (Int64.repr _) (Int64.repr _)).
+  clear -HRE.
+
+  destruct (n-m)%nat eqn:EQ_mn; eauto. 
+  simpl in HRE. normalize in HRE. 
+  unfold typed_false in HRE. simpl in HRE. 
+  unfold Int64.eq in HRE. if_tac in HRE; simpl in *; try congruence. 
+  revert H6. Search Int64.unsigned Int64.zero. 
+  rewrite Int64.unsigned_zero.
+  admit. *)
+admit. 
+Admitted.
