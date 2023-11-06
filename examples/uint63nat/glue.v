@@ -133,6 +133,7 @@ Definition _names_of_Coq_Init_Datatypes_unit : ident := $"names_of_Coq_Init_Data
 Definition _names_of_prog_T : ident := $"names_of_prog_T".
 Definition _names_of_prog_exp : ident := $"names_of_prog_exp".
 Definition _next : ident := $"next".
+Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
 Definition _print_Coq_Init_Datatypes_bool : ident := $"print_Coq_Init_Datatypes_bool".
 Definition _print_Coq_Init_Datatypes_nat : ident := $"print_Coq_Init_Datatypes_nat".
@@ -141,10 +142,14 @@ Definition _print_prog_T : ident := $"print_prog_T".
 Definition _print_prog_exp : ident := $"print_prog_exp".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
+Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
 Definition _rparen_lit : ident := $"rparen_lit".
+Definition _space : ident := $"space".
 Definition _space_lit : ident := $"space_lit".
+Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
+Definition _start : ident := $"start".
 Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
@@ -226,8 +231,8 @@ Definition f_get_unboxed_ordinal := {|
   fn_vars := nil;
   fn_temps := nil;
   fn_body :=
-(Sreturn (Some (Ebinop Oshr (Ecast (Etempvar __v tlong) tulong)
-                 (Econst_long (Int64.repr 1) tlong) tulong)))
+(Sreturn (Some (Ebinop Oshr (Ecast (Etempvar __v tlong) tlong)
+                 (Econst_long (Int64.repr 1) tlong) tlong)))
 |}.
 
 Definition f_get_boxed_ordinal := {|
@@ -235,16 +240,16 @@ Definition f_get_boxed_ordinal := {|
   fn_callconv := cc_default;
   fn_params := ((__v, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((_t'1, tulong) :: nil);
+  fn_temps := ((_t'1, tlong) :: nil);
   fn_body :=
 (Ssequence
   (Sset _t'1
     (Ederef
-      (Ebinop Oadd (Ecast (Etempvar __v tlong) (tptr tulong))
-        (Eunop Oneg (Econst_long (Int64.repr 1) tlong) tlong) (tptr tulong))
-      tulong))
-  (Sreturn (Some (Ebinop Oand (Etempvar _t'1 tulong)
-                   (Econst_long (Int64.repr 255) tlong) tulong))))
+      (Ebinop Oadd (Ecast (Etempvar __v tlong) (tptr tlong))
+        (Eunop Oneg (Econst_long (Int64.repr 1) tlong) tlong) (tptr tlong))
+      tlong))
+  (Sreturn (Some (Ebinop Oand (Etempvar _t'1 tlong)
+                   (Econst_long (Int64.repr 255) tlong) tlong))))
 |}.
 
 Definition f_get_args := {|
@@ -1409,7 +1414,7 @@ Definition f_call := {|
   fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
                 (__clo, tlong) :: (__arg, tlong) :: nil);
   fn_vars := nil;
-  fn_temps := ((__f, (tptr tulong)) :: (__envi, (tptr tulong)) ::
+  fn_temps := ((__f, (tptr tlong)) :: (__envi, (tptr tlong)) ::
                (__tmp, tlong) :: (_t'1, tlong) :: nil);
   fn_body :=
 (Ssequence
@@ -1429,23 +1434,24 @@ Definition f_call := {|
     (Ssequence
       (Ssequence
         (Scall (Some _t'1)
-          (Ecast (Etempvar __f (tptr tulong))
+          (Ecast (Etempvar __f (tptr tlong))
             (tptr (Tfunction
                     (Tcons (tptr (Tstruct _thread_info noattr))
                       (Tcons tlong (Tcons tlong Tnil))) tlong cc_default)))
           ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
-           (Etempvar __envi (tptr tulong)) :: (Etempvar __arg tlong) :: nil))
+           (Etempvar __envi (tptr tlong)) :: (Etempvar __arg tlong) :: nil))
         (Sset __tmp (Etempvar _t'1 tlong)))
       (Sreturn (Some (Etempvar __tmp tlong))))))
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _closure Struct
-   (Member_plain _func
-      (tptr (Tfunction
-              (Tcons (Tstruct _thread_info noattr)
-                (Tcons tlong (Tcons tlong Tnil))) tlong cc_default)) ::
-    Member_plain _env tlong :: nil)
+(Composite _space Struct
+   (Member_plain _start (tptr tlong) :: Member_plain _next (tptr tlong) ::
+    Member_plain _limit (tptr tlong) ::
+    Member_plain _rem_limit (tptr tlong) :: nil)
+   noattr ::
+ Composite _heap Struct
+   (Member_plain _spaces (tarray (Tstruct _space noattr) 43) :: nil)
    noattr ::
  Composite _stack_frame Struct
    (Member_plain _next (tptr tlong) :: Member_plain _root (tptr tlong) ::
@@ -1456,7 +1462,14 @@ Definition composites : list composite_definition :=
     Member_plain _heap (tptr (Tstruct _heap noattr)) ::
     Member_plain _args (tarray tlong 1024) ::
     Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
-    Member_plain _nalloc tulong :: nil)
+    Member_plain _nalloc tulong :: Member_plain _odata (tptr tvoid) :: nil)
+   noattr ::
+ Composite _closure Struct
+   (Member_plain _func
+      (tptr (Tfunction
+              (Tcons (Tstruct _thread_info noattr)
+                (Tcons tlong (Tcons tlong Tnil))) tlong cc_default)) ::
+    Member_plain _env tlong :: nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=

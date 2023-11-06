@@ -88,7 +88,7 @@ MetaCoq Run (fill_hole [("H", tApp <% InGraph %> [tVar "a"]);("a", <% Type %>)]
                        (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint).
 *)
 
-Polymorphic Definition create_reific
+Polymorphic Definition create_reified
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
@@ -164,15 +164,15 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
       match (nth_error (ind_ctors one) ctor_tag) with
       | None => tmFail "Impossible constructor index"
       | Some ctor =>
-        reific <- create_reific ind mut one ctor ;;
-        (* tmPrint "after create reific" ;; *)
-        (* tmEval all reific >>= tmPrint ;; *)
+        reified <- create_reified ind mut one ctor ;;
+        (* tmPrint "after create reified" ;; *)
+        (* tmEval all reified >>= tmPrint ;; *)
 
         newName <- tmFreshName "new"%bs ;;
-        reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reific) ;;
+        reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
 
         let d := {| ctor_name := cstr_name ctor
-                  ; ctor_reified := reific
+                  ; ctor_reified := reified
                   ; ctor_reflected := reflected
                   ; ctor_tag := ctor_tag
                   ; ctor_arity := cstr_arity ctor
@@ -202,15 +202,15 @@ Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
       t <- tmUnquote (tConstruct ind ctor_count []) ;;
       let '{| my_projT1 := T; my_projT2 := ctor_val |} := t in
 
-      reific <- create_reific ind mut one ctor ;;
-      (* tmPrint "after create reific" ;; *)
-      (* tmEval all reific >>= tmPrint ;; *)
+      reified <- create_reified ind mut one ctor ;;
+      (* tmPrint "after create reified" ;; *)
+      (* tmEval all reified >>= tmPrint ;; *)
 
       newName <- tmFreshName "new"%bs ;;
-      reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reific) ;;
+      reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
 
       let d := {| ctor_name := cstr_name ctor
-                ; ctor_reified := reific
+                ; ctor_reified := reified
                 ; ctor_reflected := reflected
                 ; ctor_tag := ctor_count
                 ; ctor_arity := cstr_arity ctor

@@ -8,27 +8,28 @@ Here are the necessary steps:
 
 1. [Install Docker on your machine.](https://docs.docker.com/get-docker/)
 2. Start the Docker engine.
-3. Download our image by running `docker pull certicoq/veriffi` in your terminal.
-   This image currently has Opam 2.0.10, OCaml 4.10.2, Coq 8.15.2, CompCert 3.11, VST 2.1, MetaCoq's branch for Coq 8.15, coq-ext-lib 0.11.5, the latest CertiGraph, and 8.15 branch of CertiCoq.
+3. Download our image by running `docker pull certicoq/veriffi-8.17` in your terminal.
+   This image currently has Opam 2.1.3, OCaml 4.13.1, Coq 8.17.0, CompCert 3.12, VST 2.12, MetaCoq's branch for Coq 8.17, coq-ext-lib 0.11.8, the latest CertiGraph, and `master` branch of CertiCoq.
 4. Create a workspace folder in which you will have the files you want to run in the container. 
 
-   For these instructions, we will assume they are in `~/container`. Feel free to clone this repo into that folder by
+   For these instructions, we will assume they are in `~/container`.
    ```
    cd ~/container
-   git clone https://github.com/CertiCoq/VeriFFI.git
    ```
+   You don't need to clone the repo because the Docker image has a copy of it already.
 5. You can navigate to that folder in your terminal (if you haven't done it in the previous step) and then create a Docker container with these commands:
    
    ```
    cd ~/container
-   docker run -ti -v $(pwd):/tmp --name vf certicoq/veriffi
+   docker run -ti -v $(pwd):/tmp --name vf certicoq/veriffi-8.17
+   mv ~/VeriFFI /tmp
    ```
-   This will take you to a bash session inside the container.
+   This will create a Docker container named `vf` and it will take you to a bash session inside the container.
 6. When you are inside that bash session, you can find the files in your host machine's `~/container` directory in `/tmp` in the container.
    Any change you make on the host will appear in the container and vice versa. For example, you can compile the VeriFFI project inside the container by running
    ```
    cd /tmp/VeriFFI
-   coqc $(cat _CoqProject) 
+   make
    ```
 7. Exiting the bash session will terminate the container but you can restart it anytime in the background by running
    ```
@@ -87,7 +88,7 @@ Here are the necessary steps:
 
 5. Run 
    ```
-   docker build -t certicoq/veriffi .
+   docker build -t certicoq/veriffi-8.17 .
    ```
    This took around 3.5 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
    

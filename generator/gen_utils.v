@@ -16,18 +16,6 @@ Require Import MetaCoq.Common.BasicAst.
 
 Section Names.
 
-  Fixpoint split_aux (acc : string) (sep : ascii) (s : string) : list string :=
-    match s with
-    | EmptyString => acc :: nil
-    | String c s' =>
-        if Char.ascii_dec sep c
-          then acc :: split_aux EmptyString sep s'
-          else split_aux (acc ++ String c EmptyString) sep s'
-    end.
-
-  Definition split (c : ascii) (s : string) : list string :=
-    split_aux EmptyString c s.
-
  Definition qualifying_prefix := modpath.
  Definition base_name := ident.
 
@@ -36,18 +24,10 @@ Section Names.
     e.g. "Coq.Init.Datatypes.bool" becomes "Coq.Init.Datatypes." *)
   Definition find_qualifying_prefix (n : kername) : qualifying_prefix :=
     fst n.
-  (* match rev (split "." n) with
-    | nil => (* not possible *) ""%string
-    | base :: rest => String.concat "." (rev (""%string :: rest))
-    end. *)
 
  (* takes a fully qualified name and gives the base name *)
   Definition find_base_name (n : kername) : base_name :=
     snd n.
-  (* match rev (split "." n) with
-    | nil => (* not possible *) ""%string
-    | base :: rest => base
-    end. *)
 
 End Names.
 

@@ -540,9 +540,9 @@ Definition ctor_to_branch
     : TemplateMonad (branch named_term) :=
   let kn : kername := inductive_mind ind in
   mut <- tmQuoteInductive kn ;;
-  let ctx : list dissected_type :=
-      mapi (fun i _ => dInd {| inductive_mind := kn ; inductive_ind := i |})
-           (ind_bodies mut) in
+  (* let ctx : list dissected_type := *)
+  (*     mapi (fun i _ => dInd {| inductive_mind := kn ; inductive_ind := i |}) *)
+  (*          (ind_bodies mut) in *)
   params <- ty_params <$> get_ty_info (inductive_mind ind) ;;
   mut <- tmQuoteInductive (inductive_mind ind) ;;
   '(args, res) <- argumentation ind mut ctor ;;

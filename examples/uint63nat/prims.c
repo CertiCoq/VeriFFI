@@ -1,7 +1,8 @@
+#include "gc_stack.h"
 #include "glue.h"
 #include <stdio.h>
+#include <stdint.h>
 
-typedef unsigned long long uint64;
 typedef enum { O, S } nat;
 
 #define LIVEPOINTERS1(tinfo, exp, a) ({ \
@@ -13,7 +14,7 @@ typedef enum { O, S } nat;
 
 value uint63_from_nat(value n) {
   value temp = n;
-  uint64 i = 0;
+  uint64_t i = 0;
 
   while (get_Coq_Init_Datatypes_nat_tag(temp) == S) {
     i++;
@@ -23,7 +24,7 @@ value uint63_from_nat(value n) {
 }
 
 value uint63_to_nat(struct thread_info *tinfo, value t) {
-  uint64 i = (value) (((uint64) t) >> 1);
+  uint64_t i = (value) (((uint64_t) t) >> 1);
   value temp = make_Coq_Init_Datatypes_nat_O();
   while (i) {
     if (!(2 <= tinfo->limit - tinfo->alloc)) {
@@ -37,9 +38,9 @@ value uint63_to_nat(struct thread_info *tinfo, value t) {
 }
 
 value uint63_add(value x, value y) {
-  return (value) ((((((uint64) x) >> 1) + (((uint64) y) >> 1)) << 1) + 1);
+  return (value) ((((((uint64_t) x) >> 1) + (((uint64_t) y) >> 1)) << 1) + 1);
 }
 
 value uint63_mul(value x, value y) {
-  return (value) ((((((uint64) x) >> 1) * (((uint64) y) >> 1)) << 1) + 1);
+  return (value) ((((((uint64_t) x) >> 1) * (((uint64_t) y) >> 1)) << 1) + 1);
 }

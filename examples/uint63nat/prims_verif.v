@@ -5,7 +5,7 @@ Require Import VeriFFI.examples.uint63nat.specs.
 
 Definition description_S := @desc _ S _. 
 
-Lemma body_uint63_from_nat_spec :
+(* Lemma body_uint63_from_nat_spec :
   semax_body Vprog Gprog
              f_uint63_from_nat
              uint63_from_nat_spec.
@@ -83,7 +83,7 @@ Proof.
 
       (* Todo: Work on postcondition. *)
      admit.
-Admitted.
+Admitted. *)
 
 
 Lemma body_uint63_to_nat_spec :
