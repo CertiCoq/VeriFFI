@@ -54,6 +54,8 @@ Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
 Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
   iter_sepcon space_rest_rep hp.(spaces).
 
+Print CertiGraph.CertiGC.spatial_gcgraph.before_gc_thread_info_rep.
+
 (* Adapted from Shengyi to get the right GC *)
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=
   CertiGraph.CertiGC.spatial_gcgraph.before_gc_thread_info_rep sh ti t. (*
@@ -68,6 +70,42 @@ Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph
           :: map space_tri (tl ti.(ti_heap).(spaces))) ti.(ti_heap_p) *
   heap_rest_rep ti.(ti_heap))%logic.
 *)
+
+(* KS: Changes: 
+Before: heap-struct rep and heap_rest_rep
+
+Now
+- frames_rep 
+- heap_struct_rep 
+*)
+
+Print frames_rep. 
+(* frames_rep =
+fun (sh : share) (frs : list frame) =>
+(frames_shell_rep sh frs * roots_rep sh (frames2rootpairs frs))%logic
+	 : share -> list frame -> mpred *)
+
+Print frames_shell_rep.
+(* frames_shell_rep =
+fix frames_shell_rep (sh : share) (frames : list frame) {struct frames} :
+	mpred :=
+  match frames with
+  | [] => emp
+  | fr :: rest =>
+      (frame_shell_rep sh fr (frames_p rest) * frames_shell_rep sh rest)%logic
+  end
+     : share -> list frame -> mpred *)
+
+Print heap_struct_rep.
+(* heap_struct_rep =
+fun (sh : share) (sp_reps : list (reptype space_type)) (h : val) =>
+data_at sh heap_type sp_reps h
+	 : share -> list (reptype space_type) -> val -> mpred *)
+
+Compute (reptype space_type).
+(* Arguments heap_struct_rep sh sp_reps%gfield_scope h
+	 = (val * (val * (val * val)))%type
+     : Type *)
 
 (* Full condition for the garbage collector *)
 Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh :=

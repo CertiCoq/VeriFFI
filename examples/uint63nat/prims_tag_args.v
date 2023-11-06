@@ -115,7 +115,6 @@ Definition tag_spec_general (X: Type) (R_ : Rep X) :  funspec :=
     RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (X_get_desc X R_ x)))) )
     SEP (full_gc g t_info roots outlier ti sh).
 
-
 (* KS Plan:
 1. Ensure this is the correct specification by instantiating/doing the proof for nat. 
 2. Do the general proof.

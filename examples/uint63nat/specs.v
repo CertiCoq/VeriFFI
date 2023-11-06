@@ -52,41 +52,41 @@ Inductive nat_has_tag_prop : nat -> ctor_desc -> Prop :=
 | tagS n : nat_has_tag_prop (S n) (@desc _ S _).
             
 Definition tag_spec_S : ident * funspec := 
-    DECLARE _get_Coq_Init_Datatypes_nat_tag
-    WITH gv : globals, g : graph, p : rep_type,
-    x : nat, roots : roots_t, sh : share,
-    ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
-    PRE  [[  [int_or_ptr_type] ]]
-    PROP (
-      @is_in_graph nat _ g x p;
-      writable_share sh)
-    (PARAMSx ( [rep_type_val g p])
-    (GLOBALSx nil
-    (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
-    POST [ tuint ]
-    (* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
-    PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
-                  a. Tag function relating to x.
-                  b. x = ctor_real c xs (* Doesn't type as this. *)
+DECLARE _get_Coq_Init_Datatypes_nat_tag
+WITH gv : globals, g : graph, p : rep_type,
+x : nat, roots : roots_t, sh : share,
+ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
+PRE  [[  [int_or_ptr_type]  ]]
+PROP (
+  @is_in_graph nat _ g x p;
+  writable_share sh  )
+(PARAMSx (  [rep_type_val g p] )
+(GLOBALSx nil
+(SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+POST [ tuint ]
+(* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
+PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
+              a. Tag function relating to x.
+              b. x = ctor_real c xs (* Doesn't type as this. *)
 
-              TODO: Discuss - something around this should already exist for 
-              generating general in_graph functions, and we want things to match.   
-          *)
-          (* let c := nat_get_desc x in 
-          nat_has_tag_prop x c; *)
-          (* let c := nat_get_desc x in 
-          let r := result (ctor_reific c) xs in
-          @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g (ctor_real c xs) p   *)
-          let c := nat_get_desc x in 
-          nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
-        )
-    RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
-    SEP (full_gc g t_info roots outlier ti sh).
+          TODO: Discuss - something around this should already exist for 
+          generating general in_graph functions, and we want things to match.   
+      *)
+      (* let c := nat_get_desc x in 
+      nat_has_tag_prop x c; *)
+      (* let c := nat_get_desc x in 
+      let r := result (ctor_reific c) xs in
+      @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g (ctor_real c xs) p   *)
+      let c := nat_get_desc x in 
+      nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
+    )
+RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
+SEP (full_gc g t_info roots outlier ti sh).
 
 Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
   x: nat, roots : roots_t, sh : share,
-  ti : val, outlier : outlier_t, f_info : fun_info, t_info : GCGraph.thread_info
+  ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
   PRE  [[  [int_or_ptr_type] ]]
   PROP (
       writable_share sh;
@@ -116,11 +116,10 @@ Definition max_signed: Z := 2^62 - 1.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 
-
-Instance Discrimination_nat : Discrimination nat. 
+#[export] Instance Discrimination_nat : Discrimination nat. 
 Admitted.
 
-Instance Rep_conditional  (A : Type) `(InGraph_A : InGraph A) 
+#[export] Instance Rep_conditional  (A : Type) `(InGraph_A : InGraph A) 
 `(Discrimination_A : Discrimination A) : Rep A := 
 {| in_graph := InGraph_A ; discrimination := Discrimination_A |}.
 
@@ -251,6 +250,6 @@ POST [ int_or_ptr_type ]
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
-                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
-                      call_spec
+                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec
+                      (* _call, call_spec *)
                       ] .
