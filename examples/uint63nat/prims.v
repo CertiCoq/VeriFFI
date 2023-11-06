@@ -91,12 +91,8 @@ Definition _nalloc : ident := $"nalloc".
 Definition _next : ident := $"next".
 Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
-Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
-Definition _space : ident := $"space".
-Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
-Definition _start : ident := $"start".
 Definition _t : ident := $"t".
 Definition _temp : ident := $"temp".
 Definition _thread_info : ident := $"thread_info".
@@ -105,6 +101,7 @@ Definition _uint63_add : ident := $"uint63_add".
 Definition _uint63_from_nat : ident := $"uint63_from_nat".
 Definition _uint63_mul : ident := $"uint63_mul".
 Definition _uint63_to_nat : ident := $"uint63_to_nat".
+Definition _uint63_to_nat_no_gc : ident := $"uint63_to_nat_no_gc".
 Definition _x : ident := $"x".
 Definition _y : ident := $"y".
 Definition _t'1 : ident := 128%positive.
@@ -156,6 +153,47 @@ Definition f_uint63_from_nat := {|
                          (Ebinop Oshl (Etempvar _i tulong)
                            (Econst_int (Int.repr 1) tint) tulong)
                          (Econst_int (Int.repr 1) tint) tulong) tlong))))))
+|}.
+
+Definition f_uint63_to_nat_no_gc := {|
+  fn_return := tlong;
+  fn_callconv := cc_default;
+  fn_params := ((_tinfo, (tptr (Tstruct _thread_info noattr))) ::
+                (_t, tlong) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_i, tulong) :: (_temp, tlong) :: (_t'2, tlong) ::
+               (_t'1, tlong) :: nil);
+  fn_body :=
+(Ssequence
+  (Sset _i
+    (Ecast
+      (Ebinop Oshr (Ecast (Etempvar _t tlong) tulong)
+        (Econst_int (Int.repr 1) tint) tulong) tlong))
+  (Ssequence
+    (Ssequence
+      (Scall (Some _t'1)
+        (Evar _make_Coq_Init_Datatypes_nat_O (Tfunction Tnil tlong
+                                               cc_default)) nil)
+      (Sset _temp (Etempvar _t'1 tlong)))
+    (Ssequence
+      (Swhile
+        (Etempvar _i tulong)
+        (Ssequence
+          (Ssequence
+            (Scall (Some _t'2)
+              (Evar _alloc_make_Coq_Init_Datatypes_nat_S (Tfunction
+                                                           (Tcons
+                                                             (tptr (Tstruct _thread_info noattr))
+                                                             (Tcons tlong
+                                                               Tnil)) tlong
+                                                           cc_default))
+              ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+               (Etempvar _temp tlong) :: nil))
+            (Sset _temp (Etempvar _t'2 tlong)))
+          (Sset _i
+            (Ebinop Osub (Etempvar _i tulong) (Econst_int (Int.repr 1) tint)
+              tulong))))
+      (Sreturn (Some (Etempvar _temp tlong))))))
 |}.
 
 Definition f_uint63_to_nat := {|
@@ -272,15 +310,7 @@ Definition f_uint63_mul := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _space Struct
-   (Member_plain _start (tptr tlong) :: Member_plain _next (tptr tlong) ::
-    Member_plain _limit (tptr tlong) ::
-    Member_plain _rem_limit (tptr tlong) :: nil)
-   noattr ::
- Composite _heap Struct
-   (Member_plain _spaces (tarray (Tstruct _space noattr) 43) :: nil)
-   noattr ::
- Composite _stack_frame Struct
+(Composite _stack_frame Struct
    (Member_plain _next (tptr tlong) :: Member_plain _root (tptr tlong) ::
     Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)
    noattr ::
@@ -574,40 +604,34 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
      (Tcons tlong Tnil) tuint cc_default)) ::
  (_uint63_from_nat, Gfun(Internal f_uint63_from_nat)) ::
+ (_uint63_to_nat_no_gc, Gfun(Internal f_uint63_to_nat_no_gc)) ::
  (_uint63_to_nat, Gfun(Internal f_uint63_to_nat)) ::
  (_uint63_add, Gfun(Internal f_uint63_add)) ::
  (_uint63_mul, Gfun(Internal f_uint63_mul)) :: nil).
 
 Definition public_idents : list ident :=
-<<<<<<< HEAD
-(_uint63_mul :: _uint63_add :: _uint63_to_nat :: _garbage_collect ::
+(_uint63_mul :: _uint63_add :: _uint63_to_nat :: _uint63_to_nat_no_gc ::
  _uint63_from_nat :: _get_Coq_Init_Datatypes_nat_tag ::
  _alloc_make_Coq_Init_Datatypes_nat_S :: _make_Coq_Init_Datatypes_nat_O ::
- _get_args :: ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
-=======
-(_uint63_mul :: _uint63_add :: _uint63_to_nat :: _uint63_from_nat ::
- _get_Coq_Init_Datatypes_nat_tag :: _alloc_make_Coq_Init_Datatypes_nat_S ::
- _make_Coq_Init_Datatypes_nat_O :: _get_args :: _garbage_collect ::
- ___builtin_debug :: ___builtin_fmin :: ___builtin_fmax ::
->>>>>>> 4ddd86fd8b24cb40efb74e194fb84081d07a227c
- ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
- ___builtin_fmadd :: ___builtin_clsll :: ___builtin_clsl :: ___builtin_cls ::
- ___builtin_fence :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
- ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
- ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
- ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
- ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
- ___compcert_i64_dtos :: ___compcert_va_composite ::
- ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
- nil).
+ _get_args :: _garbage_collect :: ___builtin_debug :: ___builtin_fmin ::
+ ___builtin_fmax :: ___builtin_fnmsub :: ___builtin_fnmadd ::
+ ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_clsll ::
+ ___builtin_clsl :: ___builtin_cls :: ___builtin_fence ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
+ ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
+ ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
+ ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
+ ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
+ ___compcert_va_composite :: ___compcert_va_float64 ::
+ ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
