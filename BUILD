@@ -43,9 +43,9 @@ echo "RUN: cd certicoq; opam install coq-certicoq --deps-only -y || exit 1"
 echo "RUN: clang --version"
 clang --version || exit 1
 
-# RUN cd ~/certicoq && opam install coq-certicoq
-echo "RUN: cd certicoq; opam install coq-certicoq"
-(cd certicoq; opam install coq-certicoq) || exit 1
+# RUN cd ~/certicoq && opam install .
+echo "RUN: cd certicoq; opam install ."
+(cd certicoq; opam install .) || exit 1
 
 # we are using coq-vst.2.11.1 instead of that commit 013640e (which is coq-vst-2.11),
 # and we're installing from the opam coq-released repository instead of just "make"

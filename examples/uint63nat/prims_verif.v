@@ -1,4 +1,4 @@
-Require Import VeriFFI.examples.uint63nat.prog.
+Require Import VeriFFI.examples.uint63nat.prims.
 Require Import ZArith.
 Require Import Psatz.
 Require Import VeriFFI.examples.uint63nat.specs.
@@ -102,6 +102,7 @@ Proof.
     admit. (* TODO *)  } 
   (*   Print bool_type. *)
 
+
   forward_while 
   (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
   PROP (is_in_graph g' m v; (m <= n)%nat; Z.of_nat (n - m) < headroom t_info; 
@@ -122,13 +123,7 @@ Proof.
   - (* Valid condition  *)
     entailer!. 
   - (* During the loop *)
-    assert (n - m <> 0)%nat.
-    {  destruct (n-m)%nat eqn:EQ_mn; eauto. 
-      simpl in HRE. normalize in HRE. 
-      Print typed_true. unfold typed_true in HRE. simpl in HRE. 
-      unfold Int64.zero in HRE. unfold Int64.eq in HRE. 
-      if_tac in HRE; eauto. simpl in HRE. congruence.
-    }
+    assert (n - m <> 0)%nat by lia.
     unfold full_gc. 
     unfold before_gc_thread_info_rep.
     unfold spatial_gcgraph.before_gc_thread_info_rep.
@@ -139,38 +134,22 @@ Proof.
     unfold fst, snd in *. 
      forward. 
      Exists (v', S m, g'', ti').
-     (* Don't know why this is diverging - this used to work. *)
-    
-    (*  entailer!. 
-    split; eauto. 
+     entailer!.
+     split; eauto. 
      + eapply gc_graph_iso_trans; eauto.  
-     + repeat f_equal.  lia.  *) 
-     admit.
+     + repeat f_equal.  lia. 
 
   -
-   (* TODO:     Diverges for some reason. 
     forward. 
-    { unfold full_gc. entailer!.  }
   
-    Exists v. Exists g'. Exists t_info0.
-    entailer!. 
-
-    enough (n- m = 0)%nat. 
+    Exists v. Exists g'. Exists t_info'.
+    entailer!.
+    enough (n- m = 0)%nat.
     { assert (n = m) by lia. subst. eauto. }
-    red in HRE.  
-    unfold strict_bool_val in HRE. simpl in HRE. 
-unfold Int64.zero in HRE. 
-    Search (Int64.eq (Int64.repr _) (Int64.repr _)).
-    clear -HRE.
-
-    destruct (n-m)%nat eqn:EQ_mn; eauto. 
-    simpl in HRE. normalize in HRE. 
-    unfold typed_false in HRE. simpl in HRE. 
-    unfold Int64.eq in HRE. if_tac in HRE; simpl in *; try congruence. 
-    revert H6. Search Int64.unsigned Int64.zero. 
-    rewrite Int64.unsigned_zero.
-    admit. *)
-  admit. 
+    apply repr_inj_unsigned64 in HRE; try rep_lia.
+    unfold encode_Z in H0.
+    unfold min_signed, max_signed in H0. rep_lia.
+all: fail.
 Admitted.
 
 
@@ -191,6 +170,8 @@ assert ( Vlong (Int64.shru (Int64.repr (encode_Z (Z.of_nat n))) (Int64.repr (Int
   admit. (* TODO *)  } 
 (*   Print bool_type. *)
 
+
+
 forward_while 
 (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
 PROP (is_in_graph g' m v; (m <= n)%nat;
@@ -200,7 +181,6 @@ temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
 temp _tinfo ti; temp _t (Vlong (Int64.repr (Z.of_nat n))))
 SEP (full_gc g' t_info' roots outlier ti sh)
 ). 
-
 - (* Before the while *)
   Intros v. Exists v. Exists 0%nat. Exists g. Exists t_info. entailer!. 
   + split3.

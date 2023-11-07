@@ -111,3 +111,111 @@ Compute (reptype space_type).
 Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh :=
   (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic.
 
+
+(* BEGIN patch for any VST versions 2.12,2.13  (perhaps won't be needed in 2.14) *)
+
+Lemma typed_false_tlong_Vlong:
+  forall v, typed_false tlong (Vlong v) -> v = Int64.zero.
+Proof.
+intros.
+unfold typed_false, strict_bool_val in H. simpl in H.
+pose proof (Int64.eq_spec v Int64.zero).
+destruct (Int64.eq v Int64.zero); auto. discriminate.
+Qed.
+
+Lemma repr_inj_signed64:
+  forall i j,
+    Int64.min_signed <= i <= Int.max_signed ->
+    Int64.min_signed <= j <= Int.max_signed ->
+    Int64.repr i = Int64.repr j -> i=j.
+Proof.
+intros.
+rewrite <- (Int64.signed_repr i) by rep_lia.
+rewrite <- (Int64.signed_repr j) by rep_lia.
+congruence.
+Qed.
+
+Ltac do_repr_inj H ::=
+   simpl typeof in H;  (* this 'simpl' should be fine, since its argument is just clightgen-produced ASTs *)
+   cbv delta [Int64.zero Int.zero] in H;
+   lazymatch type of H with
+      | typed_true _ ?A => 
+           change (typed_true tuint) with (typed_true tint) in H;
+           change (typed_true tulong) with (typed_true tlong) in H;
+          let B := eval hnf in A in change A with B in H;
+          try first
+               [ simple apply typed_true_of_bool' in H
+               | simple apply typed_true_ptr in H
+               | simple apply typed_true_ptr' in H
+               | apply typed_true_negb_bool_val_p in H
+               | simple apply typed_true_tint_Vint in H
+               | apply typed_true_nullptr3 in H
+               | simple apply typed_true_Ceq_eq' in H
+               | apply typed_true_nullptr4 in H
+               | simple apply typed_true_Cne_neq' in H
+               | simple apply typed_true_tlong_Vlong in H
+              ]
+      | typed_false _ ?A => 
+           change (typed_false tuint) with (typed_false tint) in H;
+           change (typed_false tulong) with (typed_false tlong) in H;
+           let B := eval hnf in A in change A with B in H;
+           try first
+               [ simple apply typed_false_of_bool' in H
+               | simple apply typed_false_ptr_e in H
+               | simple apply typed_false_negb_bool_val_p in H; [| solve [auto ] ]
+               | apply typed_false_negb_bool_val_p' in H
+               | simple apply typed_false_tint_Vint in H
+               | apply typed_false_nullptr3 in H
+               | simple apply typed_false_Ceq_neq' in H
+               | apply typed_false_nullptr4 in H
+               | simple apply typed_false_Cne_eq' in H
+               | simple apply typed_false_tlong_Vlong in H
+               ]
+     | _ => idtac
+    end;
+   rewrite ?ptrofs_to_int_repr in H;
+   rewrite ?ptrofs_to_int64_repr in H by reflexivity;
+   repeat (rewrite -> negb_true_iff in H || rewrite -> negb_false_iff in H);
+   try apply int_eq_e in H;
+   try apply int64_eq_e in H;
+   try apply ptrofs_eq_e in H;
+   match type of H with
+(*  don't do these, because they weaken the statement, unfortunately.
+          | _ <> _ => apply repr_neq_e (*int_eq_false_e*) in H
+          | _ <> _ => apply repr64_neq_e in H
+*)
+          | _ <> _ => let H' := fresh H "'" in assert (H' := repr_neq_e _ _ H)
+          | _ <> _ => let H' := fresh H "'" in assert (H' := repr64_neq_e _ _ H)
+          | Int.eq _ _ = false => apply int_eq_false_e in H
+          | Int64.eq _ _ = false => apply int64_eq_false_e in H
+          | Ptrofs.eq _ _ = false => apply ptrofs_eq_false_e in H
+          | _ => idtac
+  end;
+  first [ simple apply repr_inj_signed in H; [ | rep_lia | rep_lia ]
+         | simple apply repr_inj_unsigned in H; [ | rep_lia | rep_lia ]
+         | simple apply repr_inj_signed64 in H; [ | rep_lia | rep_lia ]
+         | simple apply repr_inj_unsigned64 in H; [ | rep_lia | rep_lia ]
+         | simple apply repr_inj_signed' in H; [ | rep_lia | rep_lia ]
+         | simple apply repr_inj_unsigned' in H; [ | rep_lia | rep_lia ]
+         | simple apply ltu_repr in H; [ | rep_lia | rep_lia]
+         | simple apply ltu_repr64 in H; [ | rep_lia | rep_lia]
+         | simple apply ltu_repr_false in H; [ | rep_lia | rep_lia]
+         | simple apply ltu_repr_false64 in H; [ | rep_lia | rep_lia]
+         | simple apply ltu_inv in H; cleanup_repr H
+         | simple apply ltu_inv64 in H; cleanup_repr H
+         | simple apply ltu_false_inv in H; cleanup_repr H
+         | simple apply ltu_false_inv64 in H; cleanup_repr H
+         | simple apply lt_repr in H; [ | rep_lia | rep_lia]
+         | simple apply lt_repr64 in H; [ | rep_lia | rep_lia]
+         | simple apply lt_repr_false in H; [ | rep_lia | rep_lia]
+         | simple apply lt_repr_false64 in H; [ | rep_lia | rep_lia]
+         | simple apply lt_inv in H; cleanup_repr H
+         | simple apply lt_inv64 in H; cleanup_repr H
+         | simple apply lt_false_inv in H; cleanup_repr H
+         | simple apply lt_false_inv64 in H; cleanup_repr H
+         | idtac
+         ];
+    rewrite ?Byte_signed_lem, ?Byte_signed_lem',
+                 ?int_repr_byte_signed_eq0, ?int_repr_byte_signed_eq0
+      in H.
+

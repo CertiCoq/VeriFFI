@@ -29,8 +29,18 @@ clean:
 	rm -f ./*.vos
 	rm -f ./*.glob
 
-coq:
-	coqc prog.v
+COQFLAGS= -Q ../../library VeriFFI.library -Q ../../generator VeriFFI.generator -Q ../../verification VeriFFI.verification -Q ../../examples VeriFFI.examples -Q ../../CertiGraph CertiGraph
+
+
+
+%.vo: %.v
+	coqc $(COQFLAGS) $*.v
+
+coq: Verif_prog_general.vo
+
+prog.vo: prog.v
+prims.vo: prims.v
+Verif_prog_general.vo: Verif_prog_general.v prims.vo prog.vo glue.vo specs.vo
 
 c:
 	$(CCOMPILER) -w -g -o prog main.c gc_stack.c prog.prog.c glue.c prims.c
