@@ -36,5 +36,5 @@ c:
 	$(CCOMPILER) -w -g -o prog main.c gc_stack.c prog.prog.c glue.c prims.c
 
 clightgen:
-	clightgen -DCOMPCERT -canonical-idents -normalize prims.c
-	clightgen -DCOMPCERT -canonical-idents -normalize -fstruct-passing glue.c
+	clightgen -DVERIFFI -DCOMPCERT -canonical-idents -normalize -fstruct-passing prims.c
+	clightgen -DVERIFFI -DCOMPCERT -canonical-idents -normalize -fstruct-passing glue.c
