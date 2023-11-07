@@ -90,7 +90,7 @@ Here are the necessary steps:
    ```
    docker build -t certicoq/veriffi-8.17 .
    ```
-   This took around 3.5 hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
+   This took a few hours when we built it from scratch. If you get an error, consider increasing the memory you allow Docker to use; we had to build it with 16 GB of memory.
    
 6. You can now continue with the instructions to use a prebuilt image, starting from step 4.
 
