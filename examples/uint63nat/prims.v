@@ -94,8 +94,12 @@ Definition _nalloc : ident := $"nalloc".
 Definition _next : ident := $"next".
 Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
+Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
+Definition _space : ident := $"space".
+Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
+Definition _start : ident := $"start".
 Definition _t : ident := $"t".
 Definition _temp : ident := $"temp".
 Definition _thread_info : ident := $"thread_info".
@@ -336,8 +340,10 @@ Definition f_uint63_to_nat := {|
                                   ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
                                    nil)))
                               (Sset ___RTEMP__
-                                (Ecast (Econst_int (Int.repr 0) tint)
-                                  (tptr tvoid))))
+                                (Ecast
+                                  (Ecast (Econst_int (Int.repr 0) tint)
+                                    (tptr tvoid))
+                                  (talignas 3%N (tptr tvoid)))))
                             (Sset _temp
                               (Ederef
                                 (Ebinop Oadd
@@ -425,7 +431,16 @@ Definition f_uint63_mul := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite _stack_frame Struct
+(Composite _space Struct
+   (Member_plain _start (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _next (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _limit (tptr (talignas 3%N (tptr tvoid))) ::
+    Member_plain _rem_limit (tptr (talignas 3%N (tptr tvoid))) :: nil)
+   noattr ::
+ Composite _heap Struct
+   (Member_plain _spaces (tarray (Tstruct _space noattr) 43) :: nil)
+   noattr ::
+ Composite _stack_frame Struct
    (Member_plain _next (tptr (talignas 3%N (tptr tvoid))) ::
     Member_plain _root (tptr (talignas 3%N (tptr tvoid))) ::
     Member_plain _prev (tptr (Tstruct _stack_frame noattr)) :: nil)

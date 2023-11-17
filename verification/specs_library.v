@@ -41,7 +41,8 @@ Definition gc_condition_prop g (t_info: GCGraph.thread_info) roots outlier :=
 
 graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec (ti_heap t_info) (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
 /\ safe_to_copy g
-/\ graph_heap_compatible g (ti_heap t_info) /\ outlier_compatible g outlier /\ roots_compatible g outlier roots
+/\ graph_heap_compatible g (ti_heap t_info) /\ outlier_compatible g outlier 
+/\ roots_compatible g outlier roots /\ rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
 
 Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
@@ -53,8 +54,6 @@ Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
 
 Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
   iter_sepcon space_rest_rep hp.(spaces).
-
-Print CertiGraph.CertiGC.spatial_gcgraph.before_gc_thread_info_rep.
 
 (* Adapted from Shengyi to get the right GC *)
 Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=
@@ -79,37 +78,12 @@ Now
 - heap_struct_rep 
 *)
 
-Print frames_rep. 
-(* frames_rep =
-fun (sh : share) (frs : list frame) =>
-(frames_shell_rep sh frs * roots_rep sh (frames2rootpairs frs))%logic
-	 : share -> list frame -> mpred *)
-
-Print frames_shell_rep.
-(* frames_shell_rep =
-fix frames_shell_rep (sh : share) (frames : list frame) {struct frames} :
-	mpred :=
-  match frames with
-  | [] => emp
-  | fr :: rest =>
-      (frame_shell_rep sh fr (frames_p rest) * frames_shell_rep sh rest)%logic
-  end
-     : share -> list frame -> mpred *)
-
-Print heap_struct_rep.
-(* heap_struct_rep =
-fun (sh : share) (sp_reps : list (reptype space_type)) (h : val) =>
-data_at sh heap_type sp_reps h
-	 : share -> list (reptype space_type) -> val -> mpred *)
-
-Compute (reptype space_type).
-(* Arguments heap_struct_rep sh sp_reps%gfield_scope h
-	 = (val * (val * (val * val)))%type
-     : Type *)
-
 (* Full condition for the garbage collector *)
-Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh :=
-  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti * ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * graph_rep g && !!gc_condition_prop g t_info roots outlier)%logic.
+Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv :=
+  (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti 
+  * ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * graph_rep g 
+  * gc_spec.all_string_constants Ers gv
+  && !!gc_condition_prop g t_info roots outlier)%logic.
 
 
 (* BEGIN patch for any VST versions 2.12,2.13  (perhaps won't be needed in 2.14) *)

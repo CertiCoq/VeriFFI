@@ -20,7 +20,6 @@ From VeriFFI Require Export verification.specs_library.
 (** ** 3. A General Specification *)
 
 
-
 (** Generation of the in_graphs predicate, given the constructor arguments. *)
 Fixpoint in_graphs
          (g : graph) (c : reified ctor_ann) (xs : args c) (ps : list rep_type) : Prop :=
@@ -91,7 +90,6 @@ Definition alloc_make_nat_S : funspec :=
       SEP (full_gc g' t_info' roots outlier ti sh).
         *)
         
-Locate "WITH".
 (* move ps to the spec args somehow instead of WITH args *)
 Definition alloc_make_spec_general
            (c : ctor_desc)
@@ -105,8 +103,8 @@ Definition alloc_make_spec_general
              (Z.of_nat n) < headroom t_info ;
              writable_share sh)
        (PARAMSx (ti :: map (fun p => rep_type_val g p) ps)
-       (GLOBALSx nil
-       (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+       (GLOBALSx [gv]
+       (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
     POST [ (talignas 3%N (tptr tvoid)) ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
@@ -114,4 +112,4 @@ Definition alloc_make_spec_general
               headroom t_info' = headroom t_info - Z.of_nat (S n);
               gc_graph_iso g roots g' roots)
         RETURN  (rep_type_val g' p')
-        SEP (full_gc g' t_info' roots outlier ti sh).
+        SEP (full_gc g' t_info' roots outlier ti sh gv).

@@ -8,7 +8,7 @@ Require Import VeriFFI.verification.specs_general.
 Require Import VeriFFI.generator.Rep.
 Require Import VeriFFI.generator.Desc.
 
-Obligation Tactic := gen.
+#[export] Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (desc_gen S).
 
@@ -190,7 +190,6 @@ Proof.
    destruct (heap_head_cons (ti_heap t_info)) as (g0&space_rest&SPACE_NONEMPTY&g0_eq). rewrite !g0_eq in *.
   intros gc_cond.
   unfold nth_gen.
-  Locate glabel.
     destruct (glabel g) eqn: glabel_g.
     destruct g_gen; try congruence.
     unfold gc_condition_prop in *.
@@ -238,6 +237,22 @@ inv H1.
 Qed.
 
 
+Lemma add_node_rootpairs_compatible:
+  forall rp roots g nr es,
+    roots_graph_compatible roots g ->
+    rootpairs_compatible g rp roots ->
+    rootpairs_compatible (add_node g 0 nr es) rp roots.
+Proof.
+ intros.
+    red in H0|-*. rewrite <- H0. clear H0.
+    induction roots; simpl; f_equal; auto.
+    destruct a; simpl; auto.
+    apply add_node_vertex_address_old; auto.
+    inv H; auto.
+    apply graph_has_gen_O.
+    apply IHroots; clear IHroots; auto.
+    destruct a; auto. destruct v; auto. inv H; auto.
+Qed.
 
 Lemma add_node_gc_condition_prop g p t_info roots outlier R1 R2 R3 t_size (H: graph_has_gen g 0) :
   let v := new_copied_v g 0 in
@@ -259,17 +274,18 @@ Proof.
   assert ( add_node_compatible g (new_copied_v g 0) es).
   {  
     unfold add_node_compatible. intros e scr trg H_In. subst es. destruct p; inversion H_In.
-    - injection H2. intros. subst. simpl. intuition.
-      repeat constructor. simpl. eauto.
+    - injection H2. intros. subst. simpl. intuition auto. lia. repeat constructor; intro Hx; inversion Hx.
     - inversion H2. }
   assert (  edge_compatible g 0 (newRaw v 0 [rep_field p] R1 R2 R3) es).
   { unfold edge_compatible. intros. simpl. destruct p; simpl; intuition eauto. }
-    intuition.
+    decompose [and] H1; clear H1; repeat simple apply conj.
   all: eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
   + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
   + eapply add_node_outlier_compatible; eauto. (* Print rep_field. *)  simpl.
     destruct p eqn:Hp; hnf; simpl; intros; try contradiction; eauto.
-    destruct H12; try contradiction; subst; auto.
+    destruct H1; try contradiction; subst; auto.
+  + apply add_node_rootpairs_compatible; auto.
+    destruct H11; auto.
   + apply add_node_copy_compatible; auto.
 Qed.
 
@@ -492,9 +508,9 @@ PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvo
       (PARAMSx (ti :: to_list ps)
       (GLOBALSx nil
       (SEPx (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc._alloc] (Vptr b (Ptrofs.repr alloc)) ti
-                      :: @field_at env_graph_gc.CompSpecs sh_tinfo  thread_info_type [StructField gc._limit] (Vptr b (Ptrofs.repr limit)) ti
-                      :: @data_at_ env_graph_gc.CompSpecs sh_heap (tarray (* KS *) int_or_ptr_type (1 + (Z.of_nat n))) (Vptr b (Ptrofs.repr alloc)) (* Space between alloc and limit? *)
-                      :: nil))))
+             :: @field_at env_graph_gc.CompSpecs sh_tinfo  thread_info_type [StructField gc._limit] (Vptr b (Ptrofs.repr limit)) ti
+             :: @data_at_ env_graph_gc.CompSpecs sh_heap (tarray (* KS *) int_or_ptr_type (1 + (Z.of_nat n))) (Vptr b (Ptrofs.repr alloc)) (* Space between alloc and limit? *)
+             :: nil))))
 POST [ (talignas 3%N (tptr tvoid)) ]
     PROP ()
     RETURN (Vptr b (Ptrofs.repr (alloc + 8 (* KS: CHANGE sizeof (size_t) *))))
@@ -531,7 +547,6 @@ Proof.
     What should I do on my site? *)
     repeat_forward custom_tactics. (* Fast Forward Tactics - floyd/fast_forward *)
     f_equal.
-    Check ptrofs_add_repr.
     (* Question: Is there a tactic? *)
     autorewrite with norm norm1 norm2.
     rewrite ptrofs_of_int64_int64_repr; eauto.
@@ -658,7 +673,7 @@ Proof.
   {  eapply add_node_compatible_new; eauto. 
       rewrite !Forall_forall in *. intros. specialize (H0 _ H2). destruct x; eauto. 
   }
-  destruct H1 as (unmarked & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & copycompatible)))))))).
+  destruct H1 as (unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & (rp_compatible & copycompatible)))))))))).
 
     assert (edge_compatible g 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es).
     { unfold edge_compatible. intros. simpl. clear.  unfold es. generalize (0)%nat at 2 4.  induction ps; intros n; simpl; eauto.
@@ -677,20 +692,17 @@ Proof.
     * apply add_node_graph_thread_compatible; eauto. 
       unfold raw_fields. simpl. lia. 
     * split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-    --  Print outlier_compatible.
+    --  
     apply add_node_outlier_compatible; eauto.
     simpl.
     unfold incl. intros. apply filter_sum_right_In_iff in H3. 
     apply filter_option_In_iff in H3. apply in_map_iff in H3. 
     destruct H3 as (p & A1 & A2). destruct p; simpl in *; try congruence. 
     rewrite Forall_forall in H0. injection A1. intros. subst.  exact (H0 _ A2). 
-    --  split;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-       ++ Search gc_correct.sound_gc_graph add_node. apply sound_gc_graph; eauto. 
-       intuition. 
-       ++ apply add_node_copy_compatible; eauto. 
-        destruct copycompatible. assumption.
-        (* TODO: Has to be generalized.*)       
-  
+    --  split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+       ++ simpl. apply add_node_rootpairs_compatible; auto.
+           destruct rootscompatible; auto. 
+       ++ apply add_node_copy_compatible; eauto.   
 Qed.
 
 Definition X_in_graph_cons (descr : ctor_desc) (t: nat) : Prop :=
@@ -817,26 +829,21 @@ Proof.
     pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
     assert (ps_size := in_graphs_size _ _ _ _ H4).
     rewrite ps_size.   erewrite <- map_length.
-
-    rename H8 into gc_cond.
+    rename H8 into Hgv.
+    rename H9 into gc_cond.
     rename H5 into headroom_size.
     rename H0 into result_in_graph.
     rename H4 into args_in_graph.
-
   
     (* With Arguments of n_arguments *)
     Exists ((((((sh, space_sh (heap_head (ti_heap tinfo))), tinfo_pos) , vals), b),  alloc), limit).
 
-  Check spatial_gcgraph.heap_struct_rep.
 (* 
 spatial_gcgraph.heap_struct_rep
 	 : share -> list (reptype env_graph_gc.space_type) -> val -> mpred *)
 
-   Eval cbv in (reptype env_graph_gc.space_type).
    unfold spatial_gcgraph.before_gc_thread_info_rep.
 
-  Print spatial_gcgraph.space_rest_rep. 
-  Print specs_library.space_rest_rep.
 
   (*        * data_at sh env_graph_gc.thread_info_type
          (offset_val (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))
@@ -874,6 +881,7 @@ spatial_gcgraph.heap_struct_rep
                 (Vlong (Ptrofs.to_int64 (ti_nalloc tinfo))) tinfo_pos
 (*             * field_at sh env_graph_gc.thread_info_type (DOT gc._odata) nullval tinfo_pos *)
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc._odata) nullval tinfo_pos
+            * gc_spec.all_string_constants Ers gv
                )%logic.
 
 
@@ -934,9 +942,9 @@ spatial_gcgraph.heap_struct_rep
         ** unfold headroom. simpl. autorewrite with graph_add.
            unfold fds.
            rewrite map_length. rewrite Zlength_map. 
-           Search Zlength length.
            rewrite Zlength_correct. rep_lia.
-        **  destruct gc_cond. unfold gc_correct.sound_gc_graph, roots_compatible in *. intuition eauto.
+        **  destruct gc_cond. unfold gc_correct.sound_gc_graph, roots_compatible in *.
+            intuition eauto.
         apply add_node_iso; eauto. (* ~In (inr (new_copied_v gr 0)) roots *)
         eapply new_node_roots; eauto. 
         unfold roots_compatible. eauto. 
@@ -958,7 +966,6 @@ spatial_gcgraph.heap_struct_rep
 
 
    -- apply add_node_gc_condition_prop_general; eauto.
-   Print in_graphs.  Print is_in_graph.  Print InGraph. 
    admit. 
     (* eapply in_graphs_has; eauto. *)
      * (* Ensuring that the spatial part holds. *)
@@ -1005,7 +1012,6 @@ spatial_gcgraph.heap_struct_rep
       2 : { rewrite Zlength_correct. rewrite <- ps_size. rep_lia.   }
       rewrite <- Ptrofs.add_signed. rewrite Ptrofs.add_assoc. f_equal.
       rewrite Ptrofs.add_signed. 
-      Print Ptrofs.repr. 
       f_equal. 
       rewrite !Ptrofs.signed_repr. 
       rep_lia. 
@@ -1147,7 +1153,6 @@ spatial_gcgraph.heap_struct_rep
   remember ( add_node gr 0
   (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3)
   (get_fields gr 0 ps 0)) as g'.
-  Search combine map. 
   rewrite combine_map_snd with (f := rep_field). simpl. 
   rewrite map_map.  
   replace (map (rep_type_val gr) ps) with (map (fun x => rep_type_val gr (snd x)) (combine (nat_seq 0 (Datatypes.length (map rep_field ps))) ps) 

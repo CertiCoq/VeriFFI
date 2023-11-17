@@ -4,7 +4,7 @@ Require Import Psatz.
 Require Export VeriFFI.verification.specs_general.
 Require Export VeriFFI.generator.Rep.
 
-Obligation Tactic := gen.
+#[export] Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (gen_for bool).
 
@@ -61,8 +61,8 @@ PROP (
   @is_in_graph nat _ g x p;
   writable_share sh  )
 (PARAMSx (  [rep_type_val g p] )
-(GLOBALSx nil
-(SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+(GLOBALSx [gv]
+(SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ tuint ]
 (* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
 PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
@@ -81,7 +81,7 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
       nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
     )
 RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
-SEP (full_gc g t_info roots outlier ti sh).
+SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
@@ -93,8 +93,8 @@ Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec :=
           is_in_graph g (S x) p  
       )
   (PARAMSx ( [rep_type_val g p])
-  (GLOBALSx nil
-  (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+  (GLOBALSx [gv]
+  (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
   POST [ tptr ((tarray int_or_ptr_type 1)) (* tarray int_or_ptr_type 1 *)  ]
   EX  (p' : rep_type) (sh' : share),
   PROP (  
@@ -102,7 +102,7 @@ Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec :=
       )
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p);
-      data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh). 
+      data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh gv). 
   
 
 Definition args_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
@@ -132,14 +132,14 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
             min_signed <= encode_Z (Z.of_nat n) <= max_signed
             )
       (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
-      (GLOBALSx nil
-      (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+      (GLOBALSx [gv]
+      (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ (talignas 3%N (tptr tvoid)) ]
-     EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
+     EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
-             gc_graph_iso g roots g' roots)
+             gc_graph_iso g roots g' roots')
        RETURN  (rep_type_val g' p')
-       SEP (full_gc g' t_info' roots outlier ti sh). 
+       SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
 
 Definition uint63_to_nat_no_gc_spec :  ident *  funspec := 
 DECLARE _uint63_to_nat_no_gc
@@ -151,14 +151,14 @@ PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
           min_signed <= encode_Z (Z.of_nat n) <= max_signed
           )
     (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
-    (GLOBALSx nil
-    (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+    (GLOBALSx [gv]
+    (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ (talignas 3%N (tptr tvoid)) ]
   EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
     PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
           gc_graph_iso g roots g' roots)
     RETURN  (rep_type_val g' p')
-    SEP (full_gc g' t_info' roots outlier ti sh). 
+    SEP (full_gc g' t_info' roots outlier ti sh gv). 
 
 Definition uint63_from_nat_spec :  ident *  funspec := 
 DECLARE _uint63_from_nat  
@@ -169,12 +169,12 @@ PRE  [ (talignas 3%N (tptr tvoid)) ]
             @is_in_graph nat (@in_graph nat _) g n p ;
             writable_share sh)
     (PARAMSx [ rep_type_val g p]
-    (GLOBALSx nil
-    (SEPx (full_gc g t_info roots outlier ti sh :: nil))))
+    (GLOBALSx [gv]
+    (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ (talignas 3%N (tptr tvoid)) ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
-    SEP (full_gc g t_info roots outlier ti sh). 
+    SEP (full_gc g t_info roots outlier ti sh gv). 
     (* KS: Existential *)
 
 (* Function Spec
@@ -193,7 +193,7 @@ Definition fun_spec X Y (In_Graph_X : InGraph X) (In_Graph_Y : InGraph Y)
 	   A (In_Graph_A : InGraph A) (env : A) (f : A -> X -> Y) :  funspec := 
   WITH
 	 (* general info on the garbage collector graph *) 
-	 g : graph, roots : roots_t, sh : share, ti : val,
+	 gv : globals, g : graph, roots : roots_t, sh : share, ti : val,
      outlier : outlier_t, t_info : GCGraph.thread_info,
 	 (* function-specific *)
     x: X, p_x : rep_type, p_env : rep_type
@@ -202,15 +202,15 @@ PRE [thread_info, int_or_ptr_type, int_or_ptr_type]
 				is_in_graph g env p_env
 				)
   PARAMS (ti; rep_type_val g p_env; rep_type_val g p_x)
-  GLOBALS ()
-  SEP (full_gc g t_info roots outlier ti sh)
+  GLOBALS (gv)
+  SEP (full_gc g t_info roots outlier ti sh gv)
 POST [ int_or_ptr_type ]
   EX (g' : graph) (t_info' : GCGraph.thread_info) (res' : rep_type) (roots' : roots_t),
   PROP (@is_in_graph Y In_Graph_Y g' (f env x) res'; 
 		gc_graph_iso g roots g' roots'
 		 )
   RETURN (rep_type_val g' res')
-  SEP (full_gc g' t_info' roots' outlier ti sh).
+  SEP (full_gc g' t_info' roots' outlier ti sh gv).
 
 (* This means that for any Coq function f : X -> Y, 
    CertiCoq has to provide the above lemma for an arbitrary A, InGraph_A, env : A. 
@@ -238,7 +238,7 @@ POST [ int_or_ptr_type ]
   (* TODO: This would mean that I have to give on the closure... *)
   Definition call_spec : funspec := 
 	WITH (* General graph content *)
-	    g : graph, roots : roots_t, sh : share, outlier : outlier_t,t_info : GCGraph.thread_info, ti : val,
+	    gv: globals, g : graph, roots : roots_t, sh : share, outlier : outlier_t,t_info : GCGraph.thread_info, ti : val,
 	    (* Specific to this function *)
         (* X_ : {X : Type | InGraph X}, (* Y : Type, InGraph_Y : InGraph Y,
 		c: closure X Y In_Graph_X In_Graph_Y, *)
@@ -253,8 +253,8 @@ PRE [ thread_info, int_or_ptr_type, int_or_ptr_type ]
 				(* is_in_graph g closure code_p; *) 
 				@is_in_graph _ (env_repr c) g (env c) p_env )
 	PARAMS (ti; p_c; rep_type_val g p_x) 
-	GLOBALS ()
-	SEP (full_gc g t_info roots outlier ti sh; 
+	GLOBALS (gv)
+	SEP (full_gc g t_info roots outlier ti sh gv; 
 	func_ptr' (fun_spec _ _ (src_repr c) (trg_repr c) _ (env_repr c) (env c) (fct c)) (rep_type_val g code_p)
 ) 
 POST [ int_or_ptr_type ]
@@ -262,12 +262,13 @@ POST [ int_or_ptr_type ]
 	PROP ( @is_in_graph _ (trg_repr c) g' (fct c (env c) (x c)) p;
 				gc_graph_iso g roots g' roots' )
 	RETURN (rep_type_val g p)
-	SEP (full_gc g' t_info' roots outlier ti sh).
+	SEP (full_gc g' t_info' roots outlier ti sh gv).
 
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
                       ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
-                      uint63_to_nat_no_gc_spec
+                      uint63_to_nat_no_gc_spec;
+                      gc_spec.garbage_collect_spec
                       (* _call, call_spec *)
                       ] .

@@ -1,4 +1,4 @@
-#include "gc_stack.h"
+#include "gc.h"
 #include "glue.h"
 #include <stdio.h>
 #include <stdint.h>
@@ -31,7 +31,7 @@ value myfunc(struct thread_info *tinfo, ...other args...) {
   to save across the call.  The result of calling the function will
   be returned as the result of LIVEPOINTERS; in the pattern shown,
   it would be put into "r".
-     To call a void-returning function f(x), then use  (f(x),NULL)
+     To call a void-returning function f(x), then use  (f(x),(value)NULL)
   as the funcall argument, and in that case you may leave out
   the r=  in the pattern shown.
      It's important that the implementation of ENDFRAME has no
@@ -107,7 +107,7 @@ value uint63_to_nat(struct thread_info *tinfo, value t) {
   while (i) {
    if (!(2 <= tinfo->limit - tinfo->alloc)) {
       tinfo->nalloc = 2;
-      LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),NULL),temp);
+      LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),temp);
     } 
     temp = alloc_make_Coq_Init_Datatypes_nat_S(tinfo, temp);
     i--;

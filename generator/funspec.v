@@ -54,7 +54,7 @@ Definition fn_desc_to_funspec_aux
        PROP (writable_share sh ;
               in_graphs g c xs ps)
        (PARAMSx (ti :: map (rep_type_val g) ps)
-         (SEPx (full_gc g t_info roots outlier ti sh :: nil)))
+         (SEPx (full_gc g t_info roots outlier ti sh gv :: nil)))
    POST [ tvalue ]
        EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
@@ -62,7 +62,7 @@ Definition fn_desc_to_funspec_aux
                   (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots)
           RETURN  (rep_type_val g' p')
-          SEP (full_gc g' t_info' roots outlier ti sh).
+          SEP (full_gc g' t_info' roots outlier ti sh gv).
 
 Definition fn_desc_to_funspec (d : fn_desc) (xs : args (type_desc d)) : ident * funspec :=
   (ident_of_string (c_name d),
