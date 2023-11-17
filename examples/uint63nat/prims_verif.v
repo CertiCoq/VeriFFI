@@ -263,7 +263,7 @@ rewrite iter_sepcon.iter_sepcon_app_sepcon.
 unfold spatial_gcgraph.frames_shell_rep; fold (spatial_gcgraph.frames_shell_rep Tsh frames).
 unfold frame2rootpairs.
 simpl.
-change gc._stack_frame with _stack_frame.
+change gc_stack._stack_frame with _stack_frame.
 match goal with |- ?A = ?B =>
  transitivity (!! (@field_compatible0 env_graph_gc.CompSpecs (tarray int_or_ptr_type (@Zlength val vl)) [] vr) && A)%logic
  end.

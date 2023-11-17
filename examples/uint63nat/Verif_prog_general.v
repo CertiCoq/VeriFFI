@@ -507,15 +507,15 @@ PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvo
       writable_share sh_heap; Int.min_signed <= tag <= Int.max_signed)
       (PARAMSx (ti :: to_list ps)
       (GLOBALSx nil
-      (SEPx (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc._alloc] (Vptr b (Ptrofs.repr alloc)) ti
-             :: @field_at env_graph_gc.CompSpecs sh_tinfo  thread_info_type [StructField gc._limit] (Vptr b (Ptrofs.repr limit)) ti
+      (SEPx (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc_stack._alloc] (Vptr b (Ptrofs.repr alloc)) ti
+             :: @field_at env_graph_gc.CompSpecs sh_tinfo  thread_info_type [StructField gc_stack._limit] (Vptr b (Ptrofs.repr limit)) ti
              :: @data_at_ env_graph_gc.CompSpecs sh_heap (tarray (* KS *) int_or_ptr_type (1 + (Z.of_nat n))) (Vptr b (Ptrofs.repr alloc)) (* Space between alloc and limit? *)
              :: nil))))
 POST [ (talignas 3%N (tptr tvoid)) ]
     PROP ()
     RETURN (Vptr b (Ptrofs.repr (alloc + 8 (* KS: CHANGE sizeof (size_t) *))))
-    SEP (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc._alloc] (offset_val (Z.of_nat (S n) * sizeof (* KS *) int_or_ptr_type) (Vptr b (Ptrofs.repr alloc))) ti;
-        @field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc._limit] (Vptr b (Ptrofs.repr limit)) ti;
+    SEP (@field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc_stack._alloc] (offset_val (Z.of_nat (S n) * sizeof (* KS *) int_or_ptr_type) (Vptr b (Ptrofs.repr alloc))) ti;
+        @field_at env_graph_gc.CompSpecs sh_tinfo thread_info_type [StructField gc_stack._limit] (Vptr b (Ptrofs.repr limit)) ti;
         @data_at env_graph_gc.CompSpecs sh_heap (tarray (* KS *) int_or_ptr_type (1 + (Z.of_nat n))) (Vlong (Int64.repr tag) :: to_list ps) (Vptr b (Ptrofs.repr alloc))
         ).
 
@@ -859,8 +859,8 @@ spatial_gcgraph.heap_struct_rep
     (* The frame *)
     Exists (spatial_gcgraph.outlier_rep outliers * spatial_gcgraph.ti_token_rep (ti_heap tinfo) (ti_heap_p tinfo) *
         @spatial_gcgraph.graph_rep  gr *
-            @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc._heap] (ti_heap_p tinfo) tinfo_pos *
-            @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc._args] (ti_args tinfo) tinfo_pos *
+            @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc_stack._heap] (ti_heap_p tinfo) tinfo_pos *
+            @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc_stack._args] (ti_args tinfo) tinfo_pos *
             spatial_gcgraph.heap_struct_rep sh
                             ((Vptr b x',
                               (Vundef,
@@ -875,12 +875,12 @@ spatial_gcgraph.heap_struct_rep
             (Ptrofs.add x'
                (Ptrofs.repr (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))))))  
             *  spatial_gcgraph.frames_rep sh (ti_frames tinfo)
-            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc._fp) (spatial_gcgraph.ti_fp tinfo)
+            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._fp) (spatial_gcgraph.ti_fp tinfo)
             tinfo_pos
-            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc._nalloc)
+            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._nalloc)
                 (Vlong (Ptrofs.to_int64 (ti_nalloc tinfo))) tinfo_pos
-(*             * field_at sh env_graph_gc.thread_info_type (DOT gc._odata) nullval tinfo_pos *)
-            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc._odata) nullval tinfo_pos
+(*             * field_at sh env_graph_gc.thread_info_type (DOT gc_stack._odata) nullval tinfo_pos *)
+            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._odata) nullval tinfo_pos
             * gc_spec.all_string_constants Ers gv
                )%logic.
 
