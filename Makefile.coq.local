@@ -1,8 +1,10 @@
 
 examples/uint63nat/prog.vo examples/uint63nat/glue.c examples/uint63nat/glue.h examples/uint63nat/prog.c examples/uint63nat/prog.h: examples/uint63nat/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
 
-INCLUDE=certicoq/theories/Runtime
-GCDIR=certicoq/theories/Runtime
+
+INCLUDE=certicoq/plugin/runtime
+GCDIR=certicoq/plugin/runtime
 
 examples/uint63nat/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
 	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
