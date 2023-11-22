@@ -10,9 +10,9 @@ Module Info.
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
-  Definition arch := "aarch64".
-  Definition model := "default".
-  Definition abi := "apple".
+  Definition arch := "x86".
+  Definition model := "64".
+  Definition abi := "standard".
   Definition bitsize := 64.
   Definition big_endian := false.
   Definition source_file := "examples/uint63nat/glue.c".
@@ -21,8 +21,6 @@ End Info.
 
 Definition __arg : ident := $"$arg".
 Definition __arg0 : ident := $"$arg0".
-Definition __arg1 : ident := $"$arg1".
-Definition __arg2 : ident := $"$arg2".
 Definition __args : ident := $"$args".
 Definition __argv : ident := $"$argv".
 Definition __b : ident := $"$b".
@@ -34,15 +32,13 @@ Definition __tag : ident := $"$tag".
 Definition __tinfo : ident := $"$tinfo".
 Definition __tmp : ident := $"$tmp".
 Definition __v : ident := $"$v".
+Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
 Definition ___builtin_bswap16 : ident := $"__builtin_bswap16".
 Definition ___builtin_bswap32 : ident := $"__builtin_bswap32".
 Definition ___builtin_bswap64 : ident := $"__builtin_bswap64".
-Definition ___builtin_cls : ident := $"__builtin_cls".
-Definition ___builtin_clsl : ident := $"__builtin_clsl".
-Definition ___builtin_clsll : ident := $"__builtin_clsll".
 Definition ___builtin_clz : ident := $"__builtin_clz".
 Definition ___builtin_clzl : ident := $"__builtin_clzl".
 Definition ___builtin_clzll : ident := $"__builtin_clzll".
@@ -53,7 +49,6 @@ Definition ___builtin_debug : ident := $"__builtin_debug".
 Definition ___builtin_expect : ident := $"__builtin_expect".
 Definition ___builtin_fabs : ident := $"__builtin_fabs".
 Definition ___builtin_fabsf : ident := $"__builtin_fabsf".
-Definition ___builtin_fence : ident := $"__builtin_fence".
 Definition ___builtin_fmadd : ident := $"__builtin_fmadd".
 Definition ___builtin_fmax : ident := $"__builtin_fmax".
 Definition ___builtin_fmin : ident := $"__builtin_fmin".
@@ -63,6 +58,8 @@ Definition ___builtin_fnmsub : ident := $"__builtin_fnmsub".
 Definition ___builtin_fsqrt : ident := $"__builtin_fsqrt".
 Definition ___builtin_membar : ident := $"__builtin_membar".
 Definition ___builtin_memcpy_aligned : ident := $"__builtin_memcpy_aligned".
+Definition ___builtin_read16_reversed : ident := $"__builtin_read16_reversed".
+Definition ___builtin_read32_reversed : ident := $"__builtin_read32_reversed".
 Definition ___builtin_sel : ident := $"__builtin_sel".
 Definition ___builtin_sqrt : ident := $"__builtin_sqrt".
 Definition ___builtin_unreachable : ident := $"__builtin_unreachable".
@@ -70,6 +67,8 @@ Definition ___builtin_va_arg : ident := $"__builtin_va_arg".
 Definition ___builtin_va_copy : ident := $"__builtin_va_copy".
 Definition ___builtin_va_end : ident := $"__builtin_va_end".
 Definition ___builtin_va_start : ident := $"__builtin_va_start".
+Definition ___builtin_write16_reversed : ident := $"__builtin_write16_reversed".
+Definition ___builtin_write32_reversed : ident := $"__builtin_write32_reversed".
 Definition ___compcert_i64_dtos : ident := $"__compcert_i64_dtos".
 Definition ___compcert_i64_dtou : ident := $"__compcert_i64_dtou".
 Definition ___compcert_i64_sar : ident := $"__compcert_i64_sar".
@@ -91,10 +90,6 @@ Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
 Definition _alloc : ident := $"alloc".
 Definition _alloc_make_Coq_Init_Datatypes_nat_S : ident := $"alloc_make_Coq_Init_Datatypes_nat_S".
-Definition _alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT : ident := $"alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT".
-Definition _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand : ident := $"alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand".
-Definition _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif : ident := $"alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif".
-Definition _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor : ident := $"alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor".
 Definition _args : ident := $"args".
 Definition _call : ident := $"call".
 Definition _closure : ident := $"closure".
@@ -104,9 +99,6 @@ Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
 Definition _get_Coq_Init_Datatypes_bool_tag : ident := $"get_Coq_Init_Datatypes_bool_tag".
 Definition _get_Coq_Init_Datatypes_nat_tag : ident := $"get_Coq_Init_Datatypes_nat_tag".
-Definition _get_Coq_Init_Datatypes_unit_tag : ident := $"get_Coq_Init_Datatypes_unit_tag".
-Definition _get_VeriFFI_examples_uint63nat_prog_T_tag : ident := $"get_VeriFFI_examples_uint63nat_prog_T_tag".
-Definition _get_VeriFFI_examples_uint63nat_prog_exp_tag : ident := $"get_VeriFFI_examples_uint63nat_prog_exp_tag".
 Definition _get_args : ident := $"get_args".
 Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
 Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
@@ -119,27 +111,14 @@ Definition _make_Coq_Init_Datatypes_bool_false : ident := $"make_Coq_Init_Dataty
 Definition _make_Coq_Init_Datatypes_bool_true : ident := $"make_Coq_Init_Datatypes_bool_true".
 Definition _make_Coq_Init_Datatypes_nat_O : ident := $"make_Coq_Init_Datatypes_nat_O".
 Definition _make_Coq_Init_Datatypes_nat_S : ident := $"make_Coq_Init_Datatypes_nat_S".
-Definition _make_Coq_Init_Datatypes_unit_tt : ident := $"make_Coq_Init_Datatypes_unit_tt".
-Definition _make_VeriFFI_examples_uint63nat_prog_T_mkT : ident := $"make_VeriFFI_examples_uint63nat_prog_T_mkT".
-Definition _make_VeriFFI_examples_uint63nat_prog_exp_eand : ident := $"make_VeriFFI_examples_uint63nat_prog_exp_eand".
-Definition _make_VeriFFI_examples_uint63nat_prog_exp_efalse : ident := $"make_VeriFFI_examples_uint63nat_prog_exp_efalse".
-Definition _make_VeriFFI_examples_uint63nat_prog_exp_eif : ident := $"make_VeriFFI_examples_uint63nat_prog_exp_eif".
-Definition _make_VeriFFI_examples_uint63nat_prog_exp_eor : ident := $"make_VeriFFI_examples_uint63nat_prog_exp_eor".
-Definition _make_VeriFFI_examples_uint63nat_prog_exp_etrue : ident := $"make_VeriFFI_examples_uint63nat_prog_exp_etrue".
 Definition _nalloc : ident := $"nalloc".
 Definition _names_of_Coq_Init_Datatypes_bool : ident := $"names_of_Coq_Init_Datatypes_bool".
 Definition _names_of_Coq_Init_Datatypes_nat : ident := $"names_of_Coq_Init_Datatypes_nat".
-Definition _names_of_Coq_Init_Datatypes_unit : ident := $"names_of_Coq_Init_Datatypes_unit".
-Definition _names_of_VeriFFI_examples_uint63nat_prog_T : ident := $"names_of_VeriFFI_examples_uint63nat_prog_T".
-Definition _names_of_VeriFFI_examples_uint63nat_prog_exp : ident := $"names_of_VeriFFI_examples_uint63nat_prog_exp".
 Definition _next : ident := $"next".
 Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
 Definition _print_Coq_Init_Datatypes_bool : ident := $"print_Coq_Init_Datatypes_bool".
 Definition _print_Coq_Init_Datatypes_nat : ident := $"print_Coq_Init_Datatypes_nat".
-Definition _print_Coq_Init_Datatypes_unit : ident := $"print_Coq_Init_Datatypes_unit".
-Definition _print_VeriFFI_examples_uint63nat_prog_T : ident := $"print_VeriFFI_examples_uint63nat_prog_T".
-Definition _print_VeriFFI_examples_uint63nat_prog_exp : ident := $"print_VeriFFI_examples_uint63nat_prog_exp".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
 Definition _rem_limit : ident := $"rem_limit".
@@ -154,16 +133,8 @@ Definition _thread_info : ident := $"thread_info".
 Definition _type_lit : ident := $"type_lit".
 Definition _unk_lit : ident := $"unk_lit".
 Definition _t'1 : ident := 128%positive.
-Definition _t'10 : ident := 137%positive.
-Definition _t'11 : ident := 138%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
-Definition _t'4 : ident := 131%positive.
-Definition _t'5 : ident := 132%positive.
-Definition _t'6 : ident := 133%positive.
-Definition _t'7 : ident := 134%positive.
-Definition _t'8 : ident := 135%positive.
-Definition _t'9 : ident := 136%positive.
 
 Definition v_lparen_lit := {|
   gvar_info := (tarray tschar 2);
@@ -285,46 +256,6 @@ Definition v_names_of_Coq_Init_Datatypes_bool := {|
   gvar_volatile := false
 |}.
 
-Definition v_names_of_VeriFFI_examples_uint63nat_prog_exp := {|
-  gvar_info := (tarray (tarray tschar 7) 5);
-  gvar_init := (Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 116) ::
-                Init_int8 (Int.repr 114) :: Init_int8 (Int.repr 117) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 101) ::
-                Init_int8 (Int.repr 102) :: Init_int8 (Int.repr 97) ::
-                Init_int8 (Int.repr 108) :: Init_int8 (Int.repr 115) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 97) ::
-                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 100) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 101) ::
-                Init_int8 (Int.repr 111) :: Init_int8 (Int.repr 114) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 105) ::
-                Init_int8 (Int.repr 102) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_names_of_Coq_Init_Datatypes_unit := {|
-  gvar_info := (tarray (tarray tschar 3) 1);
-  gvar_init := (Init_int8 (Int.repr 116) :: Init_int8 (Int.repr 116) ::
-                Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_names_of_VeriFFI_examples_uint63nat_prog_T := {|
-  gvar_info := (tarray (tarray tschar 4) 1);
-  gvar_init := (Init_int8 (Int.repr 109) :: Init_int8 (Int.repr 107) ::
-                Init_int8 (Int.repr 84) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
 Definition f_make_Coq_Init_Datatypes_nat_O := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
@@ -385,8 +316,7 @@ Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
         (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
           (Econst_long (Int64.repr 0) tlong)
           (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Ecast (Econst_long (Int64.repr 1024) tlong)
-        (talignas 3%N (tptr tvoid))))
+      (Econst_long (Int64.repr 1024) tlong))
     (Ssequence
       (Sassign
         (Ederef
@@ -435,464 +365,6 @@ Definition f_make_Coq_Init_Datatypes_bool_false := {|
   fn_body :=
 (Sreturn (Some (Ecast (Econst_int (Int.repr 3) tint)
                  (talignas 3%N (tptr tvoid)))))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_exp_etrue := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Econst_int (Int.repr 1) tint)))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_exp_efalse := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Econst_int (Int.repr 3) tint)))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_exp_eand := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 2048) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-      (Sreturn (Some (Ebinop Oadd
-                       (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                       (Econst_long (Int64.repr 1) tlong)
-                       (tptr (talignas 3%N (tptr tvoid)))))))))
-|}.
-
-Definition f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 2048) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-        (Ssequence
-          (Ssequence
-            (Sset _t'1
-              (Efield
-                (Ederef
-                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                  (Tstruct _thread_info noattr)) _alloc
-                (tptr (talignas 3%N (tptr tvoid)))))
-            (Sassign
-              (Efield
-                (Ederef
-                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                  (Tstruct _thread_info noattr)) _alloc
-                (tptr (talignas 3%N (tptr tvoid))))
-              (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))))
-          (Sreturn (Some (Ebinop Oadd
-                           (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                           (Econst_long (Int64.repr 1) tlong)
-                           (tptr (talignas 3%N (tptr tvoid)))))))))))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_exp_eor := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 2049) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-      (Sreturn (Some (Ebinop Oadd
-                       (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                       (Econst_long (Int64.repr 1) tlong)
-                       (tptr (talignas 3%N (tptr tvoid)))))))))
-|}.
-
-Definition f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 2049) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-        (Ssequence
-          (Ssequence
-            (Sset _t'1
-              (Efield
-                (Ederef
-                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                  (Tstruct _thread_info noattr)) _alloc
-                (tptr (talignas 3%N (tptr tvoid)))))
-            (Sassign
-              (Efield
-                (Ederef
-                  (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                  (Tstruct _thread_info noattr)) _alloc
-                (tptr (talignas 3%N (tptr tvoid))))
-              (Ebinop Oadd (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))))
-          (Sreturn (Some (Ebinop Oadd
-                           (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                           (Econst_long (Int64.repr 1) tlong)
-                           (tptr (talignas 3%N (tptr tvoid)))))))))))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_exp_eif := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 3074) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 3) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 3074) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-        (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd
-                (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))
-              (talignas 3%N (tptr tvoid)))
-            (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-          (Ssequence
-            (Ssequence
-              (Sset _t'1
-                (Efield
-                  (Ederef
-                    (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid)))))
-              (Sassign
-                (Efield
-                  (Ederef
-                    (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid))))
-                (Ebinop Oadd
-                  (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                  (Econst_long (Int64.repr 4) tlong)
-                  (tptr (talignas 3%N (tptr tvoid))))))
-            (Sreturn (Some (Ebinop Oadd
-                             (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                             (Econst_long (Int64.repr 1) tlong)
-                             (tptr (talignas 3%N (tptr tvoid))))))))))))
-|}.
-
-Definition f_make_Coq_Init_Datatypes_unit_tt := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Econst_int (Int.repr 1) tint)))
-|}.
-
-Definition f_make_VeriFFI_examples_uint63nat_prog_T_mkT := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) ::
-                (__argv, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Ssequence
-  (Sassign
-    (Ederef
-      (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-        (Econst_long (Int64.repr 0) tlong)
-        (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-    (Ecast (Econst_long (Int64.repr 3072) tlong) (talignas 3%N (tptr tvoid))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 1) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 2) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 3) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-        (Sreturn (Some (Ebinop Oadd
-                         (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                         (Econst_long (Int64.repr 1) tlong)
-                         (tptr (talignas 3%N (tptr tvoid))))))))))
-|}.
-
-Definition f_alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__arg0, (talignas 3%N (tptr tvoid))) ::
-                (__arg1, (talignas 3%N (tptr tvoid))) ::
-                (__arg2, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__argv, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'1, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset __argv
-    (Efield
-      (Ederef (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-        (Tstruct _thread_info noattr)) _alloc
-      (tptr (talignas 3%N (tptr tvoid)))))
-  (Ssequence
-    (Sassign
-      (Ederef
-        (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-          (Econst_long (Int64.repr 0) tlong)
-          (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-      (Econst_long (Int64.repr 3072) tlong))
-    (Ssequence
-      (Sassign
-        (Ederef
-          (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-            (Econst_long (Int64.repr 1) tlong)
-            (tptr (talignas 3%N (tptr tvoid)))) (talignas 3%N (tptr tvoid)))
-        (Etempvar __arg0 (talignas 3%N (tptr tvoid))))
-      (Ssequence
-        (Sassign
-          (Ederef
-            (Ebinop Oadd (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-              (Econst_long (Int64.repr 2) tlong)
-              (tptr (talignas 3%N (tptr tvoid))))
-            (talignas 3%N (tptr tvoid)))
-          (Etempvar __arg1 (talignas 3%N (tptr tvoid))))
-        (Ssequence
-          (Sassign
-            (Ederef
-              (Ebinop Oadd
-                (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                (Econst_long (Int64.repr 3) tlong)
-                (tptr (talignas 3%N (tptr tvoid))))
-              (talignas 3%N (tptr tvoid)))
-            (Etempvar __arg2 (talignas 3%N (tptr tvoid))))
-          (Ssequence
-            (Ssequence
-              (Sset _t'1
-                (Efield
-                  (Ederef
-                    (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid)))))
-              (Sassign
-                (Efield
-                  (Ederef
-                    (Etempvar __tinfo (tptr (Tstruct _thread_info noattr)))
-                    (Tstruct _thread_info noattr)) _alloc
-                  (tptr (talignas 3%N (tptr tvoid))))
-                (Ebinop Oadd
-                  (Etempvar _t'1 (tptr (talignas 3%N (tptr tvoid))))
-                  (Econst_long (Int64.repr 4) tlong)
-                  (tptr (talignas 3%N (tptr tvoid))))))
-            (Sreturn (Some (Ebinop Oadd
-                             (Etempvar __argv (tptr (talignas 3%N (tptr tvoid))))
-                             (Econst_long (Int64.repr 1) tlong)
-                             (tptr (talignas 3%N (tptr tvoid))))))))))))
 |}.
 
 Definition f_get_Coq_Init_Datatypes_nat_tag := {|
@@ -950,90 +422,6 @@ Definition f_get_Coq_Init_Datatypes_bool_tag := {|
       (Evar _get_unboxed_ordinal (Tfunction
                                    (Tcons (talignas 3%N (tptr tvoid)) Tnil)
                                    tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __t (Etempvar _t'1 tuint)))
-  (Sreturn (Some (Etempvar __t tuint))))
-|}.
-
-Definition f_get_VeriFFI_examples_uint63nat_prog_exp_tag := {|
-  fn_return := tuint;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
-               (_t'2, tuint) :: (_t'1, tint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _is_ptr (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil) tint
-                      cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __b (Ecast (Etempvar _t'1 tint) tbool)))
-  (Sifthenelse (Etempvar __b tbool)
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'2)
-          (Evar _get_boxed_ordinal (Tfunction
-                                     (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'2 tuint)))
-      (Sswitch (Etempvar __t tuint)
-        (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 2) tuint)))
-          (LScons (Some 1)
-            (Sreturn (Some (Econst_int (Int.repr 3) tuint)))
-            (LScons (Some 2)
-              (Sreturn (Some (Econst_int (Int.repr 4) tuint)))
-              LSnil)))))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'3)
-          (Evar _get_unboxed_ordinal (Tfunction
-                                       (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
-          ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'3 tuint)))
-      (Sswitch (Etempvar __t tuint)
-        (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 0) tuint)))
-          (LScons (Some 1)
-            (Sreturn (Some (Econst_int (Int.repr 1) tuint)))
-            LSnil))))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_unit_tag := {|
-  fn_return := tuint;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_unboxed_ordinal (Tfunction
-                                   (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                   tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __t (Etempvar _t'1 tuint)))
-  (Sreturn (Some (Etempvar __t tuint))))
-|}.
-
-Definition f_get_VeriFFI_examples_uint63nat_prog_T_tag := {|
-  fn_return := tuint;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_boxed_ordinal (Tfunction
-                                 (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                 tuint cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
     (Sset __t (Etempvar _t'1 tuint)))
   (Sreturn (Some (Etempvar __t tuint))))
@@ -1149,467 +537,6 @@ Definition f_print_Coq_Init_Datatypes_bool := {|
          (Evar _names_of_Coq_Init_Datatypes_bool (tarray (tarray tschar 6) 2))
          (Etempvar __tag tuint) (tptr (tarray tschar 6))) (tarray tschar 6)) ::
      nil)))
-|}.
-
-Definition f_print_VeriFFI_examples_uint63nat_prog_exp := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'3, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'11, (talignas 3%N (tptr tvoid))) ::
-               (_t'10, (talignas 3%N (tptr tvoid))) ::
-               (_t'9, (talignas 3%N (tptr tvoid))) ::
-               (_t'8, (talignas 3%N (tptr tvoid))) ::
-               (_t'7, (talignas 3%N (tptr tvoid))) ::
-               (_t'6, (talignas 3%N (tptr tvoid))) ::
-               (_t'5, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_VeriFFI_examples_uint63nat_prog_exp_tag (Tfunction
-                                                           (Tcons
-                                                             (talignas 3%N (tptr tvoid))
-                                                             Tnil) tuint
-                                                           cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
-  (Sswitch (Etempvar __tag tuint)
-    (LScons (Some 0)
-      (Ssequence
-        (Scall None
-          (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                          {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-          ((Ederef
-             (Ebinop Oadd
-               (Evar _names_of_VeriFFI_examples_uint63nat_prog_exp (tarray (tarray tschar 7) 5))
-               (Etempvar __tag tuint) (tptr (tarray tschar 7)))
-             (tarray tschar 7)) :: nil))
-        Sbreak)
-      (LScons (Some 1)
-        (Ssequence
-          (Scall None
-            (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                            {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-            ((Ederef
-               (Ebinop Oadd
-                 (Evar _names_of_VeriFFI_examples_uint63nat_prog_exp (tarray (tarray tschar 7) 5))
-                 (Etempvar __tag tuint) (tptr (tarray tschar 7)))
-               (tarray tschar 7)) :: nil))
-          Sbreak)
-        (LScons (Some 2)
-          (Ssequence
-            (Ssequence
-              (Scall (Some _t'2)
-                (Evar _get_args (Tfunction
-                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                  (tptr (talignas 3%N (tptr tvoid)))
-                                  cc_default))
-                ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-              (Sset __args
-                (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
-            (Ssequence
-              (Scall None
-                (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-              (Ssequence
-                (Scall None
-                  (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                  {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                  ((Ederef
-                     (Ebinop Oadd
-                       (Evar _names_of_VeriFFI_examples_uint63nat_prog_exp (tarray (tarray tschar 7) 5))
-                       (Etempvar __tag tuint) (tptr (tarray tschar 7)))
-                     (tarray tschar 7)) :: nil))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                    ((Evar _space_lit (tarray tschar 2)) :: nil))
-                  (Ssequence
-                    (Ssequence
-                      (Sset _t'11
-                        (Ederef
-                          (Ebinop Oadd
-                            (Ecast (Etempvar __args (tptr tvoid))
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (Econst_int (Int.repr 0) tint)
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (talignas 3%N (tptr tvoid))))
-                      (Scall None
-                        (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                        (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                          tvoid cc_default))
-                        ((Etempvar _t'11 (talignas 3%N (tptr tvoid))) :: nil)))
-                    (Ssequence
-                      (Scall None
-                        (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                        tint
-                                        {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                        ((Evar _space_lit (tarray tschar 2)) :: nil))
-                      (Ssequence
-                        (Ssequence
-                          (Sset _t'10
-                            (Ederef
-                              (Ebinop Oadd
-                                (Ecast (Etempvar __args (tptr tvoid))
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (Econst_int (Int.repr 1) tint)
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (talignas 3%N (tptr tvoid))))
-                          (Scall None
-                            (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                            (Tfunction
-                              (Tcons (talignas 3%N (tptr tvoid)) Tnil) tvoid
-                              cc_default))
-                            ((Etempvar _t'10 (talignas 3%N (tptr tvoid))) ::
-                             nil)))
-                        (Ssequence
-                          (Scall None
-                            (Evar _printf (Tfunction
-                                            (Tcons (tptr tschar) Tnil) tint
-                                            {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                            ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                          Sbreak))))))))
-          (LScons (Some 3)
-            (Ssequence
-              (Ssequence
-                (Scall (Some _t'3)
-                  (Evar _get_args (Tfunction
-                                    (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                    (tptr (talignas 3%N (tptr tvoid)))
-                                    cc_default))
-                  ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-                (Sset __args
-                  (Etempvar _t'3 (tptr (talignas 3%N (tptr tvoid))))))
-              (Ssequence
-                (Scall None
-                  (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                  {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                  ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                    ((Ederef
-                       (Ebinop Oadd
-                         (Evar _names_of_VeriFFI_examples_uint63nat_prog_exp (tarray (tarray tschar 7) 5))
-                         (Etempvar __tag tuint) (tptr (tarray tschar 7)))
-                       (tarray tschar 7)) :: nil))
-                  (Ssequence
-                    (Scall None
-                      (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                      tint
-                                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                      ((Evar _space_lit (tarray tschar 2)) :: nil))
-                    (Ssequence
-                      (Ssequence
-                        (Sset _t'9
-                          (Ederef
-                            (Ebinop Oadd
-                              (Ecast (Etempvar __args (tptr tvoid))
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (Econst_int (Int.repr 0) tint)
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (talignas 3%N (tptr tvoid))))
-                        (Scall None
-                          (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                          (Tfunction (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                            tvoid cc_default))
-                          ((Etempvar _t'9 (talignas 3%N (tptr tvoid))) ::
-                           nil)))
-                      (Ssequence
-                        (Scall None
-                          (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                          tint
-                                          {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                          ((Evar _space_lit (tarray tschar 2)) :: nil))
-                        (Ssequence
-                          (Ssequence
-                            (Sset _t'8
-                              (Ederef
-                                (Ebinop Oadd
-                                  (Ecast (Etempvar __args (tptr tvoid))
-                                    (tptr (talignas 3%N (tptr tvoid))))
-                                  (Econst_int (Int.repr 1) tint)
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (talignas 3%N (tptr tvoid))))
-                            (Scall None
-                              (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                              (Tfunction
-                                (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                tvoid cc_default))
-                              ((Etempvar _t'8 (talignas 3%N (tptr tvoid))) ::
-                               nil)))
-                          (Ssequence
-                            (Scall None
-                              (Evar _printf (Tfunction
-                                              (Tcons (tptr tschar) Tnil) tint
-                                              {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                              ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                            Sbreak))))))))
-            (LScons (Some 4)
-              (Ssequence
-                (Ssequence
-                  (Scall (Some _t'4)
-                    (Evar _get_args (Tfunction
-                                      (Tcons (talignas 3%N (tptr tvoid))
-                                        Tnil)
-                                      (tptr (talignas 3%N (tptr tvoid)))
-                                      cc_default))
-                    ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-                  (Sset __args
-                    (Etempvar _t'4 (tptr (talignas 3%N (tptr tvoid))))))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                    ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-                  (Ssequence
-                    (Scall None
-                      (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                      tint
-                                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                      ((Ederef
-                         (Ebinop Oadd
-                           (Evar _names_of_VeriFFI_examples_uint63nat_prog_exp (tarray (tarray tschar 7) 5))
-                           (Etempvar __tag tuint) (tptr (tarray tschar 7)))
-                         (tarray tschar 7)) :: nil))
-                    (Ssequence
-                      (Scall None
-                        (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                        tint
-                                        {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                        ((Evar _space_lit (tarray tschar 2)) :: nil))
-                      (Ssequence
-                        (Ssequence
-                          (Sset _t'7
-                            (Ederef
-                              (Ebinop Oadd
-                                (Ecast (Etempvar __args (tptr tvoid))
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (Econst_int (Int.repr 0) tint)
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (talignas 3%N (tptr tvoid))))
-                          (Scall None
-                            (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                            (Tfunction
-                              (Tcons (talignas 3%N (tptr tvoid)) Tnil) tvoid
-                              cc_default))
-                            ((Etempvar _t'7 (talignas 3%N (tptr tvoid))) ::
-                             nil)))
-                        (Ssequence
-                          (Scall None
-                            (Evar _printf (Tfunction
-                                            (Tcons (tptr tschar) Tnil) tint
-                                            {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                            ((Evar _space_lit (tarray tschar 2)) :: nil))
-                          (Ssequence
-                            (Ssequence
-                              (Sset _t'6
-                                (Ederef
-                                  (Ebinop Oadd
-                                    (Ecast (Etempvar __args (tptr tvoid))
-                                      (tptr (talignas 3%N (tptr tvoid))))
-                                    (Econst_int (Int.repr 1) tint)
-                                    (tptr (talignas 3%N (tptr tvoid))))
-                                  (talignas 3%N (tptr tvoid))))
-                              (Scall None
-                                (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                                (Tfunction
-                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                  tvoid cc_default))
-                                ((Etempvar _t'6 (talignas 3%N (tptr tvoid))) ::
-                                 nil)))
-                            (Ssequence
-                              (Scall None
-                                (Evar _printf (Tfunction
-                                                (Tcons (tptr tschar) Tnil)
-                                                tint
-                                                {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                                ((Evar _space_lit (tarray tschar 2)) :: nil))
-                              (Ssequence
-                                (Ssequence
-                                  (Sset _t'5
-                                    (Ederef
-                                      (Ebinop Oadd
-                                        (Ecast (Etempvar __args (tptr tvoid))
-                                          (tptr (talignas 3%N (tptr tvoid))))
-                                        (Econst_int (Int.repr 2) tint)
-                                        (tptr (talignas 3%N (tptr tvoid))))
-                                      (talignas 3%N (tptr tvoid))))
-                                  (Scall None
-                                    (Evar _print_VeriFFI_examples_uint63nat_prog_exp 
-                                    (Tfunction
-                                      (Tcons (talignas 3%N (tptr tvoid))
-                                        Tnil) tvoid cc_default))
-                                    ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) ::
-                                     nil)))
-                                (Ssequence
-                                  (Scall None
-                                    (Evar _printf (Tfunction
-                                                    (Tcons (tptr tschar)
-                                                      Tnil) tint
-                                                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                                    ((Evar _rparen_lit (tarray tschar 2)) ::
-                                     nil))
-                                  Sbreak))))))))))
-              LSnil)))))))
-|}.
-
-Definition f_print_Coq_Init_Datatypes_unit := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (_t'1, tuint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_Coq_Init_Datatypes_unit_tag (Tfunction
-                                               (Tcons
-                                                 (talignas 3%N (tptr tvoid))
-                                                 Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
-  (Scall None
-    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-    ((Ederef
-       (Ebinop Oadd
-         (Evar _names_of_Coq_Init_Datatypes_unit (tarray (tarray tschar 3) 1))
-         (Etempvar __tag tuint) (tptr (tarray tschar 3))) (tarray tschar 3)) ::
-     nil)))
-|}.
-
-Definition f_print_VeriFFI_examples_uint63nat_prog_T := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'5, (talignas 3%N (tptr tvoid))) ::
-               (_t'4, (talignas 3%N (tptr tvoid))) ::
-               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_VeriFFI_examples_uint63nat_prog_T_tag (Tfunction
-                                                         (Tcons
-                                                           (talignas 3%N (tptr tvoid))
-                                                           Tnil) tuint
-                                                         cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
-  (Sswitch (Etempvar __tag tuint)
-    (LScons (Some 0)
-      (Ssequence
-        (Ssequence
-          (Scall (Some _t'2)
-            (Evar _get_args (Tfunction
-                              (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                              (tptr (talignas 3%N (tptr tvoid))) cc_default))
-            ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-          (Sset __args (Etempvar _t'2 (tptr (talignas 3%N (tptr tvoid))))))
-        (Ssequence
-          (Scall None
-            (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                            {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-            ((Evar _lparen_lit (tarray tschar 2)) :: nil))
-          (Ssequence
-            (Scall None
-              (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                              {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-              ((Ederef
-                 (Ebinop Oadd
-                   (Evar _names_of_VeriFFI_examples_uint63nat_prog_T (tarray (tarray tschar 4) 1))
-                   (Etempvar __tag tuint) (tptr (tarray tschar 4)))
-                 (tarray tschar 4)) :: nil))
-            (Ssequence
-              (Scall None
-                (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                ((Evar _space_lit (tarray tschar 2)) :: nil))
-              (Ssequence
-                (Ssequence
-                  (Sset _t'5
-                    (Ederef
-                      (Ebinop Oadd
-                        (Ecast (Etempvar __args (tptr tvoid))
-                          (tptr (talignas 3%N (tptr tvoid))))
-                        (Econst_int (Int.repr 0) tint)
-                        (tptr (talignas 3%N (tptr tvoid))))
-                      (talignas 3%N (tptr tvoid))))
-                  (Scall None
-                    (Evar _print_Coq_Init_Datatypes_nat (Tfunction
-                                                          (Tcons
-                                                            (talignas 3%N (tptr tvoid))
-                                                            Tnil) tvoid
-                                                          cc_default))
-                    ((Etempvar _t'5 (talignas 3%N (tptr tvoid))) :: nil)))
-                (Ssequence
-                  (Scall None
-                    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                    ((Evar _space_lit (tarray tschar 2)) :: nil))
-                  (Ssequence
-                    (Ssequence
-                      (Sset _t'4
-                        (Ederef
-                          (Ebinop Oadd
-                            (Ecast (Etempvar __args (tptr tvoid))
-                              (tptr (talignas 3%N (tptr tvoid))))
-                            (Econst_int (Int.repr 1) tint)
-                            (tptr (talignas 3%N (tptr tvoid))))
-                          (talignas 3%N (tptr tvoid))))
-                      (Scall None
-                        (Evar _print_Coq_Init_Datatypes_bool (Tfunction
-                                                               (Tcons
-                                                                 (talignas 3%N (tptr tvoid))
-                                                                 Tnil) tvoid
-                                                               cc_default))
-                        ((Etempvar _t'4 (talignas 3%N (tptr tvoid))) :: nil)))
-                    (Ssequence
-                      (Scall None
-                        (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil)
-                                        tint
-                                        {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                        ((Evar _space_lit (tarray tschar 2)) :: nil))
-                      (Ssequence
-                        (Ssequence
-                          (Sset _t'3
-                            (Ederef
-                              (Ebinop Oadd
-                                (Ecast (Etempvar __args (tptr tvoid))
-                                  (tptr (talignas 3%N (tptr tvoid))))
-                                (Econst_int (Int.repr 2) tint)
-                                (tptr (talignas 3%N (tptr tvoid))))
-                              (talignas 3%N (tptr tvoid))))
-                          (Scall None
-                            (Evar _print_Coq_Init_Datatypes_unit (Tfunction
-                                                                   (Tcons
-                                                                    (talignas 3%N (tptr tvoid))
-                                                                    Tnil)
-                                                                   tvoid
-                                                                   cc_default))
-                            ((Etempvar _t'3 (talignas 3%N (tptr tvoid))) ::
-                             nil)))
-                        (Ssequence
-                          (Scall None
-                            (Evar _printf (Tfunction
-                                            (Tcons (tptr tschar) Tnil) tint
-                                            {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-                            ((Evar _rparen_lit (tarray tschar 2)) :: nil))
-                          Sbreak))))))))))
-      LSnil)))
 |}.
 
 Definition f_call := {|
@@ -1778,6 +705,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tulong (Tcons tulong Tnil)) tulong
      cc_default)) ::
+ (___builtin_ais_annot,
+   Gfun(External (EF_builtin "__builtin_ais_annot"
+                   (mksignature (AST.Tlong :: nil) AST.Tvoid
+                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
+     (Tcons (tptr tschar) Tnil) tvoid
+     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (___builtin_bswap64,
    Gfun(External (EF_builtin "__builtin_bswap64"
                    (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
@@ -1890,22 +823,16 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                    (mksignature (AST.Tlong :: AST.Tlong :: nil) AST.Tlong
                      cc_default)) (Tcons tlong (Tcons tlong Tnil)) tlong
      cc_default)) ::
- (___builtin_fence,
-   Gfun(External (EF_builtin "__builtin_fence"
-                   (mksignature nil AST.Tvoid cc_default)) Tnil tvoid
-     cc_default)) ::
- (___builtin_cls,
-   Gfun(External (EF_builtin "__builtin_cls"
-                   (mksignature (AST.Tint :: nil) AST.Tint cc_default))
-     (Tcons tint Tnil) tint cc_default)) ::
- (___builtin_clsl,
-   Gfun(External (EF_builtin "__builtin_clsl"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons tlong Tnil) tint cc_default)) ::
- (___builtin_clsll,
-   Gfun(External (EF_builtin "__builtin_clsll"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons tlong Tnil) tint cc_default)) ::
+ (___builtin_fmax,
+   Gfun(External (EF_builtin "__builtin_fmax"
+                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
+                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
+     tdouble cc_default)) ::
+ (___builtin_fmin,
+   Gfun(External (EF_builtin "__builtin_fmin"
+                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
+                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
+     tdouble cc_default)) ::
  (___builtin_fmadd,
    Gfun(External (EF_builtin "__builtin_fmadd"
                    (mksignature
@@ -1934,16 +861,25 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      AST.Tfloat cc_default))
      (Tcons tdouble (Tcons tdouble (Tcons tdouble Tnil))) tdouble
      cc_default)) ::
- (___builtin_fmax,
-   Gfun(External (EF_builtin "__builtin_fmax"
-                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
-                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
-     tdouble cc_default)) ::
- (___builtin_fmin,
-   Gfun(External (EF_builtin "__builtin_fmin"
-                   (mksignature (AST.Tfloat :: AST.Tfloat :: nil) AST.Tfloat
-                     cc_default)) (Tcons tdouble (Tcons tdouble Tnil))
-     tdouble cc_default)) ::
+ (___builtin_read16_reversed,
+   Gfun(External (EF_builtin "__builtin_read16_reversed"
+                   (mksignature (AST.Tlong :: nil) AST.Tint16unsigned
+                     cc_default)) (Tcons (tptr tushort) Tnil) tushort
+     cc_default)) ::
+ (___builtin_read32_reversed,
+   Gfun(External (EF_builtin "__builtin_read32_reversed"
+                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
+     (Tcons (tptr tuint) Tnil) tuint cc_default)) ::
+ (___builtin_write16_reversed,
+   Gfun(External (EF_builtin "__builtin_write16_reversed"
+                   (mksignature (AST.Tlong :: AST.Tint :: nil) AST.Tvoid
+                     cc_default)) (Tcons (tptr tushort) (Tcons tushort Tnil))
+     tvoid cc_default)) ::
+ (___builtin_write32_reversed,
+   Gfun(External (EF_builtin "__builtin_write32_reversed"
+                   (mksignature (AST.Tlong :: AST.Tint :: nil) AST.Tvoid
+                     cc_default)) (Tcons (tptr tuint) (Tcons tuint Tnil))
+     tvoid cc_default)) ::
  (___builtin_debug,
    Gfun(External (EF_external "__builtin_debug"
                    (mksignature (AST.Tint :: nil) AST.Tvoid
@@ -1969,85 +905,46 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_get_args, Gfun(Internal f_get_args)) ::
  (_names_of_Coq_Init_Datatypes_nat, Gvar v_names_of_Coq_Init_Datatypes_nat) ::
  (_names_of_Coq_Init_Datatypes_bool, Gvar v_names_of_Coq_Init_Datatypes_bool) ::
- (_names_of_VeriFFI_examples_uint63nat_prog_exp, Gvar v_names_of_VeriFFI_examples_uint63nat_prog_exp) ::
- (_names_of_Coq_Init_Datatypes_unit, Gvar v_names_of_Coq_Init_Datatypes_unit) ::
- (_names_of_VeriFFI_examples_uint63nat_prog_T, Gvar v_names_of_VeriFFI_examples_uint63nat_prog_T) ::
  (_make_Coq_Init_Datatypes_nat_O, Gfun(Internal f_make_Coq_Init_Datatypes_nat_O)) ::
  (_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_make_Coq_Init_Datatypes_nat_S)) ::
  (_alloc_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_alloc_make_Coq_Init_Datatypes_nat_S)) ::
  (_make_Coq_Init_Datatypes_bool_true, Gfun(Internal f_make_Coq_Init_Datatypes_bool_true)) ::
  (_make_Coq_Init_Datatypes_bool_false, Gfun(Internal f_make_Coq_Init_Datatypes_bool_false)) ::
- (_make_VeriFFI_examples_uint63nat_prog_exp_etrue, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_exp_etrue)) ::
- (_make_VeriFFI_examples_uint63nat_prog_exp_efalse, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_exp_efalse)) ::
- (_make_VeriFFI_examples_uint63nat_prog_exp_eand, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_exp_eand)) ::
- (_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand, Gfun(Internal f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand)) ::
- (_make_VeriFFI_examples_uint63nat_prog_exp_eor, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_exp_eor)) ::
- (_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor, Gfun(Internal f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor)) ::
- (_make_VeriFFI_examples_uint63nat_prog_exp_eif, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_exp_eif)) ::
- (_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif, Gfun(Internal f_alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif)) ::
- (_make_Coq_Init_Datatypes_unit_tt, Gfun(Internal f_make_Coq_Init_Datatypes_unit_tt)) ::
- (_make_VeriFFI_examples_uint63nat_prog_T_mkT, Gfun(Internal f_make_VeriFFI_examples_uint63nat_prog_T_mkT)) ::
- (_alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT, Gfun(Internal f_alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT)) ::
  (_get_Coq_Init_Datatypes_nat_tag, Gfun(Internal f_get_Coq_Init_Datatypes_nat_tag)) ::
  (_get_Coq_Init_Datatypes_bool_tag, Gfun(Internal f_get_Coq_Init_Datatypes_bool_tag)) ::
- (_get_VeriFFI_examples_uint63nat_prog_exp_tag, Gfun(Internal f_get_VeriFFI_examples_uint63nat_prog_exp_tag)) ::
- (_get_Coq_Init_Datatypes_unit_tag, Gfun(Internal f_get_Coq_Init_Datatypes_unit_tag)) ::
- (_get_VeriFFI_examples_uint63nat_prog_T_tag, Gfun(Internal f_get_VeriFFI_examples_uint63nat_prog_T_tag)) ::
  (_print_Coq_Init_Datatypes_nat, Gfun(Internal f_print_Coq_Init_Datatypes_nat)) ::
  (_print_Coq_Init_Datatypes_bool, Gfun(Internal f_print_Coq_Init_Datatypes_bool)) ::
- (_print_VeriFFI_examples_uint63nat_prog_exp, Gfun(Internal f_print_VeriFFI_examples_uint63nat_prog_exp)) ::
- (_print_Coq_Init_Datatypes_unit, Gfun(Internal f_print_Coq_Init_Datatypes_unit)) ::
- (_print_VeriFFI_examples_uint63nat_prog_T, Gfun(Internal f_print_VeriFFI_examples_uint63nat_prog_T)) ::
  (_call, Gfun(Internal f_call)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _print_VeriFFI_examples_uint63nat_prog_T ::
- _print_Coq_Init_Datatypes_unit ::
- _print_VeriFFI_examples_uint63nat_prog_exp ::
- _print_Coq_Init_Datatypes_bool :: _print_Coq_Init_Datatypes_nat ::
- _get_VeriFFI_examples_uint63nat_prog_T_tag ::
- _get_Coq_Init_Datatypes_unit_tag ::
- _get_VeriFFI_examples_uint63nat_prog_exp_tag ::
+(_call :: _print_Coq_Init_Datatypes_bool :: _print_Coq_Init_Datatypes_nat ::
  _get_Coq_Init_Datatypes_bool_tag :: _get_Coq_Init_Datatypes_nat_tag ::
- _alloc_make_VeriFFI_examples_uint63nat_prog_T_mkT ::
- _make_VeriFFI_examples_uint63nat_prog_T_mkT ::
- _make_Coq_Init_Datatypes_unit_tt ::
- _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eif ::
- _make_VeriFFI_examples_uint63nat_prog_exp_eif ::
- _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eor ::
- _make_VeriFFI_examples_uint63nat_prog_exp_eor ::
- _alloc_make_VeriFFI_examples_uint63nat_prog_exp_eand ::
- _make_VeriFFI_examples_uint63nat_prog_exp_eand ::
- _make_VeriFFI_examples_uint63nat_prog_exp_efalse ::
- _make_VeriFFI_examples_uint63nat_prog_exp_etrue ::
  _make_Coq_Init_Datatypes_bool_false :: _make_Coq_Init_Datatypes_bool_true ::
  _alloc_make_Coq_Init_Datatypes_nat_S :: _make_Coq_Init_Datatypes_nat_S ::
- _make_Coq_Init_Datatypes_nat_O ::
- _names_of_VeriFFI_examples_uint63nat_prog_T ::
- _names_of_Coq_Init_Datatypes_unit ::
- _names_of_VeriFFI_examples_uint63nat_prog_exp ::
- _names_of_Coq_Init_Datatypes_bool :: _names_of_Coq_Init_Datatypes_nat ::
- _get_args :: _get_boxed_ordinal :: _get_unboxed_ordinal :: _prop_lit ::
- _unk_lit :: _type_lit :: _fun_lit :: _space_lit :: _rparen_lit ::
- _lparen_lit :: _is_ptr :: _printf :: ___builtin_debug :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_clsll ::
- ___builtin_clsl :: ___builtin_cls :: ___builtin_fence ::
- ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
- ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
- ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
- ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
- ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
- ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
- ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
- ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
- ___compcert_i64_umulh :: ___compcert_i64_smulh :: ___compcert_i64_sar ::
- ___compcert_i64_shr :: ___compcert_i64_shl :: ___compcert_i64_umod ::
- ___compcert_i64_smod :: ___compcert_i64_udiv :: ___compcert_i64_sdiv ::
- ___compcert_i64_utof :: ___compcert_i64_stof :: ___compcert_i64_utod ::
- ___compcert_i64_stod :: ___compcert_i64_dtou :: ___compcert_i64_dtos ::
- ___compcert_va_composite :: ___compcert_va_float64 ::
- ___compcert_va_int64 :: ___compcert_va_int32 :: nil).
+ _make_Coq_Init_Datatypes_nat_O :: _names_of_Coq_Init_Datatypes_bool ::
+ _names_of_Coq_Init_Datatypes_nat :: _get_args :: _get_boxed_ordinal ::
+ _get_unboxed_ordinal :: _prop_lit :: _unk_lit :: _type_lit :: _fun_lit ::
+ _space_lit :: _rparen_lit :: _lparen_lit :: _is_ptr :: _printf ::
+ ___builtin_debug :: ___builtin_write32_reversed ::
+ ___builtin_write16_reversed :: ___builtin_read32_reversed ::
+ ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
+ ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
+ ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
+ ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
+ ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
+ ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
+ ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
+ ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
+ ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
+ ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
+ ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
+ ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
+ ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
+ ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
+ ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
+ ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
+ ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
+ nil).
 
 Definition prog : Clight.program := 
   mkprogram composites global_definitions public_idents _main Logic.I.
