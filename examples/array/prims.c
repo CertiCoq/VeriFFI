@@ -1,5 +1,5 @@
-#include "values.h"
-#include "gc_stack.h"
+#include <values.h>
+#include <gc_stack.h>
 #include "glue.h"
 #include <stddef.h>
 #include <stdio.h>

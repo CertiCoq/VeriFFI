@@ -97,7 +97,6 @@ Definition _env : ident := $"env".
 Definition _fp : ident := $"fp".
 Definition _fun_lit : ident := $"fun_lit".
 Definition _func : ident := $"func".
-Definition _get_Coq_Init_Datatypes_bool_tag : ident := $"get_Coq_Init_Datatypes_bool_tag".
 Definition _get_Coq_Init_Datatypes_nat_tag : ident := $"get_Coq_Init_Datatypes_nat_tag".
 Definition _get_args : ident := $"get_args".
 Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
@@ -107,17 +106,13 @@ Definition _is_ptr : ident := $"is_ptr".
 Definition _limit : ident := $"limit".
 Definition _lparen_lit : ident := $"lparen_lit".
 Definition _main : ident := $"main".
-Definition _make_Coq_Init_Datatypes_bool_false : ident := $"make_Coq_Init_Datatypes_bool_false".
-Definition _make_Coq_Init_Datatypes_bool_true : ident := $"make_Coq_Init_Datatypes_bool_true".
 Definition _make_Coq_Init_Datatypes_nat_O : ident := $"make_Coq_Init_Datatypes_nat_O".
 Definition _make_Coq_Init_Datatypes_nat_S : ident := $"make_Coq_Init_Datatypes_nat_S".
 Definition _nalloc : ident := $"nalloc".
-Definition _names_of_Coq_Init_Datatypes_bool : ident := $"names_of_Coq_Init_Datatypes_bool".
 Definition _names_of_Coq_Init_Datatypes_nat : ident := $"names_of_Coq_Init_Datatypes_nat".
 Definition _next : ident := $"next".
 Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
-Definition _print_Coq_Init_Datatypes_bool : ident := $"print_Coq_Init_Datatypes_bool".
 Definition _print_Coq_Init_Datatypes_nat : ident := $"print_Coq_Init_Datatypes_nat".
 Definition _printf : ident := $"printf".
 Definition _prop_lit : ident := $"prop_lit".
@@ -244,18 +239,6 @@ Definition v_names_of_Coq_Init_Datatypes_nat := {|
   gvar_volatile := false
 |}.
 
-Definition v_names_of_Coq_Init_Datatypes_bool := {|
-  gvar_info := (tarray (tarray tschar 6) 2);
-  gvar_init := (Init_int8 (Int.repr 116) :: Init_int8 (Int.repr 114) ::
-                Init_int8 (Int.repr 117) :: Init_int8 (Int.repr 101) ::
-                Init_int8 (Int.repr 0) :: Init_int8 (Int.repr 0) ::
-                Init_int8 (Int.repr 102) :: Init_int8 (Int.repr 97) ::
-                Init_int8 (Int.repr 108) :: Init_int8 (Int.repr 115) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
 Definition f_make_Coq_Init_Datatypes_nat_O := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
@@ -345,28 +328,6 @@ Definition f_alloc_make_Coq_Init_Datatypes_nat_S := {|
                          (tptr (talignas 3%N (tptr tvoid))))))))))
 |}.
 
-Definition f_make_Coq_Init_Datatypes_bool_true := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 1) tint)
-                 (talignas 3%N (tptr tvoid)))))
-|}.
-
-Definition f_make_Coq_Init_Datatypes_bool_false := {|
-  fn_return := (talignas 3%N (tptr tvoid));
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Econst_int (Int.repr 3) tint)
-                 (talignas 3%N (tptr tvoid)))))
-|}.
-
 Definition f_get_Coq_Init_Datatypes_nat_tag := {|
   fn_return := tuint;
   fn_callconv := cc_default;
@@ -407,24 +368,6 @@ Definition f_get_Coq_Init_Datatypes_nat_tag := {|
         (LScons (Some 0)
           (Sreturn (Some (Econst_int (Int.repr 0) tuint)))
           LSnil)))))
-|}.
-
-Definition f_get_Coq_Init_Datatypes_bool_tag := {|
-  fn_return := tuint;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_unboxed_ordinal (Tfunction
-                                   (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                   tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __t (Etempvar _t'1 tuint)))
-  (Sreturn (Some (Etempvar __t tuint))))
 |}.
 
 Definition f_print_Coq_Init_Datatypes_nat := {|
@@ -511,32 +454,6 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
                       ((Evar _rparen_lit (tarray tschar 2)) :: nil))
                     Sbreak))))))
         LSnil))))
-|}.
-
-Definition f_print_Coq_Init_Datatypes_bool := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (_t'1, tuint) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Scall (Some _t'1)
-      (Evar _get_Coq_Init_Datatypes_bool_tag (Tfunction
-                                               (Tcons
-                                                 (talignas 3%N (tptr tvoid))
-                                                 Tnil) tuint cc_default))
-      ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
-  (Scall None
-    (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
-                    {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
-    ((Ederef
-       (Ebinop Oadd
-         (Evar _names_of_Coq_Init_Datatypes_bool (tarray (tarray tschar 6) 2))
-         (Etempvar __tag tuint) (tptr (tarray tschar 6))) (tarray tschar 6)) ::
-     nil)))
 |}.
 
 Definition f_call := {|
@@ -904,45 +821,38 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_get_boxed_ordinal, Gfun(Internal f_get_boxed_ordinal)) ::
  (_get_args, Gfun(Internal f_get_args)) ::
  (_names_of_Coq_Init_Datatypes_nat, Gvar v_names_of_Coq_Init_Datatypes_nat) ::
- (_names_of_Coq_Init_Datatypes_bool, Gvar v_names_of_Coq_Init_Datatypes_bool) ::
  (_make_Coq_Init_Datatypes_nat_O, Gfun(Internal f_make_Coq_Init_Datatypes_nat_O)) ::
  (_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_make_Coq_Init_Datatypes_nat_S)) ::
  (_alloc_make_Coq_Init_Datatypes_nat_S, Gfun(Internal f_alloc_make_Coq_Init_Datatypes_nat_S)) ::
- (_make_Coq_Init_Datatypes_bool_true, Gfun(Internal f_make_Coq_Init_Datatypes_bool_true)) ::
- (_make_Coq_Init_Datatypes_bool_false, Gfun(Internal f_make_Coq_Init_Datatypes_bool_false)) ::
  (_get_Coq_Init_Datatypes_nat_tag, Gfun(Internal f_get_Coq_Init_Datatypes_nat_tag)) ::
- (_get_Coq_Init_Datatypes_bool_tag, Gfun(Internal f_get_Coq_Init_Datatypes_bool_tag)) ::
  (_print_Coq_Init_Datatypes_nat, Gfun(Internal f_print_Coq_Init_Datatypes_nat)) ::
- (_print_Coq_Init_Datatypes_bool, Gfun(Internal f_print_Coq_Init_Datatypes_bool)) ::
  (_call, Gfun(Internal f_call)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _print_Coq_Init_Datatypes_bool :: _print_Coq_Init_Datatypes_nat ::
- _get_Coq_Init_Datatypes_bool_tag :: _get_Coq_Init_Datatypes_nat_tag ::
- _make_Coq_Init_Datatypes_bool_false :: _make_Coq_Init_Datatypes_bool_true ::
+(_call :: _print_Coq_Init_Datatypes_nat :: _get_Coq_Init_Datatypes_nat_tag ::
  _alloc_make_Coq_Init_Datatypes_nat_S :: _make_Coq_Init_Datatypes_nat_S ::
- _make_Coq_Init_Datatypes_nat_O :: _names_of_Coq_Init_Datatypes_bool ::
- _names_of_Coq_Init_Datatypes_nat :: _get_args :: _get_boxed_ordinal ::
- _get_unboxed_ordinal :: _prop_lit :: _unk_lit :: _type_lit :: _fun_lit ::
- _space_lit :: _rparen_lit :: _lparen_lit :: _is_ptr :: _printf ::
- ___builtin_debug :: ___builtin_write32_reversed ::
- ___builtin_write16_reversed :: ___builtin_read32_reversed ::
- ___builtin_read16_reversed :: ___builtin_fnmsub :: ___builtin_fnmadd ::
- ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_fmin ::
- ___builtin_fmax :: ___builtin_expect :: ___builtin_unreachable ::
- ___builtin_va_end :: ___builtin_va_copy :: ___builtin_va_arg ::
- ___builtin_va_start :: ___builtin_membar :: ___builtin_annot_intval ::
- ___builtin_annot :: ___builtin_sel :: ___builtin_memcpy_aligned ::
- ___builtin_sqrt :: ___builtin_fsqrt :: ___builtin_fabsf ::
- ___builtin_fabs :: ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz ::
- ___builtin_clzll :: ___builtin_clzl :: ___builtin_clz ::
- ___builtin_bswap16 :: ___builtin_bswap32 :: ___builtin_bswap ::
- ___builtin_bswap64 :: ___builtin_ais_annot :: ___compcert_i64_umulh ::
- ___compcert_i64_smulh :: ___compcert_i64_sar :: ___compcert_i64_shr ::
- ___compcert_i64_shl :: ___compcert_i64_umod :: ___compcert_i64_smod ::
- ___compcert_i64_udiv :: ___compcert_i64_sdiv :: ___compcert_i64_utof ::
- ___compcert_i64_stof :: ___compcert_i64_utod :: ___compcert_i64_stod ::
- ___compcert_i64_dtou :: ___compcert_i64_dtos :: ___compcert_va_composite ::
+ _make_Coq_Init_Datatypes_nat_O :: _names_of_Coq_Init_Datatypes_nat ::
+ _get_args :: _get_boxed_ordinal :: _get_unboxed_ordinal :: _prop_lit ::
+ _unk_lit :: _type_lit :: _fun_lit :: _space_lit :: _rparen_lit ::
+ _lparen_lit :: _is_ptr :: _printf :: ___builtin_debug ::
+ ___builtin_write32_reversed :: ___builtin_write16_reversed ::
+ ___builtin_read32_reversed :: ___builtin_read16_reversed ::
+ ___builtin_fnmsub :: ___builtin_fnmadd :: ___builtin_fmsub ::
+ ___builtin_fmadd :: ___builtin_fmin :: ___builtin_fmax ::
+ ___builtin_expect :: ___builtin_unreachable :: ___builtin_va_end ::
+ ___builtin_va_copy :: ___builtin_va_arg :: ___builtin_va_start ::
+ ___builtin_membar :: ___builtin_annot_intval :: ___builtin_annot ::
+ ___builtin_sel :: ___builtin_memcpy_aligned :: ___builtin_sqrt ::
+ ___builtin_fsqrt :: ___builtin_fabsf :: ___builtin_fabs ::
+ ___builtin_ctzll :: ___builtin_ctzl :: ___builtin_ctz :: ___builtin_clzll ::
+ ___builtin_clzl :: ___builtin_clz :: ___builtin_bswap16 ::
+ ___builtin_bswap32 :: ___builtin_bswap :: ___builtin_bswap64 ::
+ ___builtin_ais_annot :: ___compcert_i64_umulh :: ___compcert_i64_smulh ::
+ ___compcert_i64_sar :: ___compcert_i64_shr :: ___compcert_i64_shl ::
+ ___compcert_i64_umod :: ___compcert_i64_smod :: ___compcert_i64_udiv ::
+ ___compcert_i64_sdiv :: ___compcert_i64_utof :: ___compcert_i64_stof ::
+ ___compcert_i64_utod :: ___compcert_i64_stod :: ___compcert_i64_dtou ::
+ ___compcert_i64_dtos :: ___compcert_va_composite ::
  ___compcert_va_float64 :: ___compcert_va_int64 :: ___compcert_va_int32 ::
  nil).
 

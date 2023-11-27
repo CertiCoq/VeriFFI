@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "values.h"
-#include "gc_stack.h"
+#include <gc_stack.h>
 #include "glue.h"
 
 extern value body(struct thread_info *);

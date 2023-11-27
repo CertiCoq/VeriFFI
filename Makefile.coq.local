@@ -1,19 +1,58 @@
-
-examples/uint63nat/prog.vo examples/uint63nat/glue.c examples/uint63nat/glue.h examples/uint63nat/prog.c examples/uint63nat/prog.h: examples/uint63nat/prog.v
-	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
-
 INCLUDE=certicoq/plugin/runtime
 GCDIR=certicoq/plugin/runtime
 
+examples/uint63nat/prog.vo examples/uint63nat/glue.c examples/uint63nat/glue.h examples/uint63nat/prog.c examples/uint63nat/prog.h: examples/uint63nat/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
 examples/uint63nat/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
 	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
-
 uint63nat-c: examples/uint63nat/prog.c examples/uint63nat/main.c examples/uint63nat/gc_stack.o examples/uint63nat/glue.c examples/uint63nat/prims.c
 	cd examples/uint63nat; $(CC) ../../$(INCLUDE) -w -g -o prog main.c gc_stack.o prog.c glue.c prims.c
-
 examples/uint63nat/prims.v: examples/uint63nat/prims.c # and .h files...
 	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
-
 examples/uint63nat/glue.v: examples/uint63nat/glue.c
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+
+examples/uint63z/prog.vo examples/uint63z/glue.c examples/uint63z/glue.h examples/uint63z/prog.c examples/uint63z/prog.h: examples/uint63z/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
+examples/uint63z/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
+	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
+uint63z-c: examples/uint63z/prog.c examples/uint63z/main.c examples/uint63z/gc_stack.o examples/uint63z/glue.c examples/uint63z/prims.c
+	cd examples/uint63z; $(CC) ../../$(INCLUDE) -w -g -o prog main.c gc_stack.o prog.c glue.c prims.c
+examples/uint63z/prims.v: examples/uint63z/prims.c # and .h files...
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+examples/uint63z/glue.v: examples/uint63z/glue.c
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+
+examples/array/prog.vo examples/array/glue.c examples/array/glue.h examples/array/prog.c examples/array/prog.h: examples/array/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
+examples/array/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
+	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
+array-c: examples/array/prog.c examples/array/main.c examples/array/gc_stack.o examples/array/glue.c examples/array/prims.c
+	cd examples/array; $(CC) ../../$(INCLUDE) -w -g -o prog main.c gc_stack.o prog.c glue.c prims.c
+examples/array/prims.v: examples/array/prims.c # and .h files...
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+examples/array/glue.v: examples/array/glue.c
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+
+examples/bytestring/prog.vo examples/bytestring/glue.c examples/bytestring/glue.h examples/bytestring/prog.c examples/bytestring/prog.h: examples/bytestring/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
+examples/bytestring/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
+	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
+bytestring-c: examples/bytestring/prog.c examples/bytestring/main.c examples/bytestring/gc_stack.o examples/bytestring/glue.c examples/bytestring/prims.c
+	cd examples/bytestring; $(CC) ../../$(INCLUDE) -w -g -o prog main.c gc_stack.o prog.c glue.c prims.c
+examples/bytestring/prims.v: examples/bytestring/prims.c # and .h files...
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+examples/bytestring/glue.v: examples/bytestring/glue.c
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+
+examples/compose/prog.vo examples/compose/glue.c examples/compose/glue.h examples/compose/prog.c examples/compose/prog.h: examples/compose/prog.v
+	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
+examples/compose/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h
+	$(CC) $(CFLAGS) -I$(INCLUDE) -c $< -o $@
+compose-c: examples/compose/prog.c examples/compose/main.c examples/compose/gc_stack.o examples/compose/glue.c examples/compose/prims.c
+	cd examples/compose; $(CC) ../../$(INCLUDE) -w -g -o prog main.c gc_stack.o prog.c glue.c prims.c
+examples/compose/prims.v: examples/compose/prims.c # and .h files...
+	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
+examples/compose/glue.v: examples/compose/glue.c
 	clightgen -I$(INCLUDE) -normalize -DVERIFFI -DCOMPCERT $< -o $@
 

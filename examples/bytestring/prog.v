@@ -46,6 +46,15 @@ Module C <: Bytestring.
   Axiom runM : forall {A} (instream outstream : stream), M A -> A.
 End C.
 
+CertiCoq Register [
+    C.append => "append" with tinfo,
+    C.pack => "pack" with tinfo,
+    C.unpack => "unpack" with tinfo,
+    C.runM => "runM" with tinfo,
+    C.get_stdin => "get_stdin" with tinfo,
+    C.get_stdout => "get_stdout" with tinfo
+  ] Include [ "prims.h" ].
+
 Notation "e1 ;; e2" :=
   (@C.bind _ _ e1 (fun _ => e2)) (at level 61, right associativity).
 Notation "x <- c1 ;; c2" :=
@@ -58,17 +67,6 @@ Definition prog : unit :=
      y <- C.scan 10 ;;
      C.print (C.pack "Hello, " ++ x ++ C.pack " " ++ y)).
 
-CertiCoq Compile prog
-  Extract Constants [
-    C.append => "append" with tinfo,
-    C.pack => "pack" with tinfo,
-    C.unpack => "unpack" with tinfo,
-    C.runM => "runM" with tinfo,
-    C.get_stdin => "get_stdin" with tinfo,
-    C.get_stdout => "get_stdout" with tinfo
-  ]
-  Include [ "prims.h" ].
-
-CertiCoq Generate Glue -file "glue" [ unit, nat, bool, string, C.MI ].
-
-
+CertiCoq Compile -build_dir "examples/bytestring/" -file "prog" prog.
+CertiCoq Generate Glue -build_dir "examples/bytestring" -file "glue"
+  [ unit, nat, bool, string, C.MI ].

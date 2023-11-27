@@ -26,6 +26,10 @@ Module C <: Array.
   Axiom runM : forall {A} (len : nat) (init : elt), M A -> A.
 End C.
 
+CertiCoq Register [
+    C.runM => "array_runM" with tinfo
+  ] Include [ "prims.h" ].
+
 Notation "e1 ;; e2" :=
   (@C.bind _ _ e1 (fun _ => e2)) (at level 61, right associativity).
 Notation "x <- c1 ;; c2" :=
@@ -100,12 +104,5 @@ Definition fib (len : nat) : nat :=
 Definition prog := fib 7.
 *)
 
-CertiCoq Compile prog
-  Extract Constants [
-    C.runM => "array_runM" with tinfo
-  ]
-  Include [ "prims.h" ].
-
-CertiCoq Generate Glue -file "glue" [ option, nat, C.MI ].
-
-
+CertiCoq Compile -build_dir "examples/array/" -file "prog" prog.
+CertiCoq Generate Glue -build_dir "examples/array" -file "glue" [ option, nat, C.MI ].

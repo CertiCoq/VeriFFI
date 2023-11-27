@@ -28,4 +28,4 @@ CertiCoq Register [
 Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
 
 CertiCoq Compile -build_dir "examples/uint63nat/" -file "prog" prog.
-CertiCoq Generate Glue -build_dir "examples/uint63nat" -file "glue" [ nat, bool ].
+CertiCoq Generate Glue -build_dir "examples/uint63nat" -file "glue" [ nat ].

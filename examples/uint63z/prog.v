@@ -19,13 +19,13 @@ Module C : UInt63.
   Axiom mul : t -> t -> t.
 End C.
 
-Definition prog := C.to_Z (C.add (C.from_Z 3%Z) (C.from_Z 4%Z)).
-
-CertiCoq Compile prog
-  Extract Constants [
+CertiCoq Register [
     C.from_Z => "uint63_from_Z",
     C.to_Z => "uint63_to_Z" with tinfo,
     C.add => "uint63_add"
-  ]
-  Include [ "prims.h" ].
-CertiCoq Generate Glue -file "glue" [ Z ].
+  ] Include [ "prims.h" ].
+
+Definition prog := C.to_Z (C.add (C.from_Z 1) (C.from_Z 2)).
+
+CertiCoq Compile -build_dir "examples/uint63z/" -file "prog" prog.
+CertiCoq Generate Glue -build_dir "examples/uint63z" -file "glue" [ Z ].
