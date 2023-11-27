@@ -67,8 +67,8 @@ Definition fill_hole
   tmEval all quantified >>= tmPrint ;;
   hoisted <- instance_term quantified ;;
   (* make function application again to have the same free variables *)
-  tmMsg! "hole ctx:" ;;
-  tmEval all named_ctx >>= tmPrint! ;;
+  tmMsg "hole ctx:" ;;
+  tmEval all named_ctx >>= tmPrint ;;
   let ctx_to_apps : list named_term :=
     rev (map (fun '(id, t) =>
                 match t with
@@ -146,7 +146,7 @@ Polymorphic Definition create_reified
   let num_of_params := ind_npars mut in
   c <- go t' init_index_ctx [] num_of_params ;;
   tmMsg "after go:" ;;
-  tmEval all c >>= tmPrint! ;;
+  tmEval all c >>= tmPrint ;;
   c' <- DB.deBruijn c ;;
   (* tmMsg "after de bruijn:" ;; *)
   (* tmEval all c' >>= tmPrint ;; *)

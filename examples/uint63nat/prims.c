@@ -1,4 +1,4 @@
-#include "gc_stack.h"
+#include <gc_stack.h>
 #include "glue.h"
 #include <stdio.h>
 #include <stdint.h>

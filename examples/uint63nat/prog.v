@@ -11,7 +11,6 @@ Module Type UInt63.
   Axiom mul : t -> t -> t.
 End UInt63.
 
-
 Module C : UInt63.
   Axiom t : Type.
   Axiom from_nat : nat -> t.
@@ -20,23 +19,13 @@ Module C : UInt63.
   Axiom mul : t -> t -> t.
 End C.
 
-Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
-CertiCoq Compile prog
-  Extract Constants [
+CertiCoq Register [
     C.from_nat => "uint63_from_nat",
     C.to_nat => "uint63_to_nat" with tinfo,
     C.add => "uint63_add"
-  ]
-  Include [ "prims.h" ].
+  ] Include [ "prims.h" ].
 
-Inductive exp : Type :=
-| etrue
-| efalse
-| eand : exp -> exp -> exp
-| eor : exp -> exp -> exp
-| eif : exp -> exp -> exp -> exp.
+Definition prog := C.to_nat (C.add (C.from_nat 1) (C.from_nat 2)).
 
-Inductive T : Type :=
-| mkT : nat -> bool -> unit -> T.
-
-CertiCoq Generate Glue -file "glue" [ nat, bool, exp, T ].
+CertiCoq Compile -build_dir "examples/uint63nat/" -file "prog" prog.
+CertiCoq Generate Glue -build_dir "examples/uint63nat" -file "glue" [ nat, bool ].

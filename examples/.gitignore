@@ -2,6 +2,8 @@
 *prog.h
 *prog.o
 prog
+glue.c
+glue.h
 
 gc.c
 gc.h
