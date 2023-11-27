@@ -263,7 +263,7 @@ rewrite iter_sepcon.iter_sepcon_app_sepcon.
 unfold spatial_gcgraph.frames_shell_rep; fold (spatial_gcgraph.frames_shell_rep Tsh frames).
 unfold frame2rootpairs.
 simpl.
-change gc._stack_frame with _stack_frame.
+change gc_stack._stack_frame with _stack_frame.
 match goal with |- ?A = ?B =>
  transitivity (!! (@field_compatible0 env_graph_gc.CompSpecs (tarray int_or_ptr_type (@Zlength val vl)) [] vr) && A)%logic
  end.
@@ -481,10 +481,14 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     -- decompose [and] GCP; clear GCP. destruct H15.
        split. 
        ++ clear t_info'' frames'' H7 STARTptr STARTeq startb starti H3 HRE' HRE.
-          admit.  (* problematic . . . 
-          intros ? ? . destruct v0; auto.  destruct H3; auto. subst a.
-          red in H2. hnf in H2.   
-           *)
+          unfold root_t_of_rep_type.
+          destruct v0; auto.
+          red in H15|-*. simpl.
+          change (?A :: ?B) with ([A]++B).
+          apply incl_app; auto.
+          unfold is_in_graph in H2.
+          destruct m; simpl in H2; try contradiction.
+          destruct H2 as [? [? ? ]  ]; contradiction.
        ++ destruct v0; try apply H18. constructor; auto.
           clear - H2. unfold is_in_graph in H2.
           apply has_v in H2; auto.
@@ -512,7 +516,13 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     compute; clear; congruence.
     unfold frame_rep at 1.
     Intros. change (Zlength [_]) with 1.
-    assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g') by admit.
+    assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g'). {
+       red in GCP. destruct GCP as [_ [_ [_ [_ [_ [_ [_ [ [ _ ? ] _  ] ] ] ] ] ] ] ].
+       destruct v0; try apply H12.
+       constructor; auto.
+       red in H2.
+       eapply has_v; eauto.
+    }
     assert (ISO: gc_graph_iso g' (root_t_of_rep_type v0 :: roots') g3 roots3). {
      red in H8; decompose [and] H8.
      apply garbage_collect_isomorphism; auto; try apply GCP.
@@ -525,18 +535,22 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
      exists (rep_type_of_root_t (root_map f12 (root_t_of_rep_type v0))).
      eexists.
      split3. 3: simpl; f_equal; try reflexivity.
-     3: subst 
      + admit.  (* Maybe;  graph_isomorphism property *)     
      + admit.  (* Maybe *)
-     + admit. (* easy *)
      + destruct v0; auto.
     }
     destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
     subst v1 roots3.
-    forward. entailer!!. rewrite Znth_0_cons. 
-        admit. (* easy *)
-    forward.  entailer!!. 
-        admit. (* easy *)
+    forward. entailer!!. rewrite Znth_0_cons. { 
+        destruct v0'; simpl; auto. destruct g0; simpl; auto.
+        unfold vertex_address.
+        apply has_v in H14. destruct H14 as [? _].
+        pose proof (graph_has_gen_start_isptr _ _ H13).
+        destruct (gen_start g3 (vgeneration _)); auto.
+    }
+    forward.  {
+      sep_apply spatial_gcgraph.frames_rep_ptr_or_null;  entailer!!.
+    }
     change_compspecs CompSpecs.
     forward.
     pose (t_info4 := {|
@@ -551,7 +565,43 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     rewrite Znth_0_cons.
     unfold full_gc.
     entailer!!.
-    -- admit.
+    --  assert (gc_condition_prop g3 t_info4 roots3' outlier). {
+      unfold gc_condition_prop.
+      change (ti_heap t_info4) with (ti_heap t_info3).
+      repeat simple apply conj; try apply GCP; try apply H10; auto;
+        try apply H8.
+        - destruct H8 as [? [? [ ?  ? ] ] ].
+           clear - H15.
+           destruct H15; split.
+           +
+            red in H|-*.
+            destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H; auto.
+            eapply incl_app_inv_r with (l1:=[g]); auto.
+           + destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H0; auto.
+              red in H0|-*. simpl in H0. inversion H0; subst; auto. 
+        - destruct H8 as [_ [? _] ].
+            rewrite <- H17 in H8.
+            unfold frames2rootpairs in H8. simpl in H8.
+            red in H8. simpl in H8. inversion H8; subst; auto.
+        - eapply gc_sound; eauto. apply GCP.
+        - clear t_info4 H14 ISO H12 H17 H18 H16 r2 t_info'' frames''.
+           red in H10, H9, H8.
+           apply graph_unmarked_copy_compatible; apply H10.
+    }
+    repeat simple apply conj; auto.
+      ++ simpl ti_heap.
+         (* PROBLEM:  the postcondition of garbage_collect spec
+           does not guarantee that at least n_alloc words are available! *)
+          admit.
+      ++ apply gc_graph_iso_trans with g' roots'; auto. 
+         clear - ISO.
+         destruct ISO as [vmap1 [vmap2 [emap1 [emap2 [? ? ] ] ] ] ].
+         exists vmap1, vmap2, emap1, emap2; split; auto.
+         inversion H; subst; auto.
+         admit.
+      ++ simpl.
+         admit.
+      ++ simpl. admit.
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.
       replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
@@ -584,10 +634,11 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    * Intros vret.
      destruct vret as [ [ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
+     assert_PROP (gc_condition_prop g5 t_info5 roots4 outlier) as GCP'
+        by (unfold full_gc; entailer!!). 
      assert (MISSING: ti_heap_p t_info5 = ti_heap_p t_info /\ 
-             ti_frames t_info5 = ti_frames t_info4 /\
-             gc_condition_prop g5 t_info5 roots4 outlier) by admit. (* missing from postcondition? *)
-     destruct MISSING as [ M1 [M2 GCP'] ].
+             ti_frames t_info5 = ti_frames t_info4) by admit. (* missing from postcondition? *)
+     destruct MISSING as [ M1 M2 ].
      simpl in H13.
      forward.
      Exists (v2, S m,g5,t_info5,roots4). simpl fst. simpl snd.
