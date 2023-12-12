@@ -26,6 +26,7 @@ generator/funspec.v
 
 examples/uint63z/prog.v
 examples/uint63z/glue.v
+examples/uint63z/prims.v
 examples/uint63z/model.v
 
 examples/uint63nat/prog.v
@@ -38,6 +39,7 @@ examples/uint63nat/Verif_prog_general.v
 examples/compose/prog.v
 examples/compose/model.v
 examples/compose/glue.v
+examples/compose/prims.v
 
 examples/array/prog.v
 examples/array/model.v
