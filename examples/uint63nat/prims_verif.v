@@ -335,6 +335,53 @@ Definition rep_type_of_root_t (v: root_t) : rep_type :=
   | inr x => repNode x 
   end.
 
+
+Lemma root_t_of_rep_type_of_root_t: forall r, root_t_of_rep_type (rep_type_of_root_t r) = r.
+Proof.
+destruct r; try destruct s; simpl; auto.
+Qed.
+
+Lemma rep_type_of_root_t_of_rep_type: forall r, rep_type_of_root_t (root_t_of_rep_type r) = r.
+Proof.
+destruct r; auto.
+Qed.
+
+Lemma graph_iso_Zlength: 
+  forall (g1 :graph) (roots1: list root_t)
+         (g2: graph) (roots2: list root_t),
+    gc_graph_iso g1 roots1 g2 roots2 ->
+    Zlength roots1 = Zlength roots2.
+Proof.
+intros.
+destruct H as [? [? [? [? [? _ ] ] ] ] ].
+subst.
+list_solve.
+Qed.
+
+Lemma gc_preserved {A: Type} `{InG: InGraph A}:
+  forall (g1 :graph) (roots1: list root_t)
+         (g2: graph) (roots2: list root_t),
+    gc_graph_iso g1 roots1 g2 roots2 ->
+    graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
+    forall (a: A) (n: Z),
+      0 <= n < Zlength roots1 ->
+    @graph_predicate _ (@in_graph_pred _ InG) g1 a (rep_type_of_root_t (Znth n roots1)) ->
+    @graph_predicate _ (@in_graph_pred _ InG) g2 a (rep_type_of_root_t (Znth n roots2)).
+Admitted.
+
+Lemma gc_preserved_nat: 
+  forall (g1 :graph) (roots1: list root_t)
+         (g2: graph) (roots2: list root_t),
+    gc_graph_iso g1 roots1 g2 roots2 ->
+    graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
+    forall (a: nat) (n: Z),
+      0 <= n < Zlength roots1 ->
+    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g1 a (rep_type_of_root_t (Znth n roots1)) ->
+    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g2 a (rep_type_of_root_t (Znth n roots2)).
+Proof.
+apply @gc_preserved.  (* Kathrin: replace this proof with a real one *)
+Qed.
+
 Lemma body_uint63_to_nat :
   semax_body Vprog Gprog
              f_uint63_to_nat
@@ -529,15 +576,26 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     }
     assert (exists v0', exists roots3',
         v1 = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
-     destruct ISO as [f12 [f21 [e12 [e21 [? ?] ] ] ] ].
-     simpl in H13.
-     subst roots3.
-     exists (rep_type_of_root_t (root_map f12 (root_t_of_rep_type v0))).
-     eexists.
-     split3. 3: simpl; f_equal; try reflexivity.
-     + admit.  (* Maybe;  graph_isomorphism property *)     
-     + admit.  (* Maybe *)
-     + destruct v0; auto.
+       rewrite <- H17 in H8. simpl frames2rootpairs in H8.
+    pose proof @gc_preserved _ InGraph_nat _ _ _ _ ISO ltac:(clear - H10; red in H10; tauto)
+    m 0 ltac:(clear; Zlength_solve).
+    rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H13.
+    specialize (H13 H2).
+    exists (rep_type_of_root_t (Znth 0 roots3)), (sublist 1 (Zlength roots3) roots3).
+    rewrite root_t_of_rep_type_of_root_t.
+    split3; auto.
+    destruct H8 as [_ [? _] ].
+    red in H8. simpl in H8.
+    assert (v1 = root2val g3 (Znth 0 roots3)) by list_solve.
+    rewrite H14.
+    destruct (Znth 0 roots3); try destruct s ; auto.
+    apply graph_iso_Zlength in ISO.    
+    clear - ISO. rewrite Zlength_cons in ISO. 
+    destruct roots3; autorewrite with sublist in ISO. rep_lia.
+    autorewrite with sublist.
+    f_equal. rewrite sublist_S_cons by lia.
+    rewrite Z.sub_diag. unfold Z.succ.
+    rewrite sublist_same by lia. auto.
     }
     destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
     subst v1 roots3.
