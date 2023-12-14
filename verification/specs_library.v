@@ -143,15 +143,6 @@ Proof. intros. unfold frame_rep_. cancel.
   do 2 unfold_data_at (data_at _ _ _ _). cancel.
 Qed.
 
-Inductive frame_shells_eq: forall frames1 frames2 : list frame, Prop :=
-| fse_nil: frame_shells_eq nil nil
-| fse_cons: forall fr1 fr2 r1 r2,
-    fr_adr fr1 = fr_adr fr2 ->
-    fr_root fr1 = fr_root fr2 ->
-    Zlength (fr_roots fr1) = Zlength (fr_roots fr2) ->
-    frame_shells_eq r1 r2 ->
-    frame_shells_eq (fr1::r1) (fr2::r2).
-
 Definition root_t_of_rep_type (v: rep_type) : root_t :=
    match v with
    | repZ i => inl (inl i)

@@ -288,21 +288,55 @@ Lemma gc_graph_iso_uncons:
    gc_graph_iso g1 roots1 g2 roots2.
 Admitted.
 
-Lemma frame_shells_eq_refl: forall frs, frame_shells_eq frs frs.
+Lemma headroom_check: 
+ forall (n: Z) (hh: space) (startb: block) (starti: ptrofs),
+  Int.min_signed <= n <= Int.max_signed ->
+  typed_false tint
+       match
+         sem_unary_operation Onotbool tint
+           (force_val
+              (both_long
+                 (fun n1 n2 : int64 => Some (bool2val (negb (Int64.lt n2 n1))))
+                 (sem_cast_i2l Signed) sem_cast_pointer 
+                 (Vint (Int.repr n))
+                 (force_val
+                    (sem_sub_pp
+                       int_or_ptr_type
+                       (Vptr startb
+                          (Ptrofs.add starti
+                             (Ptrofs.repr
+                                (WORD_SIZE
+                                   * total_space hh))))
+                       (Vptr startb
+                          (Ptrofs.add starti
+                             (Ptrofs.repr
+                                (WORD_SIZE
+                                   * used_space hh))))))))
+       with
+       | Some v' => v'
+       | None => Vundef
+       end ->
+  total_space hh - used_space hh >= n.
 Proof.
-induction frs.
-constructor.
-constructor; auto.
-Qed.
-
-
-Lemma frame_shells_eq_trans: transitive _ frame_shells_eq.
-Proof.
-hnf; intros.
-revert z H0.
-induction H; intros; auto.
-inversion H3; clear H3; subst.
-constructor; auto; congruence. 
+intros * H7 H8.
+    assert (ORDER := space_order hh).
+    assert (UB := space_upper_bound hh).
+    set (tot := total_space hh) in *. clearbody tot.
+    set (use := used_space hh) in *. clearbody use.
+    simpl in H8.
+    unfold sem_sub_pp in H8. simpl in *. rewrite if_true in H8 by auto. simpl in H8.
+     rewrite Int.signed_repr in H8 by auto.
+    destruct (Int64.lt _ _) eqn:?H in H8; try discriminate.
+    unfold Int64.lt in H.
+    if_tac in H; try discriminate. clear H H8.
+    rewrite !(Ptrofs.add_commut starti), Ptrofs.sub_shifted, ptrofs_sub_repr in H0.
+    unfold MAX_SPACE_SIZE in *. simpl in UB.
+    rewrite <- Z.mul_sub_distr_l in H0.
+    change WORD_SIZE with 8 in *.
+    rewrite ptrofs_divs_repr in H0 by rep_lia.
+    rewrite ptrofs_to_int64_repr in H0 by reflexivity.
+    rewrite Z.mul_comm, Z.quot_mul in H0 by lia.
+    rewrite !Int64.signed_repr in H0 by rep_lia. auto.
 Qed.
 
 Lemma body_uint63_to_nat :
@@ -344,8 +378,8 @@ forward_while
 PROP (is_in_graph g' m v; (m <= n)%nat;
 gc_condition_prop g' t_info' roots' outlier;
 gc_graph_iso g roots g' roots';
-ti_heap_p t_info'=ti_heap_p t_info; (* not needed? *)
-frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+True;  (* placeholder;  previously was: ti_heap_p t_info'=ti_heap_p t_info;  *)
+spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
 LOCAL (temp _temp (rep_type_val g' v);
 temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
@@ -362,7 +396,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    Exists v. Exists 0%nat. Exists g. Exists t_info. Exists roots. entailer!. 
   + split3.
     * apply gc_graph_iso_refl.
-    * apply frame_shells_eq_refl.
+    * apply spatial_gcgraph.frame_shells_eq_refl.
     * repeat f_equal. lia.
 - (* Valid condition  *)
   entailer!!. 
@@ -393,8 +427,8 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
             is_in_graph g'' m v0';
             gc_condition_prop g'' t_info' roots' outlier;
             gc_graph_iso g roots g'' roots';
-            ti_heap_p t_info'=ti_heap_p t_info; (* not needed?*)
-            frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+            True; (* placeholder, was previously: ti_heap_p t_info'=ti_heap_p t_info; *)
+            spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
      LOCAL (temp _temp (rep_type_val g'' v0');
      temp _i (Vlong (Int64.repr (Z.of_nat (n-m))));
      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
@@ -472,14 +506,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   * (* after the call to garbage_collect() *)
    Intros vret. destruct vret as [ [g3 t_info3] roots3].
    simpl snd in *. simpl fst in *.
-   assert (H50: ti_heap_p t_info3 = ti_heap_p t_info)
-    by admit. (* should be a postcondition of garbage_collect *)
-   assert (FSE: frame_shells_eq (ti_frames t_info'') (ti_frames t_info3)) 
-       by admit. (* should be a postcondition of garbage_collect *)
-   assert (ROOM: Ptrofs.unsigned (ti_nalloc t_info'') <= 
-                 total_space (heap_head (ti_heap t_info3))
-                    - used_space (heap_head (ti_heap t_info3)))
-    by admit. (* should be a postcondition of garbage_collect *)
+   rename H12 into FSE. rename H13 into ROOM.
    forward.
    unfold spatial_gcgraph.before_gc_thread_info_rep.
    replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
@@ -579,10 +606,10 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     }
     repeat simple apply conj; auto.
       ++ simpl ti_heap.
-         clear - ROOM. subst t_info''. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
+         clear - ROOM. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
       ++ apply gc_graph_iso_trans with g' roots'; auto.
          eapply gc_graph_iso_uncons; eassumption.
-      ++ simpl. eapply frame_shells_eq_trans; eassumption.
+      ++ simpl. eapply spatial_gcgraph.frame_shells_eq_trans; eassumption.
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.
       replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
@@ -610,52 +637,30 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     rewrite <- STARTeq.
     change_compspecs CompSpecs.
     entailer!!.
-    set (hh := heap_head (ti_heap t_info')) in *.
-    assert (ORDER := space_order hh).
-    assert (UB := space_upper_bound hh).
-    set (tot := total_space hh) in *. clearbody tot.
-    set (use := used_space hh) in *. clearbody use.
-    clear - H8 ORDER UB.
-    simpl in H8.
-    unfold sem_sub_pp in H8. simpl in *. rewrite if_true in H8 by auto. simpl in H8.
-     rewrite Int.signed_repr in H8 by rep_lia.
-    destruct (Int64.lt _ _) eqn:?H in H8; try discriminate.
-    unfold Int64.lt in H.
-    if_tac in H; try discriminate. clear H H8.
-    rewrite !(Ptrofs.add_commut starti), Ptrofs.sub_shifted, ptrofs_sub_repr in H0.
-    unfold MAX_SPACE_SIZE in *. simpl in UB.
-    rewrite <- Z.mul_sub_distr_l in H0.
-    change WORD_SIZE with 8 in *.
-    rewrite ptrofs_divs_repr in H0 by rep_lia.
-    rewrite ptrofs_to_int64_repr in H0 by reflexivity.
-    rewrite Z.mul_comm, Z.quot_mul in H0 by lia.
-    rewrite !Int64.signed_repr in H0 by rep_lia. auto.
+    apply headroom_check in H8; auto; rep_lia.
   + Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
    * split.
-      split; auto. reflexivity. unfold headroom. lia. 
+      split; auto. reflexivity. unfold headroom. lia.
    * Intros vret.
      destruct vret as [ [ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
      assert_PROP (gc_condition_prop g5 t_info5 roots4 outlier) as GCP'
         by (unfold full_gc; entailer!!). 
-     assert (MISSING: ti_heap_p t_info5 = ti_heap_p t_info /\ 
-             ti_frames t_info5 = ti_frames t_info4) by admit. (* missing from postcondition? *)
-     destruct MISSING as [ M1 M2 ].
      simpl in H13.
      forward.
      Exists (v2, S m,g5,t_info5,roots4). simpl fst. simpl snd.
      unfold spatial_gcgraph.ti_fp.
      replace (Z.of_nat (n - S m)) with (Z.of_nat (n-m)-1) by lia.
-     rewrite M1, M2.
+     rewrite H16.
      entailer!!.
      eapply gc_graph_iso_trans; eassumption.
  - (* after the loop *)
    forward.
    assert (m=n). {
     clear - H3 H HRE. unfold encode_Z in H. unfold min_signed, max_signed in H. simpl in H.
-    apply repr_inj_unsigned64 in HRE; try rep_lia.     
+    apply repr_inj_unsigned64 in HRE; try rep_lia.
    }
    subst m.
    Exists v0 g' t_info' roots'.

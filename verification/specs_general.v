@@ -110,10 +110,8 @@ Definition alloc_make_spec_general
         PROP (let r := result (ctor_reified c) xs in
               @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' (ctor_reflected c xs) p' ;
               headroom t_info' = headroom t_info - Z.of_nat (S n);
-              gc_graph_iso g roots g' roots (*
-   NEED TO ADD THESE HERE:
-              ti_heap_p t_info = ti_heap_p t_info';
-              ti_frames t_info = ti_frames t_info' *)
+              gc_graph_iso g roots g' roots;
+              ti_frames t_info = ti_frames t_info'
               )
         RETURN  (rep_type_val g' p')
         SEP (full_gc g' t_info' roots outlier ti sh gv).

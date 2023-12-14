@@ -138,7 +138,7 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
              gc_graph_iso g roots g' roots';
-             frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+             spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
        SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
 
