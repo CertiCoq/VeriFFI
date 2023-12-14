@@ -382,6 +382,14 @@ Proof.
 apply @gc_preserved.  (* Kathrin: replace this proof with a real one *)
 Qed.
 
+
+Lemma gc_graph_iso_uncons:
+   (* Shengyi will try to add this lemma to CertiGG *)
+   forall (g1 : graph) (p1: root_t) (roots1 : roots_t) (g2 : graph) (p2: root_t) (roots2: roots_t),
+   gc_graph_iso g1 (p1 :: roots1) g2 (p2 :: roots2) ->
+   gc_graph_iso g1 roots1 g2 roots2.
+Admitted.
+
 Lemma body_uint63_to_nat :
   semax_body Vprog Gprog
              f_uint63_to_nat
@@ -420,6 +428,9 @@ PROP (is_in_graph g' m v; (m <= n)%nat;
 gc_condition_prop g' t_info' roots' outlier;
 gc_graph_iso g roots g' roots';
 ti_heap_p t_info'=ti_heap_p t_info; (* not needed? *)
+ (* THE NEXT LINE IS WRONG.  If a garbage collection has occurred, then
+   the new frames (ti_frames t_info') will contain the _forwarded_ version of the
+   old roots, but will not be _equal_ to the old roots contained in (ti_frames t_info). *)
 ti_frames t_info'=ti_frames t_info)
 LOCAL (temp _temp (rep_type_val g' v);
 temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
@@ -544,37 +555,42 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   * (* after the call to garbage_collect() *)
    Intros vret. destruct vret as [ [g3 t_info3] roots3].
    simpl snd in *. simpl fst in *.
+   assert (H50: ti_heap_p t_info3 = ti_heap_p t_info)
+    by admit. (* should be a postcondition of garbage_collect *)
+   assert (FSE: frame_shells_eq (ti_frames t_info'') (ti_frames t_info3)) 
+       by admit. (* should be a postcondition of garbage_collect *)
+   assert (ROOM: Ptrofs.unsigned (ti_nalloc t_info'') <= 
+                 total_space (heap_head (ti_heap t_info3))
+                    - used_space (heap_head (ti_heap t_info3)))
+    by admit. (* should be a postcondition of garbage_collect *)
    forward.
    unfold spatial_gcgraph.before_gc_thread_info_rep.
    replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
    by admit.  (* This needs fixing *)
-
-   assert (FSE: frame_shells_eq (ti_frames t_info'') (ti_frames t_info3)) 
-       by admit. (* should be a postcondition of garbage_collect *)
-    simpl in FSE. unfold frames'' in FSE.
-    remember (ti_frames t_info3) as frames3.
-    inversion FSE; clear FSE. subst r1 fr1.
-    destruct fr2 as [a3 r3 s3]; simpl in H14, H15, H16.
-    subst a3 r3.
-    destruct s3. exfalso; clear - H16; list_solve.
-    destruct s3. 2: exfalso; clear - H16; list_solve.
-    subst frames3.
-    sep_apply (frames_rep_pop v___FRAME__ v___ROOT__ [v1] r2).
-    compute; clear; congruence.
-    unfold frame_rep at 1.
-    Intros. change (Zlength [_]) with 1.
-    assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g'). {
+   simpl in FSE. unfold frames'' in FSE.
+   remember (ti_frames t_info3) as frames3.
+   inversion FSE; clear FSE. subst r1 fr1.
+   destruct fr2 as [a3 r3 s3]; simpl in H14, H15, H16.
+   subst a3 r3.
+   destruct s3. exfalso; clear - H16; list_solve.
+   destruct s3. 2: exfalso; clear - H16; list_solve.
+   subst frames3.
+   sep_apply (frames_rep_pop v___FRAME__ v___ROOT__ [v1] r2).
+   compute; clear; congruence.
+   unfold frame_rep at 1.
+   Intros. change (Zlength [_]) with 1.
+   assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g'). {
        red in GCP. destruct GCP as [_ [_ [_ [_ [_ [_ [_ [ [ _ ? ] _  ] ] ] ] ] ] ] ].
        destruct v0; try apply H12.
        constructor; auto.
        red in H2.
        eapply has_v; eauto.
     }
-    assert (ISO: gc_graph_iso g' (root_t_of_rep_type v0 :: roots') g3 roots3). {
+   assert (ISO: gc_graph_iso g' (root_t_of_rep_type v0 :: roots') g3 roots3). {
      red in H8; decompose [and] H8.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
-    assert (exists v0', exists roots3',
+   assert (exists v0', exists roots3',
         v1 = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
        rewrite <- H17 in H8. simpl frames2rootpairs in H8.
     pose proof @gc_preserved _ InGraph_nat _ _ _ _ ISO ltac:(clear - H10; red in H10; tauto)
@@ -597,21 +613,21 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     rewrite Z.sub_diag. unfold Z.succ.
     rewrite sublist_same by lia. auto.
     }
-    destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
-    subst v1 roots3.
-    forward. entailer!!. rewrite Znth_0_cons. { 
+   destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
+   subst v1 roots3.
+   forward. entailer!!. rewrite Znth_0_cons. { 
         destruct v0'; simpl; auto. destruct g0; simpl; auto.
         unfold vertex_address.
         apply has_v in H14. destruct H14 as [? _].
         pose proof (graph_has_gen_start_isptr _ _ H13).
         destruct (gen_start g3 (vgeneration _)); auto.
     }
-    forward.  {
+   forward.  {
       sep_apply spatial_gcgraph.frames_rep_ptr_or_null;  entailer!!.
     }
-    change_compspecs CompSpecs.
-    forward.
-    pose (t_info4 := {|
+   change_compspecs CompSpecs.
+   forward.
+   pose (t_info4 := {|
       ti_heap_p := ti_heap_p t_info3;
       ti_heap := ti_heap t_info3;
       ti_args := ti_args t_info3;
@@ -619,8 +635,8 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
       ti_frames := r2;
       ti_nalloc := ti_nalloc t_info3
     |} ).
-    Exists g3 v0' roots3' t_info4.
-    rewrite Znth_0_cons.
+   Exists g3 v0' roots3' t_info4.
+   rewrite Znth_0_cons.
     unfold full_gc.
     entailer!!.
     --  assert (gc_condition_prop g3 t_info4 roots3' outlier). {
@@ -642,24 +658,21 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
             unfold frames2rootpairs in H8. simpl in H8.
             red in H8. simpl in H8. inversion H8; subst; auto.
         - eapply gc_sound; eauto. apply GCP.
-        - clear t_info4 H14 ISO H12 H17 H18 H16 r2 t_info'' frames''.
-           red in H10, H9, H8.
-           apply graph_unmarked_copy_compatible; apply H10.
+        - apply graph_unmarked_copy_compatible; apply H10.
     }
     repeat simple apply conj; auto.
       ++ simpl ti_heap.
-         (* PROBLEM:  the postcondition of garbage_collect spec
-           does not guarantee that at least n_alloc words are available! *)
-          admit.
-      ++ apply gc_graph_iso_trans with g' roots'; auto. 
-         clear - ISO.
-         destruct ISO as [vmap1 [vmap2 [emap1 [emap2 [? ? ] ] ] ] ].
-         exists vmap1, vmap2, emap1, emap2; split; auto.
-         inversion H; subst; auto.
-         admit.
-      ++ simpl.
-         admit.
-      ++ simpl. admit.
+         clear - ROOM. subst t_info''. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
+      ++ apply gc_graph_iso_trans with g' roots'; auto.
+         eapply gc_graph_iso_uncons; eassumption.
+      ++ simpl. rewrite <- H4. clear dependent t_info.
+         assert (H51: map (root2val g3) roots3' = map rp_val (frames2rootpairs r2))
+         by apply H13.
+(*         clear - H17 H18 GCP H51.*)
+         admit. (* This appears to be False.  
+              ti_frames t_info' is the original stack of frames upon entry to the function,
+              and r2 is the forwarded version of that stack of frames.  So they are not
+              necessarily equal. *)
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.
       replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
@@ -672,23 +685,43 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
       unfold frame_rep_surplus. change (1 - Zlength _) with 0.
       Intros.
       sep_apply data_at__data_at.
-      sep_apply data_at_zero_array_eq. 
-           admit. (* easy *)
+      sep_apply data_at_zero_array_eq.
+      autorewrite with sublist.
+      unfold field_address0. rewrite if_true; simpl. auto with field_compatible.
+      auto with field_compatible.
       do 2 unfold_data_at (data_at _ (Tstruct _stack_frame noattr) _ _).
       cancel.
   + forward.
-    Exists g' v0 roots t_info'.
+    Exists g' v0 roots' t_info'.
     unfold full_gc, before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep.
     rewrite <- STARTeq.
     change_compspecs CompSpecs.
     entailer!!.
-    admit.  (* from typed_false tint ... *)
+    set (hh := heap_head (ti_heap t_info')) in *.
+    assert (ORDER := space_order hh).
+    assert (UB := space_upper_bound hh).
+    set (tot := total_space hh) in *. clearbody tot.
+    set (use := used_space hh) in *. clearbody use.
+    clear - H8 ORDER UB.
+    simpl in H8.
+    unfold sem_sub_pp in H8. simpl in *. rewrite if_true in H8 by auto. simpl in H8.
+     rewrite Int.signed_repr in H8 by rep_lia.
+    destruct (Int64.lt _ _) eqn:?H in H8; try discriminate.
+    unfold Int64.lt in H.
+    if_tac in H; try discriminate. clear H H8.
+    rewrite !(Ptrofs.add_commut starti), Ptrofs.sub_shifted, ptrofs_sub_repr in H0.
+    unfold MAX_SPACE_SIZE in *. simpl in UB.
+    rewrite <- Z.mul_sub_distr_l in H0.
+    change WORD_SIZE with 8 in *.
+    rewrite ptrofs_divs_repr in H0 by rep_lia.
+    rewrite ptrofs_to_int64_repr in H0 by reflexivity.
+    rewrite Z.mul_comm, Z.quot_mul in H0 by lia.
+    rewrite !Int64.signed_repr in H0 by rep_lia. auto.
   + Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
    * split.
-      split; auto. reflexivity. 
-      admit.  (* OK *)
+      split; auto. reflexivity. unfold headroom. lia. 
    * Intros vret.
      destruct vret as [ [ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
