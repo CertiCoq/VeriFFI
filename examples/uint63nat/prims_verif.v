@@ -281,13 +281,6 @@ apply @gc_preserved.  (* Kathrin: replace this proof with a real one *)
 Qed.
 
 
-Lemma gc_graph_iso_uncons:
-   (* Shengyi is committing this lemma to CertiGG today *)
-   forall (g1 : graph) (p1: root_t) (roots1 : roots_t) (g2 : graph) (p2: root_t) (roots2: roots_t),
-   gc_graph_iso g1 (p1 :: roots1) g2 (p2 :: roots2) ->
-   gc_graph_iso g1 roots1 g2 roots2.
-Admitted.
-
 Lemma headroom_check: 
  forall (n: Z) (hh: space) (startb: block) (starti: ptrofs),
   Int.min_signed <= n <= Int.max_signed ->
@@ -609,7 +602,7 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
       ++ simpl ti_heap.
          clear - ROOM. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
       ++ apply gc_graph_iso_trans with g' roots'; auto.
-         eapply gc_graph_iso_uncons; eassumption.
+         eapply gc_graph_iso_cons_roots_inv; eassumption.
       ++ simpl. eapply spatial_gcgraph.frame_shells_eq_trans; eassumption.
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.

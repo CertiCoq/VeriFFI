@@ -35,6 +35,7 @@ examples/uint63nat/prims.v
 examples/uint63nat/model.v
 examples/uint63nat/specs.v
 examples/uint63nat/Verif_prog_general.v
+examples/uint63nat/prims_verif.v
 
 examples/compose/prog.v
 examples/compose/model.v
