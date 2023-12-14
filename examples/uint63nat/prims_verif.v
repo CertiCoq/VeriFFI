@@ -184,11 +184,11 @@ Proof.
 Qed.
 
 Lemma frames_rep_cons:
- forall vf vr vl frames
+ forall sh vf vr vl frames
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
- (frame_rep vf vr (spatial_gcgraph.frames_p frames) vl *
-  spatial_gcgraph.frames_rep Tsh frames)%logic
- = spatial_gcgraph.frames_rep Tsh 
+ (frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
+  spatial_gcgraph.frames_rep sh frames)%logic
+ = spatial_gcgraph.frames_rep sh 
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames).
 Proof.
 intros.
@@ -202,7 +202,7 @@ change (concat (?A :: ?B)) with (A ++ concat B).
 fold (frames2rootpairs frames).
 unfold spatial_gcgraph.roots_rep.
 rewrite iter_sepcon.iter_sepcon_app_sepcon.
-unfold spatial_gcgraph.frames_shell_rep; fold (spatial_gcgraph.frames_shell_rep Tsh frames).
+unfold spatial_gcgraph.frames_shell_rep; fold (spatial_gcgraph.frames_shell_rep sh frames).
 unfold frame2rootpairs.
 simpl.
 change gc_stack._stack_frame with _stack_frame.
@@ -231,11 +231,11 @@ apply pred_ext; cancel.
 Qed.
 
 Lemma frames_rep_push:
- forall vf vr vl frames
+ forall sh vf vr vl frames
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
-frame_rep vf vr (spatial_gcgraph.frames_p frames) vl *
-spatial_gcgraph.frames_rep Tsh frames
-|-- spatial_gcgraph.frames_rep Tsh 
+frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
+spatial_gcgraph.frames_rep sh frames
+|-- spatial_gcgraph.frames_rep sh 
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames).
 Proof.
 intros.
@@ -244,12 +244,12 @@ Qed.
 
 
 Lemma frames_rep_pop:
- forall vf vr vl frames
+ forall sh vf vr vl frames
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
- spatial_gcgraph.frames_rep Tsh 
+ spatial_gcgraph.frames_rep sh 
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames)
-|-- frame_rep vf vr (spatial_gcgraph.frames_p frames) vl *
-    spatial_gcgraph.frames_rep Tsh frames.
+|-- frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
+    spatial_gcgraph.frames_rep sh frames.
 Proof.
 intros.
 rewrite frames_rep_cons by auto. auto.
@@ -282,7 +282,7 @@ Qed.
 
 
 Lemma gc_graph_iso_uncons:
-   (* Shengyi will try to add this lemma to CertiGG *)
+   (* Shengyi is committing this lemma to CertiGG today *)
    forall (g1 : graph) (p1: root_t) (roots1 : roots_t) (g2 : graph) (p2: root_t) (roots2: roots_t),
    gc_graph_iso g1 (p1 :: roots1) g2 (p2 :: roots2) ->
    gc_graph_iso g1 roots1 g2 roots2.
@@ -345,8 +345,15 @@ Lemma body_uint63_to_nat :
              uint63_to_nat_spec.
 Proof. 
 start_function.
-forward. unfold full_gc. Intros.
- 
+change (Tpointer _ _) with int_or_ptr_type.
+assert (JOIN_FRAME := data_at__share_join _ _ _ (Tstruct _stack_frame noattr) v___FRAME__ (join_comp_Tsh sh)).
+assert (JOIN_ROOT := data_at__share_join _ _ _ (tarray int_or_ptr_type 1) v___ROOT__ (join_comp_Tsh sh)).
+rewrite <- JOIN_FRAME, <- JOIN_ROOT.
+Intros.
+freeze SURPLUS := (data_at_ (Share.comp sh) _ v___FRAME__) (data_at_ (Share.comp sh) _ v___ROOT__).
+change (?x) with (@abbreviate _ x) in JOIN_FRAME.
+change (?x) with (@abbreviate _ x) in JOIN_ROOT.
+forward.  unfold full_gc. Intros.
 forward_call (gv, g). 
 Intros v.
 assert ( Vlong (Int64.shru (Int64.repr (encode_Z (Z.of_nat n))) (Int64.repr (Int.unsigned (Int.repr 1)))) = Vlong (Int64.repr  (Z.of_nat n)))  as ->.
@@ -369,7 +376,7 @@ forward.
    { sep_apply spatial_gcgraph.frames_rep_ptr_or_null. entailer!!. }
 forward.
 rewrite Int.signed_repr by rep_lia.
-generalize (frame_rep__fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info) 1 (Vlong (Int64.repr 0)));
+generalize (frame_rep__fold sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info) 1 (Vlong (Int64.repr 0)));
 change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
 sep_apply before_gc_thread_info_rep_fold.
 sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
@@ -388,8 +395,8 @@ temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
      v___ROOT__; 
 temp _tinfo ti; temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));
 gvars gv)
-SEP (full_gc g' t_info' roots' outlier ti sh gv;
-    frame_rep_ v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
+SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
+    frame_rep_ sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
     library.mem_mgr gv)
 ). 
 - (* Before the while *)
@@ -435,8 +442,8 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
      temp _tinfo ti; temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));
      gvars gv)
-     SEP (full_gc g'' t_info' roots' outlier ti sh gv;
-          frame_rep_ v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
+     SEP (FRZL SURPLUS; full_gc g'' t_info' roots' outlier ti sh gv;
+          frame_rep_ sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
           library.mem_mgr gv))%assert.
  + apply prop_right; simpl. destruct (peq startb startb); try contradiction. auto.
  +
@@ -451,12 +458,10 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   change (Tpointer tvoid _) with int_or_ptr_type.
   assert_PROP (force_val (sem_add_ptr_int int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
       offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99; [ entailer! | rewrite H99; clear H99].
-  generalize (frame_rep_fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1 [rep_type_val g' v0]);
+  generalize (frame_rep_fold sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1 [rep_type_val g' v0]);
    change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
   unfold spatial_gcgraph.ti_fp.
-  replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
-     by admit.  (* This needs fixing *)
-  sep_apply (frames_rep_cons v___FRAME__ v___ROOT__ [rep_type_val g' v0] (ti_frames t_info')).
+  sep_apply (frames_rep_cons sh v___FRAME__ v___ROOT__ [rep_type_val g' v0] (ti_frames t_info')).
   compute; clear; congruence.
   set (frames'' := _ :: ti_frames t_info').
   pose (t_info'' := {| ti_heap_p := ti_heap_p t_info'; ti_heap := ti_heap t_info';
@@ -471,8 +476,6 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   *
    unfold spatial_gcgraph.before_gc_thread_info_rep.
    change_compspecs CompSpecs.
-   replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
-      by admit.  (* This needs fixing *)
    rewrite <- STARTeq.
    change (ti_heap t_info') with (ti_heap t_info'').
    cancel.
@@ -509,8 +512,6 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    rename H12 into FSE. rename H13 into ROOM.
    forward.
    unfold spatial_gcgraph.before_gc_thread_info_rep.
-   replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
-   by admit.  (* This needs fixing *)
    simpl in FSE. unfold frames'' in FSE.
    remember (ti_frames t_info3) as frames3.
    inversion FSE; clear FSE. subst r1 fr1.
@@ -519,7 +520,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    destruct s3. exfalso; clear - H16; list_solve.
    destruct s3. 2: exfalso; clear - H16; list_solve.
    subst frames3.
-   sep_apply (frames_rep_pop v___FRAME__ v___ROOT__ [v1] r2).
+   sep_apply (frames_rep_pop sh v___FRAME__ v___ROOT__ [v1] r2).
    compute; clear; congruence.
    unfold frame_rep at 1.
    Intros. change (Zlength [_]) with 1.
@@ -612,8 +613,6 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
       ++ simpl. eapply spatial_gcgraph.frame_shells_eq_trans; eassumption.
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.
-      replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
-      by admit.  (* This needs fixing *)
       unfold spatial_gcgraph.ti_fp. 
       unfold t_info4; simpl.
       replace (Vlong (Ptrofs.to_int64 (ti_nalloc t_info3))) with (Vptrofs (ti_nalloc t_info3))
@@ -664,7 +663,12 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    }
    subst m.
    Exists v0 g' t_info' roots'.
+   thaw SURPLUS.
+   unfold abbreviate in JOIN_ROOT, JOIN_FRAME.
    unfold frame_rep_.
+   change_compspecs CompSpecs.
+   sep_apply (data_at_data_at_ sh (Tstruct gc_stack._stack_frame noattr)
+       (Vundef, (v___ROOT__, spatial_gcgraph.ti_fp t_info')) v___FRAME__).
+   sep_apply JOIN_FRAME. sep_apply JOIN_ROOT.
    entailer!!.
-all:fail.
-Admitted. 
+Qed.

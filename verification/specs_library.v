@@ -98,35 +98,35 @@ Lemma full_gc_fold:
 Proof. intros. unfold full_gc. entailer!!.
 Qed.
 
-Definition frame_rep (fr vr prev: val) (al: list val) :=
+Definition frame_rep sh (fr vr prev: val) (al: list val) :=
   (*  fr is the address of the frame struct; vr is the local array address;
       prev is the previous top-of-stack; al is the list of valid values
   *)
-  (data_at Tsh (Tstruct _stack_frame noattr)
+  (data_at sh (Tstruct _stack_frame noattr)
     (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
-   * data_at Tsh (tarray int_or_ptr_type (Zlength al)) al vr)%logic.
+   * data_at sh (tarray int_or_ptr_type (Zlength al)) al vr)%logic.
 
-Definition frame_rep_ (fr vr prev: val) (n: Z) :=
+Definition frame_rep_ sh (fr vr prev: val) (n: Z) :=
   (*  fr is the address of the frame struct; vr is the local array address;
       prev is the previous top-of-stack; n is the size of the local array;
       there are no valid values at present
   *)
-  (data_at Tsh (Tstruct _stack_frame noattr)
+  (data_at sh (Tstruct _stack_frame noattr)
     (Vundef, (vr, prev)) fr
-   * data_at_ Tsh (tarray int_or_ptr_type n) vr)%logic.
+   * data_at_ sh (tarray int_or_ptr_type n) vr)%logic.
 
-Definition frame_rep_surplus (fr vr: val) (n: Z) (al: list val) :=
+Definition frame_rep_surplus sh (fr vr: val) (n: Z) (al: list val) :=
    !! field_compatible (tarray int_or_ptr_type n) [] vr 
-   && data_at_ Tsh (tarray int_or_ptr_type (n-Zlength al))
+   && data_at_ sh (tarray int_or_ptr_type (n-Zlength al))
        (field_address0 (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr) .
 
-Lemma frame_rep_fold: forall fr vr prev n al,
+Lemma frame_rep_fold: forall sh fr vr prev n al,
   Zlength al <= n ->
-  data_at Tsh (Tstruct _stack_frame noattr)
+  data_at sh (Tstruct _stack_frame noattr)
     (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
-   * data_at Tsh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr
-  |-- frame_rep fr vr prev al
-      * frame_rep_surplus fr vr n al.
+   * data_at sh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr
+  |-- frame_rep sh fr vr prev al
+      * frame_rep_surplus sh fr vr n al.
 Proof.
 intros. unfold frame_rep, frame_rep_surplus.
  entailer!.
@@ -135,10 +135,10 @@ intros. unfold frame_rep, frame_rep_surplus.
  cancel.
 Qed.
 
-Lemma frame_rep__fold: forall fr vr prev n any,
-    data_at Tsh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
-   * data_at_ Tsh (tarray int_or_ptr_type n) vr
-  |-- frame_rep_ fr vr prev n.
+Lemma frame_rep__fold: forall sh fr vr prev n any,
+    data_at sh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
+   * data_at_ sh (tarray int_or_ptr_type n) vr
+  |-- frame_rep_ sh fr vr prev n.
 Proof. intros. unfold frame_rep_. cancel.
   do 2 unfold_data_at (data_at _ _ _ _). cancel.
 Qed.
