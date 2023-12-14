@@ -153,63 +153,6 @@ Admitted.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
 Defined.
 
-Lemma full_gc_fold:
-  forall gv g t_info roots outlier ti sh,
-  gc_condition_prop g t_info roots outlier ->
-   spatial_gcgraph.outlier_rep outlier *
-   before_gc_thread_info_rep sh t_info ti *
-   spatial_gcgraph.ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * 
-   spatial_gcgraph.graph_rep g *
-   gc_spec.all_string_constants Ers gv
-  |--   full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv.
-Proof. intros. unfold full_gc. entailer!!.
-Qed.
-
-Definition frame_rep (fr vr prev: val) (al: list val) :=
-  (*  fr is the address of the frame struct; vr is the local array address;
-      prev is the previous top-of-stack; al is the list of valid values
-  *)
-  (data_at Tsh (Tstruct _stack_frame noattr)
-    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
-   * data_at Tsh (tarray int_or_ptr_type (Zlength al)) al vr)%logic.
-
-Definition frame_rep_ (fr vr prev: val) (n: Z) :=
-  (*  fr is the address of the frame struct; vr is the local array address;
-      prev is the previous top-of-stack; n is the size of the local array;
-      there are no valid values at present
-  *)
-  (data_at Tsh (Tstruct _stack_frame noattr)
-    (Vundef, (vr, prev)) fr
-   * data_at_ Tsh (tarray int_or_ptr_type n) vr)%logic.
-
-Definition frame_rep_surplus (fr vr: val) (n: Z) (al: list val) :=
-   !! field_compatible (tarray int_or_ptr_type n) [] vr 
-   && data_at_ Tsh (tarray int_or_ptr_type (n-Zlength al))
-       (field_address0 (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr) .
-
-Lemma frame_rep_fold: forall fr vr prev n al,
-  Zlength al <= n ->
-  data_at Tsh (Tstruct _stack_frame noattr)
-    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
-   * data_at Tsh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr
-  |-- frame_rep fr vr prev al
-      * frame_rep_surplus fr vr n al.
-Proof.
-intros. unfold frame_rep, frame_rep_surplus.
- entailer!.
- erewrite split2_data_at_Tarray_app.
- 2: reflexivity. 2: list_solve.
- cancel.
-Qed.
-
-Lemma frame_rep__fold: forall fr vr prev n any,
-    data_at Tsh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
-   * data_at_ Tsh (tarray int_or_ptr_type n) vr
-  |-- frame_rep_ fr vr prev n.
-Proof. intros. unfold frame_rep_. cancel.
-  do 2 unfold_data_at (data_at _ _ _ _). cancel.
-Qed.
-
 #[export] Instance CCE2: change_composite_env env_graph_gc.CompSpecs CompSpecs.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
 Defined.
@@ -240,7 +183,6 @@ Proof.
  cancel.
 Qed.
 
-
 Lemma frames_rep_cons:
  forall vf vr vl frames
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
@@ -264,6 +206,7 @@ unfold spatial_gcgraph.frames_shell_rep; fold (spatial_gcgraph.frames_shell_rep 
 unfold frame2rootpairs.
 simpl.
 change gc_stack._stack_frame with _stack_frame.
+change_compspecs CompSpecs.
 match goal with |- ?A = ?B =>
  transitivity (!! (@field_compatible0 env_graph_gc.CompSpecs (tarray int_or_ptr_type (@Zlength val vl)) [] vr) && A)%logic
  end.
@@ -312,51 +255,6 @@ intros.
 rewrite frames_rep_cons by auto. auto.
 Qed.
 
-Inductive frame_shells_eq: forall frames1 frames2 : list frame, Prop :=
-| fse_nil: frame_shells_eq nil nil
-| fse_cons: forall fr1 fr2 r1 r2,
-    fr_adr fr1 = fr_adr fr2 ->
-    fr_root fr1 = fr_root fr2 ->
-    Zlength (fr_roots fr1) = Zlength (fr_roots fr2) ->
-    frame_shells_eq r1 r2 ->
-    frame_shells_eq (fr1::r1) (fr2::r2).
-
-Definition root_t_of_rep_type (v: rep_type) : root_t :=
-   match v with
-   | repZ i => inl (inl i)
-   | repOut p => inl (inr p)
-   | repNode x => inr x
-  end.
-
-Definition rep_type_of_root_t (v: root_t) : rep_type :=
-  match v with
-  | inl (inl i) => repZ i 
-  | inl (inr p) => repOut p 
-  | inr x => repNode x 
-  end.
-
-
-Lemma root_t_of_rep_type_of_root_t: forall r, root_t_of_rep_type (rep_type_of_root_t r) = r.
-Proof.
-destruct r; try destruct s; simpl; auto.
-Qed.
-
-Lemma rep_type_of_root_t_of_rep_type: forall r, rep_type_of_root_t (root_t_of_rep_type r) = r.
-Proof.
-destruct r; auto.
-Qed.
-
-Lemma graph_iso_Zlength: 
-  forall (g1 :graph) (roots1: list root_t)
-         (g2: graph) (roots2: list root_t),
-    gc_graph_iso g1 roots1 g2 roots2 ->
-    Zlength roots1 = Zlength roots2.
-Proof.
-intros.
-destruct H as [? [? [? [? [? _ ] ] ] ] ].
-subst.
-list_solve.
-Qed.
 
 Lemma gc_preserved {A: Type} `{InG: InGraph A}:
   forall (g1 :graph) (roots1: list root_t)
@@ -390,6 +288,23 @@ Lemma gc_graph_iso_uncons:
    gc_graph_iso g1 roots1 g2 roots2.
 Admitted.
 
+Lemma frame_shells_eq_refl: forall frs, frame_shells_eq frs frs.
+Proof.
+induction frs.
+constructor.
+constructor; auto.
+Qed.
+
+
+Lemma frame_shells_eq_trans: transitive _ frame_shells_eq.
+Proof.
+hnf; intros.
+revert z H0.
+induction H; intros; auto.
+inversion H3; clear H3; subst.
+constructor; auto; congruence. 
+Qed.
+
 Lemma body_uint63_to_nat :
   semax_body Vprog Gprog
              f_uint63_to_nat
@@ -419,7 +334,9 @@ Intros.
 forward.
    { sep_apply spatial_gcgraph.frames_rep_ptr_or_null. entailer!!. }
 forward.
-sep_apply (frame_rep__fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info) 1).
+rewrite Int.signed_repr by rep_lia.
+generalize (frame_rep__fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info) 1 (Vlong (Int64.repr 0)));
+change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
 sep_apply before_gc_thread_info_rep_fold.
 sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
 forward_while 
@@ -428,10 +345,7 @@ PROP (is_in_graph g' m v; (m <= n)%nat;
 gc_condition_prop g' t_info' roots' outlier;
 gc_graph_iso g roots g' roots';
 ti_heap_p t_info'=ti_heap_p t_info; (* not needed? *)
- (* THE NEXT LINE IS WRONG.  If a garbage collection has occurred, then
-   the new frames (ti_frames t_info') will contain the _forwarded_ version of the
-   old roots, but will not be _equal_ to the old roots contained in (ti_frames t_info). *)
-ti_frames t_info'=ti_frames t_info)
+frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
 LOCAL (temp _temp (rep_type_val g' v);
 temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
@@ -446,8 +360,9 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
 ). 
 - (* Before the while *)
    Exists v. Exists 0%nat. Exists g. Exists t_info. Exists roots. entailer!. 
-  + split.
+  + split3.
     * apply gc_graph_iso_refl.
+    * apply frame_shells_eq_refl.
     * repeat f_equal. lia.
 - (* Valid condition  *)
   entailer!!. 
@@ -479,7 +394,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
             gc_condition_prop g'' t_info' roots' outlier;
             gc_graph_iso g roots g'' roots';
             ti_heap_p t_info'=ti_heap_p t_info; (* not needed?*)
-            ti_frames t_info'=ti_frames t_info) (* not needed? *)
+            frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
      LOCAL (temp _temp (rep_type_val g'' v0');
      temp _i (Vlong (Int64.repr (Z.of_nat (n-m))));
      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
@@ -494,6 +409,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   forward.
   forward.
   unfold frame_rep_. Intros.
+  change_compspecs CompSpecs.
   forward.
   forward.
   deadvars!.
@@ -501,7 +417,8 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   change (Tpointer tvoid _) with int_or_ptr_type.
   assert_PROP (force_val (sem_add_ptr_int int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
       offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99; [ entailer! | rewrite H99; clear H99].
-  sep_apply (frame_rep_fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1 [rep_type_val g' v0]).
+  generalize (frame_rep_fold v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1 [rep_type_val g' v0]);
+   change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
   unfold spatial_gcgraph.ti_fp.
   replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
      by admit.  (* This needs fixing *)
@@ -615,6 +532,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     }
    destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
    subst v1 roots3.
+   change_compspecs CompSpecs.
    forward. entailer!!. rewrite Znth_0_cons. { 
         destruct v0'; simpl; auto. destruct g0; simpl; auto.
         unfold vertex_address.
@@ -625,7 +543,6 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    forward.  {
       sep_apply spatial_gcgraph.frames_rep_ptr_or_null;  entailer!!.
     }
-   change_compspecs CompSpecs.
    forward.
    pose (t_info4 := {|
       ti_heap_p := ti_heap_p t_info3;
@@ -665,14 +582,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
          clear - ROOM. subst t_info''. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
       ++ apply gc_graph_iso_trans with g' roots'; auto.
          eapply gc_graph_iso_uncons; eassumption.
-      ++ simpl. rewrite <- H4. clear dependent t_info.
-         assert (H51: map (root2val g3) roots3' = map rp_val (frames2rootpairs r2))
-         by apply H13.
-(*         clear - H17 H18 GCP H51.*)
-         admit. (* This appears to be False.  
-              ti_frames t_info' is the original stack of frames upon entry to the function,
-              and r2 is the forwarded version of that stack of frames.  So they are not
-              necessarily equal. *)
+      ++ simpl. eapply frame_shells_eq_trans; eassumption.
     -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
       change_compspecs CompSpecs.
       replace (spatial_gcgraph.frames_rep sh) with (spatial_gcgraph.frames_rep Tsh)
@@ -683,13 +593,16 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
         by (rewrite Vptrofs_unfold_true by reflexivity; reflexivity).
       cancel.
       unfold frame_rep_surplus. change (1 - Zlength _) with 0.
+      change_compspecs CompSpecs.
       Intros.
+      generalize H13; 
+      rewrite (@field_compatible_change_composite env_graph_gc.CompSpecs CompSpecs CCE) by auto with typeclass_instances; intro.
       sep_apply data_at__data_at.
       sep_apply data_at_zero_array_eq.
       autorewrite with sublist.
       unfold field_address0. rewrite if_true; simpl. auto with field_compatible.
       auto with field_compatible.
-      do 2 unfold_data_at (data_at _ (Tstruct _stack_frame noattr) _ _).
+      do 2 unfold_data_at (data_at _ (Tstruct gc_stack._stack_frame _) _ _).
       cancel.
   + forward.
     Exists g' v0 roots' t_info'.

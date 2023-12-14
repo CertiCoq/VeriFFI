@@ -11,6 +11,7 @@ Require Import VST.floyd.proofauto.
 Require Import VST.msl.iter_sepcon.
 (* TODO: Dependency. *)
 
+Locate rep_type.
 (** ** Library definitions for specifications *)
 
 Require Import VST.floyd.proofauto.
@@ -85,6 +86,108 @@ Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv :=
   * gc_spec.all_string_constants Ers gv
   && !!gc_condition_prop g t_info roots outlier)%logic.
 
+Lemma full_gc_fold:
+  forall gv g t_info roots outlier ti sh,
+  gc_condition_prop g t_info roots outlier ->
+   spatial_gcgraph.outlier_rep outlier *
+   before_gc_thread_info_rep sh t_info ti *
+   spatial_gcgraph.ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * 
+   spatial_gcgraph.graph_rep g *
+   gc_spec.all_string_constants Ers gv
+  |--   full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv.
+Proof. intros. unfold full_gc. entailer!!.
+Qed.
+
+Definition frame_rep (fr vr prev: val) (al: list val) :=
+  (*  fr is the address of the frame struct; vr is the local array address;
+      prev is the previous top-of-stack; al is the list of valid values
+  *)
+  (data_at Tsh (Tstruct _stack_frame noattr)
+    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
+   * data_at Tsh (tarray int_or_ptr_type (Zlength al)) al vr)%logic.
+
+Definition frame_rep_ (fr vr prev: val) (n: Z) :=
+  (*  fr is the address of the frame struct; vr is the local array address;
+      prev is the previous top-of-stack; n is the size of the local array;
+      there are no valid values at present
+  *)
+  (data_at Tsh (Tstruct _stack_frame noattr)
+    (Vundef, (vr, prev)) fr
+   * data_at_ Tsh (tarray int_or_ptr_type n) vr)%logic.
+
+Definition frame_rep_surplus (fr vr: val) (n: Z) (al: list val) :=
+   !! field_compatible (tarray int_or_ptr_type n) [] vr 
+   && data_at_ Tsh (tarray int_or_ptr_type (n-Zlength al))
+       (field_address0 (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr) .
+
+Lemma frame_rep_fold: forall fr vr prev n al,
+  Zlength al <= n ->
+  data_at Tsh (Tstruct _stack_frame noattr)
+    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
+   * data_at Tsh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr
+  |-- frame_rep fr vr prev al
+      * frame_rep_surplus fr vr n al.
+Proof.
+intros. unfold frame_rep, frame_rep_surplus.
+ entailer!.
+ erewrite split2_data_at_Tarray_app.
+ 2: reflexivity. 2: list_solve.
+ cancel.
+Qed.
+
+Lemma frame_rep__fold: forall fr vr prev n any,
+    data_at Tsh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
+   * data_at_ Tsh (tarray int_or_ptr_type n) vr
+  |-- frame_rep_ fr vr prev n.
+Proof. intros. unfold frame_rep_. cancel.
+  do 2 unfold_data_at (data_at _ _ _ _). cancel.
+Qed.
+
+Inductive frame_shells_eq: forall frames1 frames2 : list frame, Prop :=
+| fse_nil: frame_shells_eq nil nil
+| fse_cons: forall fr1 fr2 r1 r2,
+    fr_adr fr1 = fr_adr fr2 ->
+    fr_root fr1 = fr_root fr2 ->
+    Zlength (fr_roots fr1) = Zlength (fr_roots fr2) ->
+    frame_shells_eq r1 r2 ->
+    frame_shells_eq (fr1::r1) (fr2::r2).
+
+Definition root_t_of_rep_type (v: rep_type) : root_t :=
+   match v with
+   | repZ i => inl (inl i)
+   | repOut p => inl (inr p)
+   | repNode x => inr x
+  end.
+
+Definition rep_type_of_root_t (v: root_t) : rep_type :=
+  match v with
+  | inl (inl i) => repZ i 
+  | inl (inr p) => repOut p 
+  | inr x => repNode x 
+  end.
+
+
+Lemma root_t_of_rep_type_of_root_t: forall r, root_t_of_rep_type (rep_type_of_root_t r) = r.
+Proof.
+destruct r; try destruct s; simpl; auto.
+Qed.
+
+Lemma rep_type_of_root_t_of_rep_type: forall r, rep_type_of_root_t (root_t_of_rep_type r) = r.
+Proof.
+destruct r; auto.
+Qed.
+
+Lemma graph_iso_Zlength: 
+  forall (g1 :graph) (roots1: list root_t)
+         (g2: graph) (roots2: list root_t),
+    gc_graph_iso g1 roots1 g2 roots2 ->
+    Zlength roots1 = Zlength roots2.
+Proof.
+intros.
+destruct H as [? [? [? [? [? _ ] ] ] ] ].
+subst.
+list_solve.
+Qed.
 
 (* BEGIN patch for any VST versions 2.12,2.13  (perhaps won't be needed in 2.14) *)
 
