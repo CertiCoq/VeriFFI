@@ -13,6 +13,7 @@ MetaCoq Run (desc_gen O).
 
 Require Export VST.floyd.proofauto.
 Require Export CertiGraph.CertiGC.GCGraph.
+Export spatial_gcgraph.
 From VeriFFI Require Export library.base_representation library.meta verification.graph_add verification.specs_library.
 
 Require Export VeriFFI.examples.uint63nat.Verif_prog_general.
@@ -27,12 +28,12 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
           PROP ()
           PARAMS ()
           GLOBALS ()
-          SEP (spatial_gcgraph.graph_rep g)
+          SEP (graph_rep g)
       POST [ (talignas 3%N (tptr tvoid)) ]  
         EX (x : rep_type), 
         PROP (@is_in_graph nat _ g O x) 
         LOCAL (temp ret_temp (rep_type_val g x)) 
-        SEP (spatial_gcgraph.graph_rep g).
+        SEP (graph_rep g).
 
 (* General specifications for uint63/nat *)
 
@@ -138,7 +139,7 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
              gc_graph_iso g roots g' roots';
-             spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+             frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
        SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
 

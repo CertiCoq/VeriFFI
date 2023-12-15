@@ -5,8 +5,7 @@ Kathrin Stark, 2021.
 
 From VeriFFI.library Require Export base_representation.
 From VeriFFI.verification Require Export graph_add.
-Require Import CertiGraph.CertiGC.GCGraph.
-Require Import CertiGraph.CertiGC.spatial_gcgraph.
+From CertiGraph.CertiGC Require Import GCGraph gc_stack env_graph_gc spatial_gcgraph.
 Require Import VST.floyd.proofauto.
 Require Import VST.msl.iter_sepcon.
 (* TODO: Dependency. *)
@@ -46,6 +45,7 @@ graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec (ti_
 /\ roots_compatible g outlier roots /\ rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
 
+(*
 Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
   if (Val.eq sp.(space_start) nullval)
   then emp
@@ -55,28 +55,6 @@ Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
 
 Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
   iter_sepcon space_rest_rep hp.(spaces).
-
-(* Adapted from Shengyi to get the right GC *)
-Definition before_gc_thread_info_rep (sh: share) (ti: CertiGraph.CertiGC.GCGraph.thread_info) (t: val) :=
-  CertiGraph.CertiGC.spatial_gcgraph.before_gc_thread_info_rep sh ti t. (*
-  let nursery := heap_head ti.(ti_heap) in
-  let p := nursery.(space_start) in
-  let n_lim := offset_val (WORD_SIZE * nursery.(total_space)) p in
-  (data_at sh thread_info_type
-          (offset_val (WORD_SIZE * nursery.(used_space)) p,
-           (n_lim, (ti.(ti_heap_p), ti.(ti_args)))) t *
-  heap_struct_rep
-    sh ((p, (Vundef, n_lim))
-          :: map space_tri (tl ti.(ti_heap).(spaces))) ti.(ti_heap_p) *
-  heap_rest_rep ti.(ti_heap))%logic.
-*)
-
-(* KS: Changes: 
-Before: heap-struct rep and heap_rest_rep
-
-Now
-- frames_rep 
-- heap_struct_rep 
 *)
 
 (* Full condition for the garbage collector *)
@@ -89,10 +67,10 @@ Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv :=
 Lemma full_gc_fold:
   forall gv g t_info roots outlier ti sh,
   gc_condition_prop g t_info roots outlier ->
-   spatial_gcgraph.outlier_rep outlier *
+   outlier_rep outlier *
    before_gc_thread_info_rep sh t_info ti *
-   spatial_gcgraph.ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * 
-   spatial_gcgraph.graph_rep g *
+   ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * 
+   graph_rep g *
    gc_spec.all_string_constants Ers gv
   |--   full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv.
 Proof. intros. unfold full_gc. entailer!!.

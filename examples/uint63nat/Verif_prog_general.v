@@ -18,7 +18,7 @@ Require Import VeriFFI.library.meta.
 
 
 Require Import VST.floyd.proofauto.
-Require Import CertiGraph.CertiGC.GCGraph.
+From CertiGraph.CertiGC Require Import GCGraph spatial_gcgraph.
 
 From VeriFFI Require Import library.base_representation.
 From VeriFFI Require Import library.meta.
@@ -842,7 +842,7 @@ Proof.
 spatial_gcgraph.heap_struct_rep
 	 : share -> list (reptype env_graph_gc.space_type) -> val -> mpred *)
 
-   unfold spatial_gcgraph.before_gc_thread_info_rep.
+   unfold before_gc_thread_info_rep.
 
 
   (*        * data_at sh env_graph_gc.thread_info_type
@@ -852,30 +852,30 @@ spatial_gcgraph.heap_struct_rep
              (space_start (heap_head (ti_heap tinfo))),
            (ti_heap_p tinfo,
             (ti_args tinfo,
-             (spatial_gcgraph.ti_fp tinfo, (Vptrofs (ti_nalloc tinfo), nullval))))))
+             (ti_fp tinfo, (Vptrofs (ti_nalloc tinfo), nullval))))))
          tinfo_pos     *)
 
 
     (* The frame *)
-    Exists (spatial_gcgraph.outlier_rep outliers * spatial_gcgraph.ti_token_rep (ti_heap tinfo) (ti_heap_p tinfo) *
-        @spatial_gcgraph.graph_rep  gr *
+    Exists (outlier_rep outliers * ti_token_rep (ti_heap tinfo) (ti_heap_p tinfo) *
+        @graph_rep  gr *
             @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc_stack._heap] (ti_heap_p tinfo) tinfo_pos *
             @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc_stack._args] (ti_args tinfo) tinfo_pos *
-            spatial_gcgraph.heap_struct_rep sh
+            heap_struct_rep sh
                             ((Vptr b x',
                               (Vundef,
                                (Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo))))), 
                                Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo))))))))
-                               :: map spatial_gcgraph.space_tri (tl (spaces (ti_heap tinfo)))) (ti_heap_p tinfo)* 
-                               iter_sepcon.iter_sepcon space_rest (* @specs_library.space_rest_rep env_graph_gc.CompSpecs *) spatial_gcgraph.space_rest_rep  *
+                               :: map space_tri (tl (spaces (ti_heap tinfo)))) (ti_heap_p tinfo)* 
+                               iter_sepcon.iter_sepcon space_rest (* @specs_library.space_rest_rep env_graph_gc.CompSpecs *) space_rest_rep  *
            @data_at_ env_graph_gc.CompSpecs (space_sh (heap_head (ti_heap tinfo))) (tarray int_or_ptr_type (total_space (heap_head (ti_heap tinfo)) -
           used_space (heap_head (ti_heap tinfo)) - Z.of_nat (1 + Datatypes.length ps))) (@field_address0 env_graph_gc.CompSpecs (tarray int_or_ptr_type
             (total_space (heap_head (ti_heap tinfo)) -
              used_space (heap_head (ti_heap tinfo)))) [ArraySubsc (Z.of_nat (1 + Datatypes.length ps))]  (Vptr b
             (Ptrofs.add x'
                (Ptrofs.repr (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))))))  
-            *  spatial_gcgraph.frames_rep sh (ti_frames tinfo)
-            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._fp) (spatial_gcgraph.ti_fp tinfo)
+            *  frames_rep sh (ti_frames tinfo)
+            * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._fp) (ti_fp tinfo)
             tinfo_pos
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._nalloc)
                 (Vlong (Ptrofs.to_int64 (ti_nalloc tinfo))) tinfo_pos
@@ -885,7 +885,7 @@ spatial_gcgraph.heap_struct_rep
                )%logic.
 
 
-(* The term "map spatial_gcgraph.space_tri (tl (spaces (ti_heap tinfo)))" has type
+(* The term "map space_tri (tl (spaces (ti_heap tinfo)))" has type
  "list (reptype env_graph_gc.space_type)" while it is expected to have type
  "list (val * (val * val))". *)               
 
@@ -948,7 +948,7 @@ spatial_gcgraph.heap_struct_rep
         apply add_node_iso; eauto. (* ~In (inr (new_copied_v gr 0)) roots *)
         eapply new_node_roots; eauto. 
         unfold roots_compatible. eauto. 
-       ++ simpl. rewrite <- H8. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
+       ++ simpl. rewrite <- H9. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
           destruct comp_g0 as (comp_start&comp_sh&comp_prev).
           unfold gen_start. simpl. rewrite comp_start. unfold vertex_offset.
           simpl. rewrite comp_prev. if_tac; try contradiction.
@@ -970,7 +970,7 @@ spatial_gcgraph.heap_struct_rep
     (* eapply in_graphs_has; eauto. *)
      * (* Ensuring that the spatial part holds. *)
 
-    (* spatial_gcgraph.ti_token_rep tinfo *)
+    (* ti_token_rep tinfo *)
     rewrite add_node_heap_ti_token_rep.
     2 : { split. lia. simpl. rewrite SPACE_NONEMPTY. rewrite Zlength_cons.
         assert (X := Zlength_nonneg space_rest). lia. } 
@@ -1046,7 +1046,7 @@ spatial_gcgraph.heap_struct_rep
     cancel.
 
     (* heap_rest_rep *)
-    unfold spatial_gcgraph.heap_rest_rep. 
+    unfold heap_rest_rep. 
     simpl. rewrite SPACE_NONEMPTY at 4. 
     rewrite upd_Znth0.
     simpl. 
@@ -1061,13 +1061,9 @@ spatial_gcgraph.heap_struct_rep
     rewrite upd_Znth0. simpl.
     rewrite SPACE_NONEMPTY at 1. simpl.
     cancel. 
-    
-  (*   assert (ti_heap_p tinfo = ti_heap_p (add_node_ti 0 tinfo (1 + Zlength fds) t_size)) as <-.
-    { reflexivity. }
-    cancel. *)
 
     (* space_rest_rep *)
-    unfold spatial_gcgraph.space_rest_rep. simpl. 
+    unfold space_rest_rep. simpl. 
     if_tac.
     { exfalso. 
     rewrite SPACE_NONEMPTY in *. simpl in *.
@@ -1076,7 +1072,7 @@ spatial_gcgraph.heap_struct_rep
     simpl. 
     rewrite SPACE_NONEMPTY at 1. simpl.
   
-     unfold spatial_gcgraph.vertex_at.
+     unfold vertex_at.
     simpl. 
     apply sepcon_derives.
     { apply derives_refl'. f_equal. 
@@ -1087,12 +1083,12 @@ spatial_gcgraph.heap_struct_rep
       - unfold offset_val. unfold field_address0.
       simpl. rewrite !SPACE_NONEMPTY. simpl. 
       rewrite isptr_eq. simpl.
-      unfold field_address0 in H29. 
-      if_tac in H29. 
+      unfold field_address0 in H30. 
+      if_tac in H30. 
       + f_equal. rewrite Ptrofs.add_assoc. f_equal. 
       unfold fds. rewrite Zlength_map.  rewrite ptrofs_add_repr.
       f_equal. rewrite Zlength_correct. unfold WORD_SIZE. rep_lia. 
-      + simpl in H29. hnf in H29. destruct H29; contradiction.
+      + simpl in H30. hnf in H30. destruct H30; contradiction.
  }
 
     unfold vals. rewrite to_from_vec.
@@ -1197,8 +1193,8 @@ spatial_gcgraph.heap_struct_rep
       rewrite Zlength_correct. reflexivity.
     - replace (1 + Z.of_nat (Datatypes.length ps) - 1) with (Z.of_nat (Datatypes.length ps)) by lia. 
        unfold field_address0. simpl. entailer!. autorewrite with norm.
-       if_tac in H32.
-       2: { hnf in H32. destruct H32; contradiction. }
+       if_tac in H33.
+       2: { hnf in H33. destruct H33; contradiction. }
        entailer!. 
 
   + (* Precondition:
@@ -1206,15 +1202,15 @@ spatial_gcgraph.heap_struct_rep
   intros. subst alloc limit.
   entailer!.
 
-  unfold specs_library.before_gc_thread_info_rep.
+  unfold before_gc_thread_info_rep.
   unfold_data_at (data_at sh _ _ _).
   rewrite !isptr_eq. simpl. rewrite !Ptrofs.repr_signed. entailer!.
-  unfold spatial_gcgraph.heap_rest_rep.
+  unfold heap_rest_rep.
 
   rewrite SPACE_NONEMPTY . (* TODO: Tactic *) 
   simpl.
 
-  unfold spatial_gcgraph.space_rest_rep at 1.
+  unfold space_rest_rep at 1.
   if_tac.
   { exfalso. unfold nullval in *. rewrite isptr_eq in *. revert H21. simple_if_tac; congruence. }
   simpl. Intros. entailer!.

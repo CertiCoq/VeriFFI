@@ -1,6 +1,8 @@
 Require Import VeriFFI.examples.uint63nat.prims.
 Require Import ZArith.
 Require Import Psatz.
+Require Import CertiGraph.CertiGC.spatial_gcgraph.
+
 Require Import VeriFFI.examples.uint63nat.specs.
 
 Definition description_S := @desc _ S _. 
@@ -332,76 +334,136 @@ intros * H7 H8.
     rewrite !Int64.signed_repr in H0 by rep_lia. auto.
 Qed.
 
-Lemma body_uint63_to_nat :
-  semax_body Vprog Gprog
-             f_uint63_to_nat
-             uint63_to_nat_spec.
+
+Ltac limited_change_compspecs' cs cs' :=
+  lazymatch goal with
+  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
+  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
+  end.
+
+Ltac limited_change_compspecs cs :=
+ match goal with |- context [?cs'] =>
+   match type of cs' with compspecs =>
+     try (constr_eq cs cs'; fail 1);
+     limited_change_compspecs' cs cs';
+     repeat limited_change_compspecs' cs cs'
+   end
+end.
+
+
+Ltac sep_apply_compspecs cs H :=
+  generalize H; limited_change_compspecs cs; 
+  let Hx := fresh "Hx" in  intro Hx; sep_apply Hx; clear Hx.
+
+
+Ltac do_frame_shares :=
+  (* find the SEP clauses for the current "frame" with permission-share Tsh,
+    and replace with permission-share "sh", saving the SURPLUS for later use *)
+ match goal with |- semax _ (PROPx _ (LOCALx ?L (SEPx ?S))) _ _ =>
+   match L with context [lvar ?frame_id (Tstruct _stack_frame _) ?vframe] =>
+    match S with context [data_at_ Tsh (Tstruct _stack_frame _) vframe] =>
+     match L with context [lvar ?root_id (tarray _ ?n) ?vroot] =>
+      match S with context [data_at_ Tsh (tarray _ n) vroot]  =>
+       match S with context [full_gc _ _ _ _ _ ?sh _] =>
+    let JF := fresh "JOIN_FRAME" in let JR := fresh "JOIN_ROOT" in
+    assert (JF := data_at__share_join _ _ _ (Tstruct _stack_frame noattr) vframe (join_comp_Tsh sh));
+    assert (JR := data_at__share_join _ _ _ (tarray int_or_ptr_type n) vroot (join_comp_Tsh sh));
+    rewrite <- JF, <- JR;
+    Intros;
+    let SURPLUS := fresh "SURPLUS" in 
+    freeze SURPLUS := (data_at_ (Share.comp sh) _ vframe) (data_at_ (Share.comp sh) _ vroot);
+    change (?x) with (@abbreviate _ x) in JF;
+    change (?x) with (@abbreviate _ x) in JR
+ end end end end end end.
+
+Ltac undo_frame_shares :=
+  (* rejoin the SURPLUS shares into the current frame *)
+ match goal with
+  | JF : @abbreviate _ 
+     (@data_at_ ?cs ?sh (Tstruct _stack_frame _) ?vframe *
+       data_at_ _ (Tstruct _stack_frame _) ?vframe' = _)%logic,
+    JR: @abbreviate _ 
+      (data_at_ ?sh' (tarray _ _) ?vroot * data_at_ _ (tarray _ _) ?vroot' = _)%logic,
+    SURPLUS := @abbreviate _ (map ?S _)
+   |- context [FRZL ?SURPLUS'] =>
+     constr_eq vframe vframe'; constr_eq vroot vroot'; 
+     constr_eq sh sh'; constr_eq SURPLUS SURPLUS';
+    match goal with |- context [frame_rep_ sh vframe vroot ?fp ?n] =>
+        unfold frame_rep_; limited_change_compspecs cs;
+     thaw SURPLUS; unfold abbreviate in JF, JR;
+     sep_apply (data_at_data_at_ sh (Tstruct gc_stack._stack_frame noattr)
+       (Vundef, (vroot, fp)) vframe);
+   sep_apply JF; sep_apply JR; clear JF JR
+ end end.
+
+
+Lemma decode_encode_Z: 
+  forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
+  Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
+              (Int64.repr (Int.unsigned (Int.repr 1)))
+               = Int64.repr (Z.of_nat n).
+Proof.
+intros.
+unfold encode_Z, min_signed, max_signed in *.
+autorewrite with norm. rewrite Int64.shru_div_two_p.
+change (two_p _) with 2.
+rewrite !Int64.unsigned_repr by  rep_lia.
+rewrite Z.div_add_l by lia.
+simpl Z.div; rewrite Z.add_0_r.
+auto.
+Qed.
+
+Lemma body_uint63_to_nat: semax_body Vprog Gprog f_uint63_to_nat uint63_to_nat_spec.
 Proof. 
 start_function.
 change (Tpointer _ _) with int_or_ptr_type.
-assert (JOIN_FRAME := data_at__share_join _ _ _ (Tstruct _stack_frame noattr) v___FRAME__ (join_comp_Tsh sh)).
-assert (JOIN_ROOT := data_at__share_join _ _ _ (tarray int_or_ptr_type 1) v___ROOT__ (join_comp_Tsh sh)).
-rewrite <- JOIN_FRAME, <- JOIN_ROOT.
-Intros.
-freeze SURPLUS := (data_at_ (Share.comp sh) _ v___FRAME__) (data_at_ (Share.comp sh) _ v___ROOT__).
-change (?x) with (@abbreviate _ x) in JOIN_FRAME.
-change (?x) with (@abbreviate _ x) in JOIN_ROOT.
+do_frame_shares.
 forward.  unfold full_gc. Intros.
 forward_call (gv, g). 
 Intros v.
-assert ( Vlong (Int64.shru (Int64.repr (encode_Z (Z.of_nat n))) (Int64.repr (Int.unsigned (Int.repr 1)))) = Vlong (Int64.repr  (Z.of_nat n)))  as ->.
-  { unfold encode_Z in *.
-  f_equal.  
-  autorewrite with norm. rewrite Int64.shru_div_two_p.
-  rewrite !Int64.unsigned_repr by (unfold min_signed, max_signed in *; rep_lia).
-  f_equal.
-  unfold two_p.
-  change (two_power_pos 1) with 2.
-  rewrite Z.div_add_l by lia.
-  simpl. lia.
- }
+rewrite decode_encode_Z by auto.
 forward.
 forward.
-unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep.
-change_compspecs CompSpecs.
+unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
 Intros.
 forward.
-   { sep_apply spatial_gcgraph.frames_rep_ptr_or_null. entailer!!. }
 forward.
 rewrite Int.signed_repr by rep_lia.
-generalize (frame_rep__fold sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info) 1 (Vlong (Int64.repr 0)));
-change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
+deadvars!.
+sep_apply_compspecs CompSpecs 
+  (frame_rep__fold sh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 (Vlong (Int64.repr 0))).
 sep_apply before_gc_thread_info_rep_fold.
 sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
 forward_while 
-(EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info), EX (roots': roots_t),
-PROP (is_in_graph g' m v; (m <= n)%nat;
-gc_condition_prop g' t_info' roots' outlier;
-gc_graph_iso g roots g' roots';
-True;  (* placeholder;  previously was: ti_heap_p t_info'=ti_heap_p t_info;  *)
-spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-LOCAL (temp _temp (rep_type_val g' v);
-temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
-   lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
-   lvar ___ROOT__
-     (tarray int_or_ptr_type 1)
-     v___ROOT__; 
-temp _tinfo ti; temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));
-gvars gv)
+(EX v : rep_type, EX m : nat, EX g' : graph, 
+ EX (t_info' : GCGraph.thread_info), EX (roots': roots_t),
+ PROP (is_in_graph g' m v; (m <= n)%nat;
+      gc_condition_prop g' t_info' roots' outlier;
+      gc_graph_iso g roots g' roots';
+      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+ LOCAL (temp _temp (rep_type_val g' v);
+      temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
+      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
+      temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
+      gvars gv)
 SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
-    frame_rep_ sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
+    frame_rep_ sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
     library.mem_mgr gv)
 ). 
 - (* Before the while *)
-   Exists v. Exists 0%nat. Exists g. Exists t_info. Exists roots. entailer!. 
-  + split3.
+   Exists v O g t_info roots.
+   entailer!!. 
+   split3.
     * apply gc_graph_iso_refl.
-    * apply spatial_gcgraph.frame_shells_eq_refl.
+    * apply frame_shells_eq_refl.
     * repeat f_equal. lia.
 - (* Valid condition  *)
   entailer!!. 
 - (* During the loop *)
-  rename H4 into GCP. rename H7 into H4.
+  rename H4 into GCP. rename H6 into H4.
   assert (STARTptr: isptr (space_start (heap_head (ti_heap t_info')))). {
     red in GCP; decompose [and] GCP.
     destruct (heap_head_cons (ti_heap t_info')) as [s [l [C1 C2]  ] ].
@@ -411,49 +473,47 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
     rewrite C1; clear; list_solve.
     apply graph_has_gen_O.
   }
-  assert (n - m <> 0)%nat by lia.
+  assert (m<n)%nat by lia. clear H3 HRE HRE'. rename H6 into HRE.
   unfold full_gc.
-  unfold before_gc_thread_info_rep.
-  unfold spatial_gcgraph.before_gc_thread_info_rep.
+  unfold before_gc_thread_info_rep;  limited_change_compspecs CompSpecs.
   Intros.
-  change_compspecs CompSpecs.
   forward.
   forward.
   destruct (space_start (heap_head (ti_heap t_info'))) eqn:STARTeq; try contradiction.
   rename b into startb; rename i into starti.
   forward_if (
      EX g'': graph, EX v0':_, EX roots':_, EX t_info' : GCGraph.thread_info,
-     PROP ( total_space (heap_head (ti_heap t_info')) - used_space (heap_head (ti_heap t_info')) >= 2;
+     PROP ( headroom t_info' >= 2;
             is_in_graph g'' m v0';
             gc_condition_prop g'' t_info' roots' outlier;
             gc_graph_iso g roots g'' roots';
-            True; (* placeholder, was previously: ti_heap_p t_info'=ti_heap_p t_info; *)
-            spatial_gcgraph.frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+            frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
      LOCAL (temp _temp (rep_type_val g'' v0');
      temp _i (Vlong (Int64.repr (Z.of_nat (n-m))));
      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
-     temp _tinfo ti; temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));
+     temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
      gvars gv)
      SEP (FRZL SURPLUS; full_gc g'' t_info' roots' outlier ti sh gv;
-          frame_rep_ sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1;
+          frame_rep_ sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
           library.mem_mgr gv))%assert.
  + apply prop_right; simpl. destruct (peq startb startb); try contradiction. auto.
  +
   forward.
   forward.
-  unfold frame_rep_. Intros.
-  change_compspecs CompSpecs.
+  unfold frame_rep_; limited_change_compspecs CompSpecs.
+  Intros.
   forward.
   forward.
   deadvars!.
-  change (upd_Znth 0 _ _) with ([rep_type_val g' v0]).
+  change (upd_Znth 0 _ _) with [rep_type_val g' v0].
   change (Tpointer tvoid _) with int_or_ptr_type.
   assert_PROP (force_val (sem_add_ptr_int int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
-      offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99; [ entailer! | rewrite H99; clear H99].
-  generalize (frame_rep_fold sh v___FRAME__ v___ROOT__ (spatial_gcgraph.ti_fp t_info') 1 [rep_type_val g' v0]);
-   change_compspecs CompSpecs; intro Hx; sep_apply Hx; clear Hx.
-  unfold spatial_gcgraph.ti_fp.
+      offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99;
+      [ entailer! | rewrite H99; clear H99].
+  sep_apply_compspecs CompSpecs 
+      (frame_rep_fold sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1 [rep_type_val g' v0]).
+  unfold ti_fp.
   sep_apply (frames_rep_cons sh v___FRAME__ v___ROOT__ [rep_type_val g' v0] (ti_frames t_info')).
   compute; clear; congruence.
   set (frames'' := _ :: ti_frames t_info').
@@ -464,17 +524,16 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
   rewrite Int.signed_repr by rep_lia.
   change (ti_args t_info') with (ti_args t_info'').
   change (ti_heap_p t_info') with (ti_heap_p t_info'').
-  clear H8.
+  clear H3.
   forward_call (Ers, sh, gv, ti, g', t_info'', root_t_of_rep_type v0 :: roots', outlier).
   *
-   unfold spatial_gcgraph.before_gc_thread_info_rep.
-   change_compspecs CompSpecs.
+   unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
    rewrite <- STARTeq.
    change (ti_heap t_info') with (ti_heap t_info'').
    cancel.
   * simpl.
     split3.
-    red. red in GCP.
+    red in GCP.
     split3; [ tauto | | split; [ | tauto] ].
     --
      subst frames''; clear t_info''.
@@ -483,18 +542,18 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
      f_equal.  destruct v0; auto.
      change (rootpairs_compatible g' (frames2rootpairs (ti_frames t_info')) roots').
      tauto.
-    -- decompose [and] GCP; clear GCP. destruct H15.
+    -- decompose [and] GCP; clear GCP. destruct H12.
        split. 
-       ++ clear t_info'' frames'' H7 STARTptr STARTeq startb starti H3 HRE' HRE.
+       ++ clear t_info'' frames'' STARTptr STARTeq startb starti HRE.
           unfold root_t_of_rep_type.
           destruct v0; auto.
-          red in H15|-*. simpl.
+          red in H12|-*. simpl.
           change (?A :: ?B) with ([A]++B).
           apply incl_app; auto.
           unfold is_in_graph in H2.
           destruct m; simpl in H2; try contradiction.
           destruct H2 as [? [? ? ]  ]; contradiction.
-       ++ destruct v0; try apply H18. constructor; auto.
+       ++ destruct v0; try apply H15. constructor; auto.
           clear - H2. unfold is_in_graph in H2.
           apply has_v in H2; auto.
     -- red in GCP; decompose [and] GCP; split; auto.
@@ -502,46 +561,46 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
   * (* after the call to garbage_collect() *)
    Intros vret. destruct vret as [ [g3 t_info3] roots3].
    simpl snd in *. simpl fst in *.
-   rename H12 into FSE. rename H13 into ROOM.
+   rename H9 into FSE. rename H10 into ROOM.
    forward.
-   unfold spatial_gcgraph.before_gc_thread_info_rep.
+   unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
    simpl in FSE. unfold frames'' in FSE.
    remember (ti_frames t_info3) as frames3.
    inversion FSE; clear FSE. subst r1 fr1.
-   destruct fr2 as [a3 r3 s3]; simpl in H14, H15, H16.
+   destruct fr2 as [a3 r3 s3]; simpl in H11, H12, H13.
    subst a3 r3.
-   destruct s3. exfalso; clear - H16; list_solve.
-   destruct s3. 2: exfalso; clear - H16; list_solve.
+   destruct s3. exfalso; clear - H13; list_solve.
+   destruct s3. 2: exfalso; clear - H13; list_solve.
    subst frames3.
    sep_apply (frames_rep_pop sh v___FRAME__ v___ROOT__ [v1] r2).
    compute; clear; congruence.
    unfold frame_rep at 1.
    Intros. change (Zlength [_]) with 1.
    assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g'). {
-       red in GCP. destruct GCP as [_ [_ [_ [_ [_ [_ [_ [ [ _ ? ] _  ] ] ] ] ] ] ] ].
-       destruct v0; try apply H12.
+       destruct GCP as [_ [_ [_ [_ [_ [_ [_ [ [ _ RGC ] _  ] ] ] ] ] ] ] ].
+       destruct v0; try apply RGC.
        constructor; auto.
        red in H2.
        eapply has_v; eauto.
     }
    assert (ISO: gc_graph_iso g' (root_t_of_rep_type v0 :: roots') g3 roots3). {
-     red in H8; decompose [and] H8.
+     red in H6; decompose [and] H6.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
    assert (exists v0', exists roots3',
         v1 = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
-       rewrite <- H17 in H8. simpl frames2rootpairs in H8.
-    pose proof @gc_preserved _ InGraph_nat _ _ _ _ ISO ltac:(clear - H10; red in H10; tauto)
+       rewrite <- H14 in H3. simpl frames2rootpairs in H3.
+    pose proof @gc_preserved _ InGraph_nat _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
     m 0 ltac:(clear; Zlength_solve).
-    rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H13.
-    specialize (H13 H2).
+    rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H10.
+    specialize (H10 H2).
     exists (rep_type_of_root_t (Znth 0 roots3)), (sublist 1 (Zlength roots3) roots3).
     rewrite root_t_of_rep_type_of_root_t.
     split3; auto.
-    destruct H8 as [_ [? _] ].
-    red in H8. simpl in H8.
+    destruct H3 as [_ [H3 _] ].
+    red in H3. simpl in H3.
     assert (v1 = root2val g3 (Znth 0 roots3)) by list_solve.
-    rewrite H14.
+    rewrite H11.
     destruct (Znth 0 roots3); try destruct s ; auto.
     apply graph_iso_Zlength in ISO.    
     clear - ISO. rewrite Zlength_cons in ISO. 
@@ -551,19 +610,17 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
     rewrite Z.sub_diag. unfold Z.succ.
     rewrite sublist_same by lia. auto.
     }
-   destruct H13 as [v0' [roots3' [ ? [? ?] ] ] ].
+   destruct H10 as [v0' [roots3' [ ? [? ?] ] ] ].
    subst v1 roots3.
-   change_compspecs CompSpecs.
+   limited_change_compspecs CompSpecs.
    forward. entailer!!. rewrite Znth_0_cons. { 
         destruct v0'; simpl; auto. destruct g0; simpl; auto.
         unfold vertex_address.
-        apply has_v in H14. destruct H14 as [? _].
-        pose proof (graph_has_gen_start_isptr _ _ H13).
+        apply has_v in H11. destruct H11 as [? _].
+        pose proof (graph_has_gen_start_isptr _ _ H10).
         destruct (gen_start g3 (vgeneration _)); auto.
     }
-   forward.  {
-      sep_apply spatial_gcgraph.frames_rep_ptr_or_null;  entailer!!.
-    }
+   forward.  
    forward.
    pose (t_info4 := {|
       ti_heap_p := ti_heap_p t_info3;
@@ -580,41 +637,42 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
     --  assert (gc_condition_prop g3 t_info4 roots3' outlier). {
       unfold gc_condition_prop.
       change (ti_heap t_info4) with (ti_heap t_info3).
-      repeat simple apply conj; try apply GCP; try apply H10; auto;
-        try apply H8.
-        - destruct H8 as [? [? [ ?  ? ] ] ].
-           clear - H15.
-           destruct H15; split.
+      repeat simple apply conj; try apply GCP; try apply H7; auto;
+        try apply H3.
+        - destruct H3 as [? [? [ ?  ? ] ] ].
+           clear - H12.
+           destruct H12; split.
            +
             red in H|-*.
             destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H; auto.
             eapply incl_app_inv_r with (l1:=[g]); auto.
            + destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H0; auto.
               red in H0|-*. simpl in H0. inversion H0; subst; auto. 
-        - destruct H8 as [_ [? _] ].
-            rewrite <- H17 in H8.
-            unfold frames2rootpairs in H8. simpl in H8.
-            red in H8. simpl in H8. inversion H8; subst; auto.
+        - destruct H3 as [_ [? _] ].
+            rewrite <- H14 in H3.
+            unfold frames2rootpairs in H3. simpl in H3.
+            red in H3. simpl in H3. inversion H3; subst; auto.
         - eapply gc_sound; eauto. apply GCP.
-        - apply graph_unmarked_copy_compatible; apply H10.
+        - apply graph_unmarked_copy_compatible; apply H7.
     }
     repeat simple apply conj; auto.
       ++ simpl ti_heap.
-         clear - ROOM. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia. lia.
+         clear - ROOM. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia.
+         unfold headroom. simpl.  lia.
       ++ apply gc_graph_iso_trans with g' roots'; auto.
          eapply gc_graph_iso_cons_roots_inv; eassumption.
-      ++ simpl. eapply spatial_gcgraph.frame_shells_eq_trans; eassumption.
-    -- unfold before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep, frame_rep_.
-      change_compspecs CompSpecs.
-      unfold spatial_gcgraph.ti_fp. 
+      ++ simpl. eapply frame_shells_eq_trans; eassumption.
+    -- unfold before_gc_thread_info_rep, frame_rep_.
+      limited_change_compspecs CompSpecs.
+      unfold ti_fp. 
       unfold t_info4; simpl.
       replace (Vlong (Ptrofs.to_int64 (ti_nalloc t_info3))) with (Vptrofs (ti_nalloc t_info3))
         by (rewrite Vptrofs_unfold_true by reflexivity; reflexivity).
       cancel.
       unfold frame_rep_surplus. change (1 - Zlength _) with 0.
-      change_compspecs CompSpecs.
+      limited_change_compspecs CompSpecs.
       Intros.
-      generalize H13; 
+      generalize H10; 
       rewrite (@field_compatible_change_composite env_graph_gc.CompSpecs CompSpecs CCE) by auto with typeclass_instances; intro.
       sep_apply data_at__data_at.
       sep_apply data_at_zero_array_eq.
@@ -625,43 +683,37 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
       cancel.
   + forward.
     Exists g' v0 roots' t_info'.
-    unfold full_gc, before_gc_thread_info_rep, spatial_gcgraph.before_gc_thread_info_rep.
+    unfold full_gc, before_gc_thread_info_rep.
     rewrite <- STARTeq.
-    change_compspecs CompSpecs.
+    limited_change_compspecs CompSpecs.
     entailer!!.
-    apply headroom_check in H8; auto; rep_lia.
+    apply headroom_check in H3; auto; rep_lia.
   + Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
-   * split.
-      split; auto. reflexivity. unfold headroom. lia.
+   * split; auto. reflexivity.
    * Intros vret.
      destruct vret as [ [ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
      assert_PROP (gc_condition_prop g5 t_info5 roots4 outlier) as GCP'
         by (unfold full_gc; entailer!!). 
-     simpl in H13.
+     simpl in H10.
      forward.
      Exists (v2, S m,g5,t_info5,roots4). simpl fst. simpl snd.
-     unfold spatial_gcgraph.ti_fp.
+     unfold ti_fp.
      replace (Z.of_nat (n - S m)) with (Z.of_nat (n-m)-1) by lia.
-     rewrite H16.
+     rewrite H13.
      entailer!!.
      eapply gc_graph_iso_trans; eassumption.
  - (* after the loop *)
+   Local Ltac entailer_for_return ::= entailer!!.
    forward.
    assert (m=n). {
-    clear - H3 H HRE. unfold encode_Z in H. unfold min_signed, max_signed in H. simpl in H.
-    apply repr_inj_unsigned64 in HRE; try rep_lia.
+    clear - H3 H HRE. unfold encode_Z, min_signed, max_signed in H. 
+    apply repr_inj_unsigned64 in HRE; rep_lia.
    }
    subst m.
    Exists v0 g' t_info' roots'.
-   thaw SURPLUS.
-   unfold abbreviate in JOIN_ROOT, JOIN_FRAME.
-   unfold frame_rep_.
-   change_compspecs CompSpecs.
-   sep_apply (data_at_data_at_ sh (Tstruct gc_stack._stack_frame noattr)
-       (Vundef, (v___ROOT__, spatial_gcgraph.ti_fp t_info')) v___FRAME__).
-   sep_apply JOIN_FRAME. sep_apply JOIN_ROOT.
+   undo_frame_shares.
    entailer!!.
 Qed.
