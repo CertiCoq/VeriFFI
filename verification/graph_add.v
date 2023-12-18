@@ -1030,8 +1030,8 @@ Qed.
 Lemma sound_gc_graph g to lb es: 
   graph_has_gen g to ->  edge_compatible g to lb es -> add_node_compatible g (new_copied_v g to) es -> sound_gc_graph g -> sound_gc_graph (add_node g to lb es).
 Proof.
-  unfold sound_gc_graph. intros A EC C (H1&H2&H3).
-  split3.
+  unfold sound_gc_graph. intros A EC C (H1&H2&H3&H4).
+  split; [ | split3].
   all: eauto using add_node_vertex_valid, add_node_edge_valid, add_node_src_edge. 
 Qed.
 
