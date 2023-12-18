@@ -353,7 +353,6 @@ Ltac sep_apply_compspecs cs H :=
   generalize H; limited_change_compspecs cs; 
   let Hx := fresh "Hx" in  intro Hx; sep_apply Hx; clear Hx.
 
-
 Lemma decode_encode_Z: 
   forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
   Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
@@ -370,88 +369,174 @@ simpl Z.div; rewrite Z.add_0_r.
 auto.
 Qed.
 
-
-Lemma body_uint63_to_nat: semax_body Vprog Gprog f_uint63_to_nat uint63_to_nat_spec.
-Proof. 
-start_function.
-change (Tpointer _ _) with int_or_ptr_type.
-forward.  unfold full_gc. Intros.
-forward_call (gv, g). 
-Intros v.
-rewrite decode_encode_Z by auto.
-forward.
-forward.
-unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
-Intros.
-forward.
-forward.
-rewrite Int.signed_repr by rep_lia.
-deadvars!.
-sep_apply_compspecs CompSpecs 
-  (frame_rep__fold Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 (Vlong (Int64.repr 0))).
-sep_apply before_gc_thread_info_rep_fold.
-sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
-forward_while 
-(EX v : rep_type, EX m : nat, EX g' : graph, 
- EX (t_info' : GCGraph.thread_info), EX (roots': roots_t),
- PROP (is_in_graph g' m v; (m <= n)%nat;
-      gc_condition_prop g' t_info' roots' outlier;
-      gc_graph_iso g roots g' roots';
-      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
- LOCAL (temp _temp (rep_type_val g' v);
-      temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
-      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
-      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
-      temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
-      gvars gv)
-SEP (full_gc g' t_info' roots' outlier ti sh gv;
-    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
-    library.mem_mgr gv)
-). 
-- (* Before the while *)
-   Exists v O g t_info roots.
-   entailer!!. 
-   split3.
-    * apply gc_graph_iso_refl.
-    * apply frame_shells_eq_refl.
-    * repeat f_equal. lia.
-- (* Valid condition  *)
-  entailer!!. 
-- (* During the loop *)
-  rename H4 into GCP. rename H6 into H4.
-  assert (STARTptr: isptr (space_start (heap_head (ti_heap t_info')))). {
+Lemma space_start_isptr':
+  forall [g tinfo roots outlier],
+  gc_condition_prop g tinfo roots outlier ->
+  isptr (space_start (heap_head (ti_heap tinfo))).
+Proof.
+ intros * GCP.
     red in GCP; decompose [and] GCP.
-    destruct (heap_head_cons (ti_heap t_info')) as [s [l [C1 C2]  ] ].
+    destruct (heap_head_cons (ti_heap tinfo)) as [s [l [C1 C2]  ] ].
     rewrite C2.
-    replace s with (Znth 0 (spaces (ti_heap t_info'))) by (rewrite C1; reflexivity).
-    apply space_start_isptr with g'; auto.
+    replace s with (Znth 0 (spaces (ti_heap tinfo))) by (rewrite C1; reflexivity).
+    apply space_start_isptr with g; auto.
     rewrite C1; clear; list_solve.
     apply graph_has_gen_O.
-  }
-  assert (m<n)%nat by lia. clear H3 HRE HRE'. rename H6 into HRE.
+Qed.
+
+Definition perhaps_gc_1_live_root_command (n: Z) := 
+                (Ssequence
+                  (Sset _t'3
+                    (Efield
+                      (Ederef
+                        (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                        (Tstruct _thread_info noattr)) _limit
+                      (tptr int_or_ptr_type)))
+                  (Ssequence
+                    (Sset _t'4
+                      (Efield
+                        (Ederef
+                          (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                          (Tstruct _thread_info noattr)) _alloc
+                        (tptr int_or_ptr_type)))
+                    (Sifthenelse (Eunop Onotbool
+                                   (Ebinop Ole (Econst_int (Int.repr n) tint)
+                                     (Ebinop Osub
+                                       (Etempvar _t'3 (tptr int_or_ptr_type))
+                                       (Etempvar _t'4 (tptr int_or_ptr_type))
+                                       tlong) tint) tint)
+                      (Ssequence
+                        (Sassign
+                          (Efield
+                            (Ederef
+                              (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                              (Tstruct _thread_info noattr)) _nalloc tulong)
+                          (Econst_int (Int.repr n) tint))
+                        (Ssequence
+                          (Ssequence
+                            (Ssequence
+                              (Ssequence
+                                (Ssequence
+                                  (Ssequence
+                                    (Sassign
+                                      (Efield
+                                        (Ederef
+                                          (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                                          (Tstruct _thread_info noattr)) _fp
+                                        (tptr (Tstruct _stack_frame noattr)))
+                                      (Eaddrof
+                                        (Evar ___FRAME__ (Tstruct _stack_frame noattr))
+                                        (tptr (Tstruct _stack_frame noattr))))
+                                    (Sassign
+                                      (Efield
+                                        (Evar ___FRAME__ (Tstruct _stack_frame noattr))
+                                        _next
+                                        (tptr int_or_ptr_type))
+                                      (Ebinop Oadd
+                                        (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                        (Econst_int (Int.repr 1) tint)
+                                        (tptr int_or_ptr_type))))
+                                  (Sassign
+                                    (Ederef
+                                      (Ebinop Oadd
+                                        (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                        (Econst_int (Int.repr 0) tint)
+                                        (tptr int_or_ptr_type))
+                                      int_or_ptr_type)
+                                    (Etempvar _temp int_or_ptr_type)))
+                                (Scall None
+                                  (Evar _garbage_collect (Tfunction
+                                                           (Tcons
+                                                             (tptr (Tstruct _thread_info noattr))
+                                                             Tnil) tvoid
+                                                           cc_default))
+                                  ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+                                   nil)))
+                              (Sset ___RTEMP__
+                                (Ecast
+                                  (Ecast (Econst_int (Int.repr 0) tint)
+                                    (tptr tvoid))
+                                  int_or_ptr_type)))
+                            (Sset _temp
+                              (Ederef
+                                (Ebinop Oadd
+                                  (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                  (Econst_int (Int.repr 0) tint)
+                                  (tptr int_or_ptr_type))
+                                int_or_ptr_type)))
+                          (Ssequence
+                            (Sset _t'5
+                              (Efield
+                                (Evar ___FRAME__ (Tstruct _stack_frame noattr))
+                                _prev (tptr (Tstruct _stack_frame noattr))))
+                            (Sassign
+                              (Efield
+                                (Ederef
+                                  (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                                  (Tstruct _thread_info noattr)) _fp
+                                (tptr (Tstruct _stack_frame noattr)))
+                              (Etempvar _t'5 (tptr (Tstruct _stack_frame noattr)))))))
+                      Sskip))).
+
+Lemma perhaps_gc_1_live_root:
+ forall (n: Z) (Espec : OracleKind)
+  (gv : globals) (sh : share)
+  (ti : val)
+  (outlier : outlier_t)
+  (v___ROOT__  v___FRAME__ : val)
+  (SH : writable_share sh)
+  (v0 : rep_type)
+  (m : nat)
+  (g : graph)
+  (t_info : GCGraph.thread_info)
+  (roots : roots_t)
+  (ival: val)
+  (Hn: 0 <= n <= Int.max_signed)
+  (H2 : is_in_graph g m v0) 
+  (GCP : gc_condition_prop g t_info roots outlier)
+  (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
+semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
+  (PROP ( )
+   LOCAL (temp _temp (rep_type_val g v0); temp _i ival;
+   lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+   lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+   gvars gv)
+   SEP (full_gc g t_info roots outlier ti sh gv;
+   frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
+   library.mem_mgr gv))
+  (perhaps_gc_1_live_root_command n)
+  (normal_ret_assert
+     (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
+      (t_info' : GCGraph.thread_info),
+      PROP (headroom t_info' >= n; is_in_graph g' m v0';
+      gc_condition_prop g' t_info' roots' outlier; 
+      gc_graph_iso g roots g' roots';
+      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+      LOCAL (temp _temp (rep_type_val g' v0'); temp _i ival;
+      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+      gvars gv)
+      SEP (full_gc g' t_info' roots' outlier ti sh gv;
+      frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
+      library.mem_mgr gv))%argsassert).
+Proof.
+intros.
+assert (H5 := I).
+assert (H4 := I).
+assert (H0 := I).
+assert (H1 := I).
+assert (H := I).
+unfold perhaps_gc_1_live_root_command.
+abbreviate_semax.
+
   unfold full_gc.
   unfold before_gc_thread_info_rep;  limited_change_compspecs CompSpecs.
   Intros.
   forward.
   forward.
-  destruct (space_start (heap_head (ti_heap t_info'))) eqn:STARTeq; try contradiction.
+  destruct (space_start (heap_head (ti_heap t_info))) eqn:STARTeq; try contradiction.
   rename b into startb; rename i into starti.
-  forward_if (
-     EX g'': graph, EX v0':_, EX roots':_, EX t_info' : GCGraph.thread_info,
-     PROP ( headroom t_info' >= 2;
-            is_in_graph g'' m v0';
-            gc_condition_prop g'' t_info' roots' outlier;
-            gc_graph_iso g roots g'' roots';
-            frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-     LOCAL (temp _temp (rep_type_val g'' v0');
-     temp _i (Vlong (Int64.repr (Z.of_nat (n-m))));
-     lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
-     lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
-     temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
-     gvars gv)
-     SEP (full_gc g'' t_info' roots' outlier ti sh gv;
-          frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
-          library.mem_mgr gv))%assert.
+  forward_if.
  + apply prop_right; simpl. destruct (peq startb startb); try contradiction. auto.
  +
   forward.
@@ -461,46 +546,51 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   forward.
   forward.
   deadvars!.
-  change (upd_Znth 0 _ _) with [rep_type_val g' v0].
+  change (upd_Znth 0 _ _) with [rep_type_val g v0].
   change (Tpointer tvoid _) with int_or_ptr_type.
   assert_PROP (force_val (sem_add_ptr_int int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
       offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99;
       [ entailer! | rewrite H99; clear H99].
 
   sep_apply_compspecs CompSpecs 
-      (frame_rep_fold sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1 [rep_type_val g' v0]).
+      (frame_rep_fold sh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 [rep_type_val g v0]).
   unfold ti_fp.
-  sep_apply (frames_rep_cons sh v___FRAME__ v___ROOT__ [rep_type_val g' v0] (ti_frames t_info')).
+  sep_apply (frames_rep_cons sh v___FRAME__ v___ROOT__ [rep_type_val g v0] (ti_frames t_info)).
   compute; clear; congruence.
-  set (frames'' := _ :: ti_frames t_info').
-  pose (t_info'' := {| ti_heap_p := ti_heap_p t_info'; ti_heap := ti_heap t_info';
-                      arg_size := arg_size t_info'; ti_frames := frames'';
-                      ti_nalloc := Ptrofs.repr 2 |}).
-  change frames'' with (ti_frames t_info'').
+  set (frames'' := _ :: ti_frames t_info).
+  pose (t_info' := {| ti_heap_p := ti_heap_p t_info; ti_heap := ti_heap t_info;
+                      arg_size := arg_size t_info; ti_frames := frames'';
+                      ti_nalloc := Ptrofs.repr n |}).
+  change frames'' with (ti_frames t_info').
   rewrite Int.signed_repr by rep_lia.
-  change (ti_args t_info') with (ti_args t_info'').
-  change (ti_heap_p t_info') with (ti_heap_p t_info'').
+  change (ti_args t_info) with (ti_args t_info').
+  change (ti_heap_p t_info) with (ti_heap_p t_info').
   clear H3.
-  forward_call (Ers, sh, gv, ti, g', t_info'', root_t_of_rep_type v0 :: roots', outlier).
+  forward_call (Ers, sh, gv, ti, g, t_info', root_t_of_rep_type v0 :: roots, outlier).
   *
    unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
    rewrite <- STARTeq.
-   change (ti_heap t_info') with (ti_heap t_info'').
+   change (ti_heap t_info) with (ti_heap t_info').
+   change (ti_fp t_info') with v___FRAME__.
+   change (ti_nalloc t_info') with (Ptrofs.repr n).
+   replace (Vptrofs (Ptrofs.repr n)) with (Vlong (Int64.repr n))
+     by (rewrite Vptrofs_unfold_true by reflexivity;
+         rewrite ptrofs_to_int64_repr by reflexivity; auto).
    cancel.
   * simpl.
     split3.
     red in GCP.
     split3; [ tauto | | split; [ | tauto] ].
     --
-     subst frames''; clear t_info''.
+     subst frames''; clear t_info'.
      unfold frames2rootpairs. simpl concat.
      unfold rootpairs_compatible. simpl.
      f_equal.  destruct v0; auto.
-     change (rootpairs_compatible g' (frames2rootpairs (ti_frames t_info')) roots').
+     change (rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots).
      tauto.
     -- decompose [and] GCP; clear GCP. destruct H12.
        split. 
-       ++ clear t_info'' frames'' STARTptr STARTeq startb starti HRE.
+       ++ clear t_info' frames'' STARTptr STARTeq startb starti.
           unfold root_t_of_rep_type.
           destruct v0; auto.
           red in H12|-*. simpl.
@@ -525,26 +615,26 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    inversion FSE; clear FSE. subst r1 fr1.
    destruct fr2 as [a3 r3 s3]; simpl in H11, H12, H13.
    subst a3 r3.
-   destruct s3. exfalso; clear - H13; list_solve.
+   destruct s3 as [ | v0x s3]. exfalso; clear - H13; list_solve.
    destruct s3. 2: exfalso; clear - H13; list_solve.
    subst frames3.
-   sep_apply (frames_rep_pop sh v___FRAME__ v___ROOT__ [v1] r2).
+   sep_apply (frames_rep_pop sh v___FRAME__ v___ROOT__ [v0x] r2).
    compute; clear; congruence.
    unfold frame_rep at 1.
    Intros. change (Zlength [_]) with 1.
-   assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots') g'). {
+   assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots) g). {
        destruct GCP as [_ [_ [_ [_ [_ [_ [_ [ [ _ RGC ] _  ] ] ] ] ] ] ] ].
        destruct v0; try apply RGC.
        constructor; auto.
        red in H2.
        eapply has_v; eauto.
     }
-   assert (ISO: gc_graph_iso g' (root_t_of_rep_type v0 :: roots') g3 roots3). {
+   assert (ISO: gc_graph_iso g (root_t_of_rep_type v0 :: roots) g3 roots3). {
      red in H6; decompose [and] H6.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
    assert (exists v0', exists roots3',
-        v1 = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
+        v0x = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
        rewrite <- H14 in H3. simpl frames2rootpairs in H3.
     pose proof @gc_preserved _ InGraph_nat _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
     m 0 ltac:(clear; Zlength_solve).
@@ -555,7 +645,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     split3; auto.
     destruct H3 as [_ [H3 _] ].
     red in H3. simpl in H3.
-    assert (v1 = root2val g3 (Znth 0 roots3)) by list_solve.
+    assert (v0x = root2val g3 (Znth 0 roots3)) by list_solve.
     rewrite H11.
     destruct (Znth 0 roots3); try destruct s ; auto.
     apply graph_iso_Zlength in ISO.    
@@ -567,13 +657,13 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     rewrite sublist_same by lia. auto.
     }
    destruct H10 as [v0' [roots3' [ ? [? ?] ] ] ].
-   subst v1 roots3.
+   subst v0x roots3.
    limited_change_compspecs CompSpecs.
    forward. entailer!!. rewrite Znth_0_cons. { 
         destruct v0'; simpl; auto. destruct g0; simpl; auto.
-        unfold vertex_address.
         apply has_v in H11. destruct H11 as [? _].
         pose proof (graph_has_gen_start_isptr _ _ H10).
+        unfold vertex_address.
         destruct (gen_start g3 (vgeneration _)); auto.
     }
    forward.  
@@ -613,11 +703,10 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
     }
     repeat simple apply conj; auto.
       ++ simpl ti_heap.
-         clear - ROOM. simpl in ROOM. rewrite Ptrofs.unsigned_repr in ROOM by rep_lia.
+         clear - Hn ROOM. simpl in ROOM.
+         rewrite Ptrofs.unsigned_repr in ROOM by rep_lia.
          unfold headroom. simpl.  lia.
-      ++ apply gc_graph_iso_trans with g' roots'; auto.
-         eapply gc_graph_iso_cons_roots_inv; eassumption.
-      ++ simpl. eapply frame_shells_eq_trans; eassumption.
+      ++ apply gc_graph_iso_cons_roots_inv in ISO; auto.
     -- unfold before_gc_thread_info_rep, frame_rep_.
       limited_change_compspecs CompSpecs.
       unfold ti_fp. 
@@ -630,12 +719,69 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
       compute; clear; congruence.
   + forward.
     apply headroom_check in H3; [ | rep_lia].
-    Exists g' v0 roots' t_info'.
+    Exists g v0 roots t_info.
     unfold full_gc, before_gc_thread_info_rep.
     rewrite <- STARTeq.
     limited_change_compspecs CompSpecs.
     entailer!!.
-  + Intros g4 v0' roots4 t_info4.
+    split.
+    apply gc_graph_iso_refl.
+    apply frame_shells_eq_refl.
+Qed.
+
+Lemma body_uint63_to_nat: semax_body Vprog Gprog f_uint63_to_nat uint63_to_nat_spec.
+Proof. 
+start_function.
+change (Tpointer _ _) with int_or_ptr_type.
+forward. unfold full_gc. Intros.
+forward_call (gv, g). 
+Intros v.
+rewrite decode_encode_Z by auto.
+forward.
+forward.
+unfold before_gc_thread_info_rep; limited_change_compspecs CompSpecs.
+Intros.
+forward.
+forward.
+rewrite Int.signed_repr by rep_lia.
+deadvars!.
+sep_apply_compspecs CompSpecs 
+  (frame_rep__fold Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 (Vlong (Int64.repr 0))).
+sep_apply before_gc_thread_info_rep_fold.
+sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
+forward_while 
+(EX v : rep_type, EX m : nat, EX g' : graph, 
+ EX (t_info' : GCGraph.thread_info), EX (roots': roots_t),
+ PROP (is_in_graph g' m v; (m <= n)%nat;
+      gc_condition_prop g' t_info' roots' outlier;
+      gc_graph_iso g roots g' roots';
+      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+ LOCAL (temp _temp (rep_type_val g' v);
+      temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
+      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
+      temp _tinfo ti;
+      gvars gv)
+SEP (full_gc g' t_info' roots' outlier ti sh gv;
+    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
+    library.mem_mgr gv)
+). 
+- (* Before the while *)
+   Exists v O g t_info roots.
+   entailer!!. 
+   split3.
+    * apply gc_graph_iso_refl.
+    * apply frame_shells_eq_refl.
+    * repeat f_equal. lia.
+- (* Valid condition  *)
+  entailer!!. 
+- (* During the loop *)
+  rename H4 into GCP. rename H6 into H4.
+  assert (STARTptr := space_start_isptr' GCP).
+  assert (m<n)%nat by lia. clear H3 HRE HRE'. rename H6 into HRE.
+  eapply semax_seq'; [apply perhaps_gc_1_live_root; eauto; rep_lia| ].
+  abbreviate_semax.
+  Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
    * split; auto. reflexivity.
@@ -651,9 +797,12 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
      replace (Z.of_nat (n - S m)) with (Z.of_nat (n-m)-1) by lia.
      rewrite H13.
      entailer!!.
-     eapply gc_graph_iso_trans; eassumption.
+     split.
+     eapply gc_graph_iso_trans; try eassumption.
+     eapply gc_graph_iso_trans; try eassumption.
+     rewrite <- H13.
+     eapply frame_shells_eq_trans; try eassumption.
  - (* after the loop *)
-   Local Ltac entailer_for_return ::= entailer!!.
    forward.
    assert (m=n). {
     clear - H3 H HRE. unfold encode_Z, min_signed, max_signed in H. 

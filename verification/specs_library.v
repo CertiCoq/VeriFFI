@@ -93,7 +93,7 @@ Definition frame_rep_ sh (fr vr prev: val) (n: Z) :=
     (Vundef, (vr, prev)) fr
    * data_at_ sh (tarray int_or_ptr_type n) vr)%logic.
 
-Lemma frame_rep__fold: forall sh fr vr prev n any,
+Lemma frame_rep__fold: forall sh (fr vr prev: val) (n: Z) (any: val),
     data_at sh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
    * data_at_ sh (tarray int_or_ptr_type n) vr
   |-- frame_rep_ sh fr vr prev n.
@@ -108,7 +108,7 @@ Definition frame_rep_surplus sh (fr vr: val) (n: Z) (al: list val) :=
        @data_at_ env_graph_gc.CompSpecs sh (tarray int_or_ptr_type (n-Zlength al))
        (@field_address0 env_graph_gc.CompSpecs (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr)))%logic.
 
-Lemma frame_rep_fold: forall sh fr vr prev n al,
+Lemma frame_rep_fold: forall sh (fr vr prev: val) (n: Z) (al: list val),
   Zlength al <= n ->
   (@data_at env_graph_gc.CompSpecs Tsh (Tstruct gc_stack._stack_frame noattr)
     (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
