@@ -155,10 +155,6 @@ Admitted.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
 Defined.
 
-#[export] Instance CCE2: change_composite_env env_graph_gc.CompSpecs CompSpecs.
-make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
-Defined.
-
 Lemma before_gc_thread_info_rep_fold:
   forall sh t_info (ti: val),
   data_at sh env_graph_gc.thread_info_type
@@ -358,47 +354,6 @@ Ltac sep_apply_compspecs cs H :=
   let Hx := fresh "Hx" in  intro Hx; sep_apply Hx; clear Hx.
 
 
-Ltac do_frame_shares :=
-  (* find the SEP clauses for the current "frame" with permission-share Tsh,
-    and replace with permission-share "sh", saving the SURPLUS for later use *)
- match goal with |- semax _ (PROPx _ (LOCALx ?L (SEPx ?S))) _ _ =>
-   match L with context [lvar ?frame_id (Tstruct _stack_frame _) ?vframe] =>
-    match S with context [data_at_ Tsh (Tstruct _stack_frame _) vframe] =>
-     match L with context [lvar ?root_id (tarray _ ?n) ?vroot] =>
-      match S with context [data_at_ Tsh (tarray _ n) vroot]  =>
-       match S with context [full_gc _ _ _ _ _ ?sh _] =>
-    let JF := fresh "JOIN_FRAME" in let JR := fresh "JOIN_ROOT" in
-    assert (JF := data_at__share_join _ _ _ (Tstruct _stack_frame noattr) vframe (join_comp_Tsh sh));
-    assert (JR := data_at__share_join _ _ _ (tarray int_or_ptr_type n) vroot (join_comp_Tsh sh));
-    rewrite <- JF, <- JR;
-    Intros;
-    let SURPLUS := fresh "SURPLUS" in 
-    freeze SURPLUS := (data_at_ (Share.comp sh) _ vframe) (data_at_ (Share.comp sh) _ vroot);
-    change (?x) with (@abbreviate _ x) in JF;
-    change (?x) with (@abbreviate _ x) in JR
- end end end end end end.
-
-Ltac undo_frame_shares :=
-  (* rejoin the SURPLUS shares into the current frame *)
- match goal with
-  | JF : @abbreviate _ 
-     (@data_at_ ?cs ?sh (Tstruct _stack_frame _) ?vframe *
-       data_at_ _ (Tstruct _stack_frame _) ?vframe' = _)%logic,
-    JR: @abbreviate _ 
-      (data_at_ ?sh' (tarray _ _) ?vroot * data_at_ _ (tarray _ _) ?vroot' = _)%logic,
-    SURPLUS := @abbreviate _ (map ?S _)
-   |- context [FRZL ?SURPLUS'] =>
-     constr_eq vframe vframe'; constr_eq vroot vroot'; 
-     constr_eq sh sh'; constr_eq SURPLUS SURPLUS';
-    match goal with |- context [frame_rep_ sh vframe vroot ?fp ?n] =>
-        unfold frame_rep_; limited_change_compspecs cs;
-     thaw SURPLUS; unfold abbreviate in JF, JR;
-     sep_apply (data_at_data_at_ sh (Tstruct gc_stack._stack_frame noattr)
-       (Vundef, (vroot, fp)) vframe);
-   sep_apply JF; sep_apply JR; clear JF JR
- end end.
-
-
 Lemma decode_encode_Z: 
   forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
   Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
@@ -415,11 +370,11 @@ simpl Z.div; rewrite Z.add_0_r.
 auto.
 Qed.
 
+
 Lemma body_uint63_to_nat: semax_body Vprog Gprog f_uint63_to_nat uint63_to_nat_spec.
 Proof. 
 start_function.
 change (Tpointer _ _) with int_or_ptr_type.
-do_frame_shares.
 forward.  unfold full_gc. Intros.
 forward_call (gv, g). 
 Intros v.
@@ -433,7 +388,7 @@ forward.
 rewrite Int.signed_repr by rep_lia.
 deadvars!.
 sep_apply_compspecs CompSpecs 
-  (frame_rep__fold sh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 (Vlong (Int64.repr 0))).
+  (frame_rep__fold Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 (Vlong (Int64.repr 0))).
 sep_apply before_gc_thread_info_rep_fold.
 sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
 forward_while 
@@ -449,8 +404,8 @@ forward_while
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
       temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
       gvars gv)
-SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
-    frame_rep_ sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
+SEP (full_gc g' t_info' roots' outlier ti sh gv;
+    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
     library.mem_mgr gv)
 ). 
 - (* Before the while *)
@@ -494,8 +449,8 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
      temp _tinfo ti; (*temp _t (Vlong (Int64.repr (encode_Z (Z.of_nat n))));*)
      gvars gv)
-     SEP (FRZL SURPLUS; full_gc g'' t_info' roots' outlier ti sh gv;
-          frame_rep_ sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
+     SEP (full_gc g'' t_info' roots' outlier ti sh gv;
+          frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
           library.mem_mgr gv))%assert.
  + apply prop_right; simpl. destruct (peq startb startb); try contradiction. auto.
  +
@@ -511,6 +466,7 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
   assert_PROP (force_val (sem_add_ptr_int int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
       offset_val (sizeof int_or_ptr_type * 1) v___ROOT__)  as H99;
       [ entailer! | rewrite H99; clear H99].
+
   sep_apply_compspecs CompSpecs 
       (frame_rep_fold sh v___FRAME__ v___ROOT__ (ti_fp t_info') 1 [rep_type_val g' v0]).
   unfold ti_fp.
@@ -669,25 +625,16 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
       replace (Vlong (Ptrofs.to_int64 (ti_nalloc t_info3))) with (Vptrofs (ti_nalloc t_info3))
         by (rewrite Vptrofs_unfold_true by reflexivity; reflexivity).
       cancel.
-      unfold frame_rep_surplus. change (1 - Zlength _) with 0.
-      limited_change_compspecs CompSpecs.
-      Intros.
-      generalize H10; 
-      rewrite (@field_compatible_change_composite env_graph_gc.CompSpecs CompSpecs CCE) by auto with typeclass_instances; intro.
-      sep_apply data_at__data_at.
-      sep_apply data_at_zero_array_eq.
-      autorewrite with sublist.
-      unfold field_address0. rewrite if_true; simpl. auto with field_compatible.
-      auto with field_compatible.
-      do 2 unfold_data_at (data_at _ (Tstruct gc_stack._stack_frame _) _ _).
-      cancel.
+      generalize (frame_rep_unfold sh v___FRAME__ v___ROOT__ (frames_p r2) 1 [rep_type_val g3 v0']);
+        limited_change_compspecs CompSpecs; intro Hx; apply Hx; clear Hx; auto.
+      compute; clear; congruence.
   + forward.
+    apply headroom_check in H3; [ | rep_lia].
     Exists g' v0 roots' t_info'.
     unfold full_gc, before_gc_thread_info_rep.
     rewrite <- STARTeq.
     limited_change_compspecs CompSpecs.
     entailer!!.
-    apply headroom_check in H3; auto; rep_lia.
   + Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
@@ -714,6 +661,6 @@ SEP (FRZL SURPLUS; full_gc g' t_info' roots' outlier ti sh gv;
    }
    subst m.
    Exists v0 g' t_info' roots'.
-   undo_frame_shares.
+   unfold frame_rep_.
    entailer!!.
 Qed.

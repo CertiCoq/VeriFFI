@@ -93,26 +93,6 @@ Definition frame_rep_ sh (fr vr prev: val) (n: Z) :=
     (Vundef, (vr, prev)) fr
    * data_at_ sh (tarray int_or_ptr_type n) vr)%logic.
 
-Definition frame_rep_surplus sh (fr vr: val) (n: Z) (al: list val) :=
-   !! field_compatible (tarray int_or_ptr_type n) [] vr 
-   && data_at_ sh (tarray int_or_ptr_type (n-Zlength al))
-       (field_address0 (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr) .
-
-Lemma frame_rep_fold: forall sh fr vr prev n al,
-  Zlength al <= n ->
-  data_at sh (Tstruct _stack_frame noattr)
-    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
-   * data_at sh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr
-  |-- frame_rep sh fr vr prev al
-      * frame_rep_surplus sh fr vr n al.
-Proof.
-intros. unfold frame_rep, frame_rep_surplus.
- entailer!.
- erewrite split2_data_at_Tarray_app.
- 2: reflexivity. 2: list_solve.
- cancel.
-Qed.
-
 Lemma frame_rep__fold: forall sh fr vr prev n any,
     data_at sh (Tstruct _stack_frame noattr) (any, (vr, prev)) fr
    * data_at_ sh (tarray int_or_ptr_type n) vr
@@ -120,6 +100,59 @@ Lemma frame_rep__fold: forall sh fr vr prev n any,
 Proof. intros. unfold frame_rep_. cancel.
   do 2 unfold_data_at (data_at _ _ _ _). cancel.
 Qed.
+
+Definition frame_rep_surplus sh (fr vr: val) (n: Z) (al: list val) :=
+  ( !! @field_compatible env_graph_gc.CompSpecs (tarray int_or_ptr_type n) [] vr 
+   && (@data_at_ env_graph_gc.CompSpecs (Share.comp sh) (Tstruct gc_stack._stack_frame noattr) fr *
+       @data_at_ env_graph_gc.CompSpecs (Share.comp sh) (tarray int_or_ptr_type n) vr *
+       @data_at_ env_graph_gc.CompSpecs sh (tarray int_or_ptr_type (n-Zlength al))
+       (@field_address0 env_graph_gc.CompSpecs (tarray int_or_ptr_type n) [ArraySubsc (Zlength al)] vr)))%logic.
+
+Lemma frame_rep_fold: forall sh fr vr prev n al,
+  Zlength al <= n ->
+  (@data_at env_graph_gc.CompSpecs Tsh (Tstruct gc_stack._stack_frame noattr)
+    (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
+   * @data_at env_graph_gc.CompSpecs Tsh (tarray int_or_ptr_type n) (al++Zrepeat Vundef (n-Zlength al)) vr)%logic
+  |-- frame_rep sh fr vr prev al
+      * frame_rep_surplus sh fr vr n al.
+Proof.
+intros. unfold frame_rep, frame_rep_surplus.
+ entailer!.
+ rewrite <- (data_at_share_join sh _ Tsh (tarray int_or_ptr_type _) _ vr (join_comp_Tsh sh)).
+ rewrite (split2_data_at_Tarray_app (Zlength al) _ sh); auto.
+ 2: list_solve.
+ rewrite <- (data_at_share_join sh _ Tsh (Tstruct gc_stack._stack_frame noattr) _ fr (join_comp_Tsh sh)).
+ cancel.
+Qed.
+
+Lemma frame_rep_unfold: forall sh fr vr prev n (al: list val), 
+ writable_share sh ->
+ Zlength al <= n ->
+  @data_at env_graph_gc.CompSpecs sh (Tstruct gc_stack._stack_frame noattr) (offset_val (sizeof(int_or_ptr_type)*Zlength al) vr, (vr, prev)) fr
+  * @data_at env_graph_gc.CompSpecs sh (tarray int_or_ptr_type (Zlength al)) al vr
+  * frame_rep_surplus sh fr vr n al
+|-- @data_at env_graph_gc.CompSpecs Tsh (Tstruct gc_stack._stack_frame noattr) (Vundef, (vr, prev)) fr
+      * @data_at_ env_graph_gc.CompSpecs Tsh (tarray int_or_ptr_type n) vr.
+Proof.
+intros.
+unfold frame_rep_surplus.
+Intros.
+saturate_local.
+simplify_value_fits in H3.
+destruct H3 as [? [? ?] ].
+rewrite <- (data_at__share_join sh _ Tsh (tarray int_or_ptr_type _) vr (join_comp_Tsh sh)).
+rewrite <- (data_at_share_join sh _ Tsh (Tstruct gc_stack._stack_frame noattr) _ fr (join_comp_Tsh sh)).
+do 2 unfold_data_at (data_at sh (Tstruct gc_stack._stack_frame noattr) _ _).
+rewrite (split2_data_at__Tarray_app (Zlength al) n sh) by (auto; list_solve).
+cancel.
+apply derives_refl'; apply nonreadable_data_at_eq.
+eapply writable_not_join_readable; try eassumption.
+eexists; apply join_comp_Tsh.
+simpl.
+split; intro FIT; simplify_value_fits in FIT; destruct FIT as [? [? ?] ];
+simplify_value_fits; split3; auto.
+Qed.
+
 
 Definition root_t_of_rep_type (v: rep_type) : root_t :=
    match v with
