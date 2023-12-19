@@ -10,7 +10,6 @@ Require Import VST.floyd.proofauto.
 Require Import VST.msl.iter_sepcon.
 (* TODO: Dependency. *)
 
-Locate rep_type.
 (** ** Library definitions for specifications *)
 
 Require Import VST.floyd.proofauto.

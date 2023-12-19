@@ -5,7 +5,7 @@ Require Import String.
 Open Scope string.
 
 Require Import VeriFFI.generator.Rep.
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (gen_for string).
 MetaCoq Run (gen_for unit).

@@ -23,7 +23,7 @@ Ltac gen :=
   | _ => in_graph_gen_tac
   end.
 
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 
 (* MetaCoq Run (in_graph_gen unit). *)
 (* MetaCoq Run (desc_gen tt). *)

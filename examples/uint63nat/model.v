@@ -8,7 +8,7 @@ Require Import VeriFFI.library.isomorphism.
 Require Import VeriFFI.library.meta.
 
 Require Import VeriFFI.generator.Rep.
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (desc_gen S).
 
@@ -125,9 +125,9 @@ Module UInt63_Proofs.
     unfold FM.add, FM.from_nat, FM.to_nat.
     (* the rest is just a proof about the functional model *)
     unfold proj1_sig.
-    rewrite <- !(Nat.add_mod y z).
-    rewrite <- !(Nat.add_mod x y).
-    rewrite <- !(Nat.add_mod).
+    rewrite <- !(Nat.Div0.add_mod y z).
+    rewrite <- !(Nat.Div0.add_mod x y).
+    rewrite <- !(Nat.Div0.add_mod).
     f_equal.
     apply Nat.add_assoc.
     all: apply Nat.pow_nonzero; auto.

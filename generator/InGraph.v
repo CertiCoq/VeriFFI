@@ -219,7 +219,7 @@ Definition in_graph_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
-Obligation Tactic := in_graph_gen_tac.
+Local Obligation Tactic := in_graph_gen_tac.
 
 (* Require Import VeriFFI.generator.GraphPredicate. *)
 (* MetaCoq Run (graph_predicate_gen nat). *)

@@ -237,7 +237,7 @@ Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   | _ => tmFail "Need an inductive type in the environment"
   end.
 
-Obligation Tactic := reflecting.
+Local Obligation Tactic := reflecting.
 
 Ltac gen :=
   match goal with
@@ -245,7 +245,7 @@ Ltac gen :=
   | _ => in_graph_gen_tac
   end.
 
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 
 Unset MetaCoq Strict Unquote Universe Mode.
 

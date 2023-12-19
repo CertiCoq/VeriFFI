@@ -9,7 +9,7 @@ Require Import VeriFFI.library.meta.
 
 Unset MetaCoq Strict Unquote Universe Mode.
 Require Import VeriFFI.generator.Rep.
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 MetaCoq Run (gen_for Z).
 
 Require Import VeriFFI.examples.uint63z.prog.

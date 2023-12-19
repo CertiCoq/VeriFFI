@@ -222,7 +222,7 @@ Ltac gen :=
   | _ => in_graph_gen_tac
   end.
 
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 
 (* Unset MetaCoq Strict Unquote Universe Mode. *)
 (* MetaCoq Run (in_graph_gen bool). *)

@@ -5,7 +5,7 @@ Require Import String.
 Open Scope string.
 
 Require Import VeriFFI.generator.Rep.
-Obligation Tactic := gen.
+Local Obligation Tactic := gen.
 MetaCoq Run (gen_for unit).
 MetaCoq Run (gen_for nat).
 
@@ -15,7 +15,7 @@ Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.array.prog.
 
-Variable InGraph_elt : InGraph elt.
+#[export] Declare Instance InGraph_elt : InGraph elt.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
 Module FM <: Array.
