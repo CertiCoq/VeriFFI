@@ -103,6 +103,3 @@ Definition fib (len : nat) : nat :=
 
 Definition prog := fib 7.
 *)
-
-CertiCoq Compile -build_dir "examples/array/" -file "prog" prog.
-CertiCoq Generate Glue -build_dir "examples/array" -file "glue" [ option, nat, C.MI ].

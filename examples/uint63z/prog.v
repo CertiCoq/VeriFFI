@@ -26,6 +26,3 @@ CertiCoq Register [
   ] Include [ "prims.h" ].
 
 Definition prog := C.to_Z (C.add (C.from_Z 1) (C.from_Z 2)).
-
-CertiCoq Compile -build_dir "examples/uint63z/" -file "prog" prog.
-CertiCoq Generate Glue -build_dir "examples/uint63z" -file "glue" [ Z ].

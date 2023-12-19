@@ -66,7 +66,3 @@ Definition prog : unit :=
     (x <- C.scan 10 ;;
      y <- C.scan 10 ;;
      C.print (C.pack "Hello, " ++ x ++ C.pack " " ++ y)).
-
-CertiCoq Compile -build_dir "examples/bytestring/" -file "prog" prog.
-CertiCoq Generate Glue -build_dir "examples/bytestring" -file "glue"
-  [ unit, nat, bool, string, C.MI ].

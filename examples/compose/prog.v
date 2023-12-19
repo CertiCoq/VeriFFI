@@ -14,6 +14,3 @@ CertiCoq Register [
 
 (* Definition prog := C.compose (fun x => x + 1) (fun y => y + 1) 2. *)
 Definition prog := C.compose S S 2.
-
-CertiCoq Compile -build_dir "examples/compose/" -file "prog" prog.
-CertiCoq Generate Glue -build_dir "examples/compose" -file "glue" [ ].

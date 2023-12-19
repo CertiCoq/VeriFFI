@@ -1,3 +1,4 @@
+-docroot VeriFFI
 -Q library VeriFFI.library
 -Q generator VeriFFI.generator
 -Q verification VeriFFI.verification
