@@ -96,9 +96,9 @@ Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec :=
   (PARAMSx ( [rep_type_val g p])
   (GLOBALSx [gv]
   (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
-  POST [ tptr ((tarray int_or_ptr_type 1)) (* tarray int_or_ptr_type 1 *)  ]
+  POST [ tptr int_or_ptr_type (* tarray int_or_ptr_type 1 *)  ]
   EX  (p' : rep_type) (sh' : share),
-  PROP (  
+  PROP (  writable_share sh';
           is_in_graph g x p'
       )
   RETURN  ( rep_type_val g p ) 

@@ -5,82 +5,129 @@ Require Import CertiGraph.CertiGC.spatial_gcgraph.
 
 Require Import VeriFFI.examples.uint63nat.specs.
 
+Ltac limited_change_compspecs' cs cs' :=
+  lazymatch goal with
+  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
+  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
+  end.
+
+Ltac limited_change_compspecs cs :=
+ match goal with |- context [?cs'] =>
+   match type of cs' with compspecs =>
+     try (constr_eq cs cs'; fail 1);
+     limited_change_compspecs' cs cs';
+     repeat limited_change_compspecs' cs cs'
+   end
+end.
+
+#[export] Instance CCE3: change_composite_env Verif_prog_general.CompSpecs CompSpecs.
+make_cs_preserve Verif_prog_general.CompSpecs CompSpecs.
+Defined.
+
 Definition description_S := @desc _ S _. 
 
-(* Lemma body_uint63_from_nat_spec :
-  semax_body Vprog Gprog
-             f_uint63_from_nat
-             uint63_from_nat_spec.
+Lemma decode_encode_Z: 
+  forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
+  Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
+              (Int64.repr (Int.unsigned (Int.repr 1)))
+               = Int64.repr (Z.of_nat n).
 Proof.
-    start_function. 
-    forward. replace (match p with
-    | repZ y => odd_Z2val y
-    | repOut p0 => GC_Pointer2val p0
-    | repNode v => vertex_address g v
-    end) with (rep_type_val g p) by reflexivity. 
-    forward.
-    (* TODO: forward_loop *)
-    forward_loop.
+intros.
+unfold encode_Z, min_signed, max_signed in *.
+autorewrite with norm. rewrite Int64.shru_div_two_p.
+change (two_p _) with 2.
+rewrite !Int64.unsigned_repr by  rep_lia.
+rewrite Z.div_add_l by lia.
+simpl Z.div; rewrite Z.add_0_r.
+auto.
+Qed.
 
-    (* Issue report.
-    TODO: What does this error tell me? Where should I look? *)
-    forward_call (gv, g, p, n, roots, sh, ti, outlier, t_info). 
-    forward_while ( EX   (m : nat) p',
-        PROP ( is_in_graph g (n - m)%nat p';        
+Lemma is_pointer_or_integer_rep_type_val:
+  forall {A} `{InG: InGraph A} g (n: A) p, 
+   is_in_graph g n p ->
+   graph_rep g |-- !! is_pointer_or_integer (rep_type_val g p).
+Proof.
+intros.
+destruct p; simpl; auto.
+destruct g0; simpl; auto.
+apply has_v in H.
+sep_apply (graph_rep_valid_int_or_ptr g v).
+entailer!!.
+hnf in H0|-*.
+destruct (vertex_address g v); auto.
+destruct Archi.ptr64; auto.
+Qed.
+
+Lemma body_uint63_from_nat:
+  semax_body Vprog Gprog f_uint63_from_nat uint63_from_nat_spec.
+Proof.
+ start_function. 
+ forward.
+ fold (rep_type_val g p).
+ forward.
+ rewrite Int.signed_repr 
+   by (unfold encode_Z, max_signed in H; rep_lia).
+ forward_loop ( EX m : nat, EX p': rep_type,
+        PROP ( (m <= n)%nat; is_in_graph g (n - m)%nat p';        
               nat_has_tag_prop (n - m)%nat (nat_get_desc (n-m)%nat))
-        LOCAL (temp _t (Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc (n - m))))));
-        temp _i (Vlong (Int64.repr (Int.signed (Int.repr (Z.of_nat m))))); temp _temp (rep_type_val g p');
-        temp _n (rep_type_val g p))  SEP (full_gc g t_info roots outlier ti sh)
-    ). 
-    - (* Before the loop. *)
-      Exists 0%nat.  Exists p. 
-      assert ((n -0)%nat = n)  as -> by lia; eauto. 
-      entailer!. 
-    - (* Condition *)
-      entailer!. 
-    - (* During the loop. *)
-      forward.  autorewrite with norm.
-      (* Todo: With HRE. *)
-      assert (exists nm', S nm' = (n - m)%nat) as (nm'&eq_nm') by admit. 
-      forward_call (gv, g, p', (nm'; tt), roots, sh, ti, outlier, f_info, t_info). 
-      { rewrite <- eq_nm' in H1. apply H1. }
-      Intros p_nm'.
-      autorewrite with norm in *. 
-      forward.
-      { entailer!. admit. } (* structural stuff, should be easy *)
-      forward_call (gv, g, p_nm', nm', roots, sh, ti, outlier, f_info, t_info).
-         + sep_apply wand_frame_elim'; entailer!.
-         +  admit. (* with H2 - same unfolding problem... *)
-         + forward.
-           autorewrite with norm. 
-           Exists (S m, p_nm').
-           entailer!. 
-           split3. 
-           * (* with H2 - same unfolding problem... *)
-             admit. 
-           * assert (nm' = n - S m)%nat as -> by lia. eauto.
-           * split. 
-            --  repeat f_equal. lia.
-            -- f_equal. f_equal. admit. (*  autorewrite with norm.  lia.  *)
-    - (* After the loop. *)
-      assert (n = m)%nat by admit. subst.
-      forward.
-      { entailer!. }
-      entailer!.  
-      autorewrite with norm.
-      f_equal. unfold encode_Z. 
-      unfold encode_Z in H. unfold Int64.max_signed in H. 
-      autorewrite with norm. 
-      rewrite Int64.shl_mul_two_p. autorewrite with norm. unfold two_p. 
-      unfold two_power_pos. 
-      rewrite !Int.signed_repr; try rep_lia. 
-      f_equal. 
-      split; try rep_lia. unfold max_signed in *. unfold Int.max_signed. clear - H. simpl in *.
-      rewrite Z.mul_comm in H. 
+        LOCAL (temp _i (Vlong (Int64.repr (Z.of_nat m))); 
+               temp _temp (rep_type_val g p');
+               temp _n (rep_type_val g p); gvars gv) 
+        SEP (full_gc g t_info roots outlier ti sh gv)
+    )
+   break: (PROP()LOCAL(temp _i (Vlong (Int64.repr (Z.of_nat n))))
+           SEP(full_gc g t_info roots outlier ti sh gv)).
+- (* Before the loop. *)
+  Exists 0%nat. Exists p. rewrite Nat.sub_0_r. entailer!.
+  destruct n; constructor.
+- (* loop body *)
+  Intros m p'.
+  forward_call (gv, g, p', (n-m)%nat, roots, sh, ti, outlier, t_info).
+  forward_if.
+  +  (* then clause *)
+    destruct (n-m)%nat as [ | nm'] eqn:Hnm'. discriminate. clear H3.
+    forward.
+    forward_call (gv, g, p', nm', roots, sh, ti, outlier, t_info).
+    Intros vret; destruct vret as [q shq].
+    simpl snd in H4. simpl fst in H6.
+    simpl fst; simpl snd.
+    set (px := rep_type_val g p') in *.
+    limited_change_compspecs CompSpecs.
+    forward. {
+      entailer.
+      rewrite Znth_0_cons.
+      sep_apply modus_ponens_wand.
+      unfold full_gc.
+      Intros.
+      sep_apply (is_pointer_or_integer_rep_type_val g nm' q H6).
+      entailer!!.
+    }
+    Exists (n-nm')%nat q.
+    replace (n - (n-nm'))%nat with nm' by lia.
+    entailer!!.
+    split.
+    destruct nm'; constructor.
+    f_equal. f_equal. lia.
+    apply modus_ponens_wand.
+  + (* else clause *)
+    forward.
+    entailer!!.
+    destruct (n-m)%nat eqn:?H.
+    2: contradiction H4; reflexivity.
+    f_equal. f_equal. lia.
+- (* after the loop *)
+ forward.
+ apply prop_right.
+ f_equal. 
+ rewrite Int64.shl_mul_two_p, mul64_repr, add64_repr.
+ reflexivity.
+Qed.
 
-      (* Todo: Work on postcondition. *)
-     admit.
-Admitted. *)
+#[export] Instance Inhabitant_rep_type: Inhabitant rep_type.
+constructor. apply 0.
+Defined.
 
 
 Lemma body_uint63_to_nat_no_gc_spec :
@@ -90,34 +137,25 @@ Lemma body_uint63_to_nat_no_gc_spec :
 Proof. 
   start_function.
   forward. unfold full_gc. Intros. 
-  forward_call (gv, g). 
-   assert ( Vlong (Int64.shru (Int64.repr (encode_Z (Z.of_nat n))) (Int64.repr (Int.unsigned (Int.repr 1)))) = Vlong (Int64.repr  (Z.of_nat n)))  as ->.
-    { unfold encode_Z. 
-    autorewrite with norm. rewrite Int64.shru_div_two_p. 
-    unfold two_p. simpl. 
-    
-    admit. (* TODO *)  } 
-  (*   Print bool_type. *)
-
-
+  forward_call (gv, g).
+  rewrite decode_encode_Z by auto.
   forward_while 
   (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
-  PROP (is_in_graph g' m v; (m <= n)%nat; Z.of_nat (n - m) < headroom t_info; 
+  PROP (is_in_graph g' m v; (m <= n)%nat; 2 * Z.of_nat (n - m) < headroom t_info'; 
   gc_graph_iso g roots g' roots)
    LOCAL (temp _temp (rep_type_val g' v);
    temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
-   temp _tinfo ti; temp _t (Vlong (Int64.repr (Z.of_nat n)));
+   temp _tinfo ti;
    gvars gv)
    SEP (full_gc g' t_info' roots outlier ti sh gv)
   ). 
 
   - (* Before the while *)
-    Intros v. Exists v. Exists 0%nat. Exists g. Exists t_info. entailer!. 
-    + split3.
-      * apply gc_graph_iso_refl.
-      * repeat f_equal. lia.
-      * admit. 
-    +  unfold full_gc. entailer!. 
+    Intros v. Exists v. Exists 0%nat. Exists g. Exists t_info.
+    unfold full_gc. entailer!!. 
+    split.
+    * apply gc_graph_iso_refl.
+    * repeat f_equal. lia.
   - (* Valid condition  *)
     entailer!. 
   - (* During the loop *)
@@ -125,31 +163,26 @@ Proof.
     unfold full_gc. 
     unfold before_gc_thread_info_rep.
     unfold spatial_gcgraph.before_gc_thread_info_rep.
-    forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, t_info'). 
-    { (* Requiring to unfold. *)
-       admit. }
+    forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, t_info').
+    split; simpl; auto.
     Intros v'.  destruct v' as ((v'&g'')&ti').
     unfold fst, snd in *. 
-     forward. 
-     Exists (v', S m, g'', ti').
-     entailer!.
-     split; eauto. 
-     + eapply gc_graph_iso_trans; eauto.  
-     + repeat f_equal.  lia. 
-
-  -
     forward. 
-  
+    Exists (v', S m, g'', ti').
+    entailer!!.
+    split.
+     + eapply gc_graph_iso_trans; eassumption.
+     + repeat f_equal.  lia.
+  -
+    forward.  
     Exists v. Exists g'. Exists t_info'.
-    entailer!.
+    entailer!!.
     enough (n- m = 0)%nat.
     { assert (n = m) by lia. subst. eauto. }
     apply repr_inj_unsigned64 in HRE; try rep_lia.
     unfold encode_Z in H0.
     unfold min_signed, max_signed in H0. rep_lia.
-all: fail.
-Admitted.
-
+Qed.
 
 #[export] Instance CCE: change_composite_env env_graph_gc.CompSpecs CompSpecs.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
@@ -331,43 +364,10 @@ intros * H7 H8.
 Qed.
 
 
-Ltac limited_change_compspecs' cs cs' :=
-  lazymatch goal with
-  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
-  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
-  end.
-
-Ltac limited_change_compspecs cs :=
- match goal with |- context [?cs'] =>
-   match type of cs' with compspecs =>
-     try (constr_eq cs cs'; fail 1);
-     limited_change_compspecs' cs cs';
-     repeat limited_change_compspecs' cs cs'
-   end
-end.
-
 
 Ltac sep_apply_compspecs cs H :=
   generalize H; limited_change_compspecs cs; 
   let Hx := fresh "Hx" in  intro Hx; sep_apply Hx; clear Hx.
-
-Lemma decode_encode_Z: 
-  forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
-  Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
-              (Int64.repr (Int.unsigned (Int.repr 1)))
-               = Int64.repr (Z.of_nat n).
-Proof.
-intros.
-unfold encode_Z, min_signed, max_signed in *.
-autorewrite with norm. rewrite Int64.shru_div_two_p.
-change (two_p _) with 2.
-rewrite !Int64.unsigned_repr by  rep_lia.
-rewrite Z.div_add_l by lia.
-simpl Z.div; rewrite Z.add_0_r.
-auto.
-Qed.
 
 Lemma space_start_isptr':
   forall [g tinfo roots outlier],
