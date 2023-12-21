@@ -37,13 +37,10 @@ Definition array_type := int_or_ptr_type.
 (** Propositional conditions from the garbage collector specification and getting the isomorphism property for the garbage collector:
 The thread_info has to be a new one, roots and outlier stay preserved *)
 Definition gc_condition_prop g (t_info: GCGraph.thread_info) roots outlier :=
-
-graph_unmarked g /\ no_backward_edge g /\ no_dangling_dst g /\ ti_size_spec (ti_heap t_info) (** From garbage_collect_condition, removed that roots and finfo are compatible. *)
+  garbage_collect_condition g (ti_heap t_info) 
+/\ super_compatible g (ti_heap t_info) (frames2rootpairs (ti_frames t_info)) roots outlier
 /\ safe_to_copy g
-/\ graph_heap_compatible g (ti_heap t_info) /\ outlier_compatible g outlier 
-/\ roots_compatible g outlier roots /\ rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots
 /\ gc_correct.sound_gc_graph g /\ copy_compatible g.
-
 (*
 Definition space_rest_rep {cs : compspecs} (sp: space): mpred :=
   if (Val.eq sp.(space_start) nullval)

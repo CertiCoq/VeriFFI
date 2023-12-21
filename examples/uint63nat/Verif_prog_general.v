@@ -191,11 +191,14 @@ Proof.
   intros gc_cond.
   unfold nth_gen.
     destruct (glabel g) eqn: glabel_g.
-    destruct g_gen; try congruence.
+    simpl GCGraph.g_gen.
+    destruct g_gen; try congruence. 
+    simpl nth.
     unfold gc_condition_prop in *.
-    destruct gc_cond as (gc1&gc2&gc3&gc4&gc5&gc6&gc7&gc8&gc9&gc10).
-    unfold graph_heap_compatible in gc6.
-    destruct gc6 as (gc61&gc62&gc63).
+    destruct gc_cond as (gc1&gc2&gc3&gc4&gc5).
+    red in gc2.
+    destruct gc2 as (?&?&?&?).
+    red in H; destruct H as  (gc61&gc62&gc63).
     simpl in *. rewrite !glabel_g in gc61. simpl in *.
     rewrite !SPACE_NONEMPTY in *.
     apply Forall_inv in gc61. destruct gc61 as (?&?&?).
@@ -268,9 +271,10 @@ Lemma add_node_gc_condition_prop g p t_info roots outlier R1 R2 R3 t_size (H: gr
   | _ => True
   end
 ->
-gc_condition_prop g t_info roots outlier -> gc_condition_prop g' t_info' roots outlier.
+gc_condition_prop g t_info roots outlier -> 
+gc_condition_prop g' t_info' roots outlier.
 Proof.
-  intros. unfold gc_condition_prop in *. unfold g'.
+  intros. red in H1|-*. unfold g'.
   assert ( add_node_compatible g (new_copied_v g 0) es).
   {  
     unfold add_node_compatible. intros e scr trg H_In. subst es. destruct p; inversion H_In.
@@ -280,12 +284,19 @@ Proof.
   { unfold edge_compatible. intros. simpl. destruct p; simpl; intuition eauto. }
     decompose [and] H1; clear H1; repeat simple apply conj.
   all: eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-  + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
-  + eapply add_node_outlier_compatible; eauto. (* Print rep_field. *)  simpl.
-    destruct p eqn:Hp; hnf; simpl; intros; try contradiction; eauto.
-    destruct H1; try contradiction; subst; auto.
-  + apply add_node_rootpairs_compatible; auto.
-    destruct H11; auto.
+  + split; [ | split3].
+    apply add_node_graph_unmarked; auto; apply H4.
+    apply add_node_no_backward_edge; auto; apply H4.
+    apply add_node_no_dangling_dst; auto; apply H4.
+    eapply add_node_ti_size_spec; eauto; try apply H4.  rewrite spaces_size.   rep_lia.
+  + split; [ | split3].
+    * apply add_node_graph_thread_compatible; auto; try apply H4; try apply H6.
+    * destruct p eqn:Hp; hnf; simpl; intros; try contradiction; eauto;
+      apply add_node_rootpairs_compatible; auto; apply H6.
+    * apply add_node_roots_compatible; auto; apply H6.
+    * apply add_node_outlier_compatible; try apply H6; auto.
+      simpl. destruct p; simpl; auto; try solve [intros ? Hx; inv Hx].
+      intros ? ?. destruct H1; try contradiction; subst; auto.
   + apply add_node_copy_compatible; auto.
 Qed.
 
@@ -673,8 +684,13 @@ Proof.
   {  eapply add_node_compatible_new; eauto. 
       rewrite !Forall_forall in *. intros. specialize (H0 _ H2). destruct x; eauto. 
   }
-  destruct H1 as (unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & (rp_compatible & copycompatible)))))))))).
+  destruct H1 as (gcc & sup & safetocopy & soundgcgraph & copycompatible).
+ red in gcc. destruct gcc as (unmarked & nobackward & nodangling & tisizespec).
 
+(*
+
+unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & (rp_compatible & copycompatible)))))))))).
+*)
     assert (edge_compatible g 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es).
     { unfold edge_compatible. intros. simpl. clear.  unfold es. generalize (0)%nat at 2 4.  induction ps; intros n; simpl; eauto.
     - reflexivity.
@@ -684,25 +700,22 @@ Proof.
       + rewrite Nat.add_1_r. intuition eauto. right.  apply IHps; eauto.
         rewrite IHps. eauto. }
 
-  split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-  split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+  split3; [ | | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+  split; [ | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
 
   + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
-  + split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-    * apply add_node_graph_thread_compatible; eauto. 
-      unfold raw_fields. simpl. lia. 
-    * split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-    --  
-    apply add_node_outlier_compatible; eauto.
+  + split; [ | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+    * apply add_node_graph_thread_compatible; eauto; try apply sup.
+      unfold raw_fields. simpl. lia.
+    * apply add_node_rootpairs_compatible; auto; try apply sup.
+    * apply add_node_roots_compatible; auto; try apply sup.
+    *  apply add_node_outlier_compatible; eauto; try apply sup.
     simpl.
     unfold incl. intros. apply filter_sum_right_In_iff in H3. 
     apply filter_option_In_iff in H3. apply in_map_iff in H3. 
     destruct H3 as (p & A1 & A2). destruct p; simpl in *; try congruence. 
     rewrite Forall_forall in H0. injection A1. intros. subst.  exact (H0 _ A2). 
-    --  split3;  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_thread_compatible, add_node_ti_size_spec, add_node_roots_compatible.
-       ++ simpl. apply add_node_rootpairs_compatible; auto.
-           destruct rootscompatible; auto. 
-       ++ apply add_node_copy_compatible; eauto.   
+   + apply add_node_copy_compatible; try apply sup; eauto.   
 Qed.
 
 Definition X_in_graph_cons (descr : ctor_desc) (t: nat) : Prop :=
@@ -945,9 +958,9 @@ spatial_gcgraph.heap_struct_rep
            rewrite Zlength_correct. rep_lia.
         **  destruct gc_cond. unfold gc_correct.sound_gc_graph, roots_compatible in *.
             intuition eauto.
-        apply add_node_iso; eauto. (* ~In (inr (new_copied_v gr 0)) roots *)
+        apply add_node_iso; eauto; try apply H36; try apply H30. (* ~In (inr (new_copied_v gr 0)) roots *)
         eapply new_node_roots; eauto. 
-        unfold roots_compatible. eauto. 
+        unfold roots_compatible; split; try apply H36.
        ++ simpl. rewrite <- H9. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
           destruct comp_g0 as (comp_start&comp_sh&comp_prev).
           unfold gen_start. simpl. rewrite comp_start. unfold vertex_offset.
