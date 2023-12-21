@@ -384,34 +384,35 @@ Proof.
     apply graph_has_gen_O.
 Qed.
 
-Definition perhaps_gc_1_live_root_command (n: Z) := 
+Definition GC_SAVE1 n a0 := 
                 (Ssequence
-                  (Sset _t'3
-                    (Efield
-                      (Ederef
-                        (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                        (Tstruct _thread_info noattr)) _limit
-                      (tptr int_or_ptr_type)))
                   (Ssequence
-                    (Sset _t'4
+                    (Sset __LIMIT
+                      (Efield
+                        (Ederef
+                          (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                          (Tstruct _thread_info noattr)) _limit
+                        (tptr (talignas 3%N (tptr tvoid)))))
+                    (Sset __ALLOC
                       (Efield
                         (Ederef
                           (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
                           (Tstruct _thread_info noattr)) _alloc
-                        (tptr int_or_ptr_type)))
-                    (Sifthenelse (Eunop Onotbool
-                                   (Ebinop Ole (Econst_int (Int.repr n) tint)
-                                     (Ebinop Osub
-                                       (Etempvar _t'3 (tptr int_or_ptr_type))
-                                       (Etempvar _t'4 (tptr int_or_ptr_type))
-                                       tlong) tint) tint)
+                        (tptr (talignas 3%N (tptr tvoid))))))
+                  (Sifthenelse (Eunop Onotbool
+                                 (Ebinop Ole (Econst_int (Int.repr n) tint)
+                                   (Ebinop Osub
+                                     (Etempvar __LIMIT (tptr (talignas 3%N (tptr tvoid))))
+                                     (Etempvar __ALLOC (tptr (talignas 3%N (tptr tvoid))))
+                                     tlong) tint) tint)
+                    (Ssequence
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                            (Tstruct _thread_info noattr)) _nalloc tulong)
+                        (Econst_int (Int.repr n) tint))
                       (Ssequence
-                        (Sassign
-                          (Efield
-                            (Ederef
-                              (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                              (Tstruct _thread_info noattr)) _nalloc tulong)
-                          (Econst_int (Int.repr n) tint))
                         (Ssequence
                           (Ssequence
                             (Ssequence
@@ -431,19 +432,19 @@ Definition perhaps_gc_1_live_root_command (n: Z) :=
                                       (Efield
                                         (Evar ___FRAME__ (Tstruct _stack_frame noattr))
                                         _next
-                                        (tptr int_or_ptr_type))
+                                        (tptr (talignas 3%N (tptr tvoid))))
                                       (Ebinop Oadd
-                                        (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                        (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1))
                                         (Econst_int (Int.repr 1) tint)
-                                        (tptr int_or_ptr_type))))
+                                        (tptr (talignas 3%N (tptr tvoid))))))
                                   (Sassign
                                     (Ederef
                                       (Ebinop Oadd
-                                        (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                        (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1))
                                         (Econst_int (Int.repr 0) tint)
-                                        (tptr int_or_ptr_type))
-                                      int_or_ptr_type)
-                                    (Etempvar _temp int_or_ptr_type)))
+                                        (tptr (talignas 3%N (tptr tvoid))))
+                                      (talignas 3%N (tptr tvoid)))
+                                    (Etempvar a0 (talignas 3%N (tptr tvoid)))))
                                 (Scall None
                                   (Evar _garbage_collect (Tfunction
                                                            (Tcons
@@ -456,29 +457,28 @@ Definition perhaps_gc_1_live_root_command (n: Z) :=
                                 (Ecast
                                   (Ecast (Econst_int (Int.repr 0) tint)
                                     (tptr tvoid))
-                                  int_or_ptr_type)))
-                            (Sset _temp
+                                  (talignas 3%N (tptr tvoid)))))
+                            (Sset a0
                               (Ederef
                                 (Ebinop Oadd
-                                  (Evar ___ROOT__ (tarray int_or_ptr_type 1))
+                                  (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1))
                                   (Econst_int (Int.repr 0) tint)
-                                  (tptr int_or_ptr_type))
-                                int_or_ptr_type)))
-                          (Ssequence
-                            (Sset _t'5
-                              (Efield
-                                (Evar ___FRAME__ (Tstruct _stack_frame noattr))
-                                _prev (tptr (Tstruct _stack_frame noattr))))
-                            (Sassign
-                              (Efield
-                                (Ederef
-                                  (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                                  (Tstruct _thread_info noattr)) _fp
-                                (tptr (Tstruct _stack_frame noattr)))
-                              (Etempvar _t'5 (tptr (Tstruct _stack_frame noattr)))))))
-                      Sskip))).
+                                  (tptr (talignas 3%N (tptr tvoid))))
+                                (talignas 3%N (tptr tvoid)))))
+                          (Sset ___PREV__
+                            (Efield
+                              (Evar ___FRAME__ (Tstruct _stack_frame noattr))
+                              _prev (tptr (Tstruct _stack_frame noattr)))))
+                        (Sassign
+                          (Efield
+                            (Ederef
+                              (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                              (Tstruct _thread_info noattr)) _fp
+                            (tptr (Tstruct _stack_frame noattr)))
+                          (Etempvar ___PREV__ (tptr (Tstruct _stack_frame noattr))))))
+                    Sskip)).
 
-Lemma perhaps_gc_1_live_root:
+Lemma semax_GC_SAVE1:
  forall (n: Z) (Espec : OracleKind)
   (gv : globals) (sh : share)
   (ti : val)
@@ -490,21 +490,20 @@ Lemma perhaps_gc_1_live_root:
   (g : graph)
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
-  (ival: val)
   (Hn: 0 <= n <= Int.max_signed)
   (H2 : is_in_graph g m v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
   (PROP ( )
-   LOCAL (temp _temp (rep_type_val g v0); temp _i ival;
+   LOCAL (temp _temp (rep_type_val g v0);
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
    lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
    library.mem_mgr gv))
-  (perhaps_gc_1_live_root_command n)
+  (GC_SAVE1 n _temp)
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
@@ -512,7 +511,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-      LOCAL (temp _temp (rep_type_val g' v0'); temp _i ival;
+      LOCAL (temp _temp (rep_type_val g' v0');
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
       gvars gv)
@@ -526,7 +525,7 @@ assert (H4 := I).
 assert (H0 := I).
 assert (H1 := I).
 assert (H := I).
-unfold perhaps_gc_1_live_root_command.
+unfold GC_SAVE1.
 abbreviate_semax.
 
   unfold full_gc.
@@ -729,6 +728,182 @@ abbreviate_semax.
     apply frame_shells_eq_refl.
 Qed.
 
+Local Open Scope logic.
+Lemma semax_frame_PQR':
+  forall Q2 R2 Espec {cs: compspecs} Delta R1 P Q S c,
+     closed_wrt_modvars c (LOCALx Q2 (SEPx R2)) ->
+     @semax cs Espec Delta (PROPx P (LOCALx Q (SEPx R1))) c
+                     (normal_ret_assert S) ->
+     @semax cs Espec Delta (PROPx P (LOCALx (Q++Q2) (SEPx (R1++R2)))) c
+                     (normal_ret_assert (sepcon S (PROPx nil (LOCALx Q2 (SEPx R2))))).
+Proof.
+intros.
+replace (PROPx P (LOCALx (Q++Q2) (SEPx (R1 ++ R2))))
+   with (PROPx P (LOCALx Q (SEPx (R1))) * (LOCALx Q2 (SEPx R2))).
+eapply semax_pre_post; try (apply semax_frame; try eassumption).
+apply andp_left2; auto.
+apply andp_left2. intro rho; simpl; normalize.
+ unfold PROPx, SEPx, LOCALx, local, lift1.
+normalize.
+simpl; normalize.
+simpl; normalize.
+simpl; normalize.
+clear.
+extensionality rho.
+simpl.
+unfold PROPx, LOCALx, local, lift1, SEPx.
+rewrite fold_right_sepcon_app.
+simpl. normalize.
+f_equal.
+rewrite map_app. rewrite fold_right_and_app.
+apply pred_ext; normalize.
+Qed.
+
+Lemma semax_frame_PQR'':
+  forall Q1 Q2 R1 R2 S1 Espec {cs: compspecs} Delta P Q R S c,
+     closed_wrt_modvars c (LOCALx Q2 (SEPx R2)) ->
+     PROPx P (LOCALx Q (SEPx R)) |-- PROPx P (LOCALx (Q1++Q2) (SEPx (R1++R2))) ->
+     S1 * (PROPx nil (LOCALx Q2 (SEPx R2))) |-- S ->
+     @semax cs Espec Delta (PROPx P (LOCALx Q1 (SEPx R1))) c
+                     (normal_ret_assert S1) ->
+     @semax cs Espec Delta (PROPx P (LOCALx Q (SEPx R))) c
+                     (normal_ret_assert S).
+Proof.
+intros.
+eapply semax_pre_post'; [ | | apply semax_frame_PQR' with (P:=P)].
+apply andp_left2; eassumption.
+apply andp_left2; eassumption.
+auto.
+auto.
+Qed.
+
+Ltac get_rep_temps ti Q :=
+ lazymatch Q with
+ | nil => constr:(Q)
+ | temp ti ?v :: ?r => let r' := get_rep_temps ti r in constr:(temp ti v :: r')
+ | temp ?i (rep_type_val ?g ?v) :: ?r => 
+    let r' := get_rep_temps ti r in constr:(temp i (rep_type_val g v) :: r')
+ | temp ?i ?v :: ?r => get_rep_temps ti r
+ | ?t :: ?r => let r' := get_rep_temps ti r in constr:(t::r')
+ end.
+
+Ltac get_nonrep_temps ti Q :=
+ lazymatch Q with
+ | nil => constr:(Q)
+ | temp ti _ :: ?r => get_nonrep_temps ti r 
+ | temp ?i (rep_type_val ?g ?v) :: ?r => get_nonrep_temps ti r
+ | temp ?i ?x :: ?r => let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
+ | _ :: ?r => get_nonrep_temps ti r
+ end.
+
+Ltac get_gc_mpreds R :=
+ lazymatch R with
+ | nil => constr:(R)
+ | ?r1 :: ?r => 
+   lazymatch r1 with
+   | full_gc _ _ _ _ _ _ _  => let r' := get_gc_mpreds r in constr:(r1::r')
+   | frame_rep_ _ _ _ _ _ => let r' := get_gc_mpreds r in constr:(r1::r')
+   | library.mem_mgr _ => let r' := get_gc_mpreds r in constr:(r1::r')
+   | is_in_graph _ _ => let r' := get_gc_mpreds r in constr:(r1::r')
+   | _ => get_gc_mpreds r
+   end
+ end.
+
+Ltac get_nongc_mpreds R :=
+ lazymatch R with
+ | nil => constr:(R)
+ | ?r1 :: ?r => 
+   lazymatch r1 with
+   | full_gc _ _ _ _ _ _ _  => get_nongc_mpreds r
+   | frame_rep_ _ _ _ _ _ => get_nongc_mpreds r
+   | library.mem_mgr _ => get_nongc_mpreds r
+   | is_in_graph _ _ => get_nongc_mpreds r
+   | _ => let r' := get_nongc_mpreds r in constr:(r1::r')
+   end
+ end.
+
+Lemma perhaps_gc_1_live_root_aux:
+ forall P Q R Q2 R2,
+  (EX (g': graph) (v0': rep_type) (roots': roots_t) (t_info': GCGraph.thread_info),
+   PROPx (P g' v0' roots' t_info')
+    (LOCALx (Q g' v0' roots' t_info')
+     (SEPx (R g' v0' roots' t_info')))) * (PROPx nil (LOCALx Q2 (SEPx R2))) |--
+  (EX (g': graph) (v0': rep_type) (roots': roots_t) (t_info': GCGraph.thread_info),
+     PROPx (P g' v0' roots' t_info')
+    (LOCALx (Q g' v0' roots' t_info' ++ Q2)
+     (SEPx (R g' v0' roots' t_info' ++ R2)))).
+Proof.
+intros.
+Intros a b c d; Exists a b c d.
+rewrite PROP_combine.
+rewrite app_nil_r.
+auto.
+Qed.
+
+Ltac apply_semax_GC_SAVE1 :=
+  match goal with |- semax _ (PROPx ?P (LOCALx ?Q (SEPx ?R))) _ (normal_ret_assert ?Post) =>
+  let Q1 := get_rep_temps _tinfo Q in
+  let Q2 := get_nonrep_temps _tinfo Q in
+  let R1 := get_gc_mpreds R in
+  let R2 := get_nongc_mpreds R in
+ eapply (semax_frame_PQR'' Q1 Q2 R1 R2); 
+  [solve [auto 50 with closed] 
+  | solve [go_lowerx; autorewrite with norm; cancel]
+  | apply perhaps_gc_1_live_root_aux
+  | eapply semax_GC_SAVE1; eauto ]
+ end.
+
+Lemma test_semax_GC_SAVE1:
+ forall (n: Z) (Espec : OracleKind)
+  (gv : globals) (sh : share)
+  (ti : val)
+  (outlier : outlier_t)
+  (v___ROOT__  v___FRAME__ : val)
+  (SH : writable_share sh)
+  (v0 : rep_type)
+  (m : nat)
+  (g : graph)
+  (t_info : GCGraph.thread_info)
+  (roots : roots_t)
+  (ival: val)
+  (Hn: 0 <= n <= Int.max_signed)
+  (H2 : is_in_graph g m v0) 
+  (GCP : gc_condition_prop g t_info roots outlier)
+  (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
+semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
+  (PROP ( )
+   LOCAL (temp _temp (rep_type_val g v0); temp _i ival;
+   lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+   lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+   gvars gv)
+   SEP (full_gc g t_info roots outlier ti sh gv;
+   frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
+   library.mem_mgr gv))
+  (GC_SAVE1 n _temp)
+  (normal_ret_assert
+     (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
+      (t_info' : GCGraph.thread_info),
+      PROP (headroom t_info' >= n; is_in_graph g' m v0';
+      gc_condition_prop g' t_info' roots' outlier; 
+      gc_graph_iso g roots g' roots';
+      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+      LOCAL (temp _temp (rep_type_val g' v0'); temp _i ival;
+      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+      gvars gv)
+      SEP (full_gc g' t_info' roots' outlier ti sh gv;
+      frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
+      library.mem_mgr gv))%argsassert).
+Proof.
+intros.
+eapply semax_post_flipped'.
+apply_semax_GC_SAVE1.
+simpl app.
+apply andp_left2; repeat (let x := fresh "x" in (Intro x; Exists x));
+  go_lowerx; autorewrite with norm; cancel.
+Qed.
+
+
 Lemma body_uint63_to_nat: semax_body Vprog Gprog f_uint63_to_nat uint63_to_nat_spec.
 Proof. 
 start_function.
@@ -779,7 +954,9 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   rename H4 into GCP. rename H6 into H4.
   assert (STARTptr := space_start_isptr' GCP).
   assert (m<n)%nat by lia. clear H3 HRE HRE'. rename H6 into HRE.
-  eapply semax_seq'; [apply perhaps_gc_1_live_root; eauto; rep_lia| ].
+  eapply semax_seq'.
+  apply_semax_GC_SAVE1. rep_lia.
+  simpl app.
   abbreviate_semax.
   Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).

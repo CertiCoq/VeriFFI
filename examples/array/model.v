@@ -15,7 +15,7 @@ Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.array.prog.
 
-#[export] Declare Instance InGraph_elt : InGraph elt.
+#[export] Instance InGraph_elt : InGraph elt := InGraph_nat.
 
 (* Look at canon.replace_nth, invariants.replace_nth, sepalg_list.replace for lemmas *)
 Module FM <: Array.

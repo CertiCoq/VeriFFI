@@ -38,8 +38,11 @@ value myfunc(struct thread_info *tinfo, ...other args...) {
   executable code, because it may be bypassed by a function return.
 */
   
-#define BEGINFRAME(tinfo,n) {{{{{ value __ROOT__[n];   \
+#define BEGINFRAME(tinfo,n) {{{{{ \
+   value *_ALLOC, *_LIMIT; \
+   value __ROOT__[n];   \
    struct stack_frame __FRAME__ = { NULL/*bogus*/, __ROOT__, tinfo->fp }; \
+   struct stack_frame *__PREV__; \
    value __RTEMP__;
 
 #define ENDFRAME }}}}}
@@ -47,30 +50,30 @@ value myfunc(struct thread_info *tinfo, ...other args...) {
 #define LIVEPOINTERS0(tinfo, exp) (exp)
 
 #define LIVEPOINTERS1(tinfo, exp, a0) \
-  (tinfo->fp= &__FRAME__, __FRAME__.next=__ROOT__+1, \
-  __ROOT__[0]=(a0), __RTEMP__=(exp), (a0)=__ROOT__[0], \
-  tinfo->fp=__FRAME__.prev, __RTEMP__)
+   (tinfo->fp= &__FRAME__, __FRAME__.next=__ROOT__+1, \
+   __ROOT__[0]=(a0), __RTEMP__=(exp), (a0)=__ROOT__[0], \
+   __PREV__=__FRAME__.prev, tinfo->fp=__PREV__, __RTEMP__)
 
 #define LIVEPOINTERS2(tinfo, exp, a0, a1)	\
   (tinfo->fp= &__FRAME__, __FRAME__.next=__ROOT__+2, \
   __ROOT__[0]=(a0), __ROOT__[1]=(a1),		\
   __RTEMP__=(exp),                              \
   (a0)=__ROOT__[0], (a1)=__ROOT__[1],             \
-  tinfo->fp=__FRAME__.prev, __RTEMP__)
+   __PREV__=__FRAME__.prev, tinfo->fp=__PREV__, __RTEMP__)
 
 #define LIVEPOINTERS3(tinfo, exp, a0, a1, a2)   \
   (tinfo->fp= &__FRAME__, __FRAME__.next=__ROOT__+3,                       \
   __ROOT__[0]=(a0), __ROOT__[1]=(a1), __ROOT__[2]=(a2),  \
   __RTEMP__=(exp),                                       \
   (a0)=__ROOT__[0], (a1)=__ROOT__[1], (a2)=__ROOT__[2],    \
-  tinfo->fp=__FRAME__.prev, __RTEMP__)
+   __PREV__=__FRAME__.prev, tinfo->fp=__PREV__, __RTEMP__)
 
 #define LIVEPOINTERS4(tinfo, exp, a0, a1, a2, a3)	\
   (tinfo->fp= &__FRAME__,  __FRAME__.next=__ROOT__+4,  \
   __ROOT__[0]=(a0), __ROOT__[1]=(a1), __ROOT__[2]=(a2), __ROOT__[3]=(a3),  \
   __RTEMP__=(exp),                                       \
   (a0)=__ROOT__[0], (a1)=__ROOT__[1], (a2)=__ROOT__[2], (a3)=__ROOT__[3],    \
-  tinfo->fp=__FRAME__.prev, __RTEMP__)
+   __PREV__=__FRAME__.prev, tinfo->fp=__PREV__, __RTEMP__)
 /* END OF STUFF TO BE MOVED INTO gc_stack.h */
 
 typedef enum { O, S } nat;
@@ -100,15 +103,18 @@ value uint63_to_nat_no_gc (struct thread_info *tinfo, value t) {
   return temp;
 }
 
+#define GC_SAVE1(n,a0) \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = (n);  \
+    LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),a0);	\
+  }
+
 value uint63_to_nat(struct thread_info *tinfo, value t) {
   uint64_t i = (uint64_t) (((uint64_t) t) >> 1);
   value temp = make_Coq_Init_Datatypes_nat_O();
   BEGINFRAME(tinfo,1)
   while (i) {
-   if (!(2 <= tinfo->limit - tinfo->alloc)) {
-      tinfo->nalloc = 2;
-      LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),temp);
-    } 
+    GC_SAVE1(2,temp);
     temp = alloc_make_Coq_Init_Datatypes_nat_S(tinfo, temp);
     i--;
   }

@@ -19,7 +19,10 @@ Module Info.
   Definition normalized := true.
 End Info.
 
+Definition __ALLOC : ident := $"_ALLOC".
+Definition __LIMIT : ident := $"_LIMIT".
 Definition ___FRAME__ : ident := $"__FRAME__".
+Definition ___PREV__ : ident := $"__PREV__".
 Definition ___ROOT__ : ident := $"__ROOT__".
 Definition ___RTEMP__ : ident := $"__RTEMP__".
 Definition ___builtin_annot : ident := $"__builtin_annot".
@@ -114,9 +117,6 @@ Definition _y : ident := $"y".
 Definition _t'1 : ident := 128%positive.
 Definition _t'2 : ident := 129%positive.
 Definition _t'3 : ident := 130%positive.
-Definition _t'4 : ident := 131%positive.
-Definition _t'5 : ident := 132%positive.
-Definition _t'6 : ident := 133%positive.
 
 Definition f_uint63_from_nat := {|
   fn_return := (talignas 3%N (tptr tvoid));
@@ -226,13 +226,13 @@ Definition f_uint63_to_nat := {|
   fn_vars := ((___ROOT__, (tarray (talignas 3%N (tptr tvoid)) 1)) ::
               (___FRAME__, (Tstruct _stack_frame noattr)) :: nil);
   fn_temps := ((_i, tulong) :: (_temp, (talignas 3%N (tptr tvoid))) ::
+               (__ALLOC, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (__LIMIT, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (___PREV__, (tptr (Tstruct _stack_frame noattr))) ::
                (___RTEMP__, (talignas 3%N (tptr tvoid))) ::
                (_t'2, (talignas 3%N (tptr tvoid))) ::
                (_t'1, (talignas 3%N (tptr tvoid))) ::
-               (_t'6, (tptr (Tstruct _stack_frame noattr))) ::
-               (_t'5, (tptr (Tstruct _stack_frame noattr))) ::
-               (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'3, (tptr (talignas 3%N (tptr tvoid)))) :: nil);
+               (_t'3, (tptr (Tstruct _stack_frame noattr))) :: nil);
   fn_body :=
 (Ssequence
   (Sset _i
@@ -258,7 +258,7 @@ Definition f_uint63_to_nat := {|
           (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1)))
         (Ssequence
           (Ssequence
-            (Sset _t'6
+            (Sset _t'3
               (Efield
                 (Ederef
                   (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
@@ -267,38 +267,39 @@ Definition f_uint63_to_nat := {|
             (Sassign
               (Efield (Evar ___FRAME__ (Tstruct _stack_frame noattr)) _prev
                 (tptr (Tstruct _stack_frame noattr)))
-              (Etempvar _t'6 (tptr (Tstruct _stack_frame noattr)))))
+              (Etempvar _t'3 (tptr (Tstruct _stack_frame noattr)))))
           (Ssequence
             (Swhile
               (Etempvar _i tulong)
               (Ssequence
                 (Ssequence
-                  (Sset _t'3
-                    (Efield
-                      (Ederef
-                        (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                        (Tstruct _thread_info noattr)) _limit
-                      (tptr (talignas 3%N (tptr tvoid)))))
                   (Ssequence
-                    (Sset _t'4
+                    (Sset __LIMIT
+                      (Efield
+                        (Ederef
+                          (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                          (Tstruct _thread_info noattr)) _limit
+                        (tptr (talignas 3%N (tptr tvoid)))))
+                    (Sset __ALLOC
                       (Efield
                         (Ederef
                           (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
                           (Tstruct _thread_info noattr)) _alloc
-                        (tptr (talignas 3%N (tptr tvoid)))))
-                    (Sifthenelse (Eunop Onotbool
-                                   (Ebinop Ole (Econst_int (Int.repr 2) tint)
-                                     (Ebinop Osub
-                                       (Etempvar _t'3 (tptr (talignas 3%N (tptr tvoid))))
-                                       (Etempvar _t'4 (tptr (talignas 3%N (tptr tvoid))))
-                                       tlong) tint) tint)
+                        (tptr (talignas 3%N (tptr tvoid))))))
+                  (Sifthenelse (Eunop Onotbool
+                                 (Ebinop Ole (Econst_int (Int.repr 2) tint)
+                                   (Ebinop Osub
+                                     (Etempvar __LIMIT (tptr (talignas 3%N (tptr tvoid))))
+                                     (Etempvar __ALLOC (tptr (talignas 3%N (tptr tvoid))))
+                                     tlong) tint) tint)
+                    (Ssequence
+                      (Sassign
+                        (Efield
+                          (Ederef
+                            (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                            (Tstruct _thread_info noattr)) _nalloc tulong)
+                        (Econst_int (Int.repr 2) tint))
                       (Ssequence
-                        (Sassign
-                          (Efield
-                            (Ederef
-                              (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                              (Tstruct _thread_info noattr)) _nalloc tulong)
-                          (Econst_int (Int.repr 2) tint))
                         (Ssequence
                           (Ssequence
                             (Ssequence
@@ -351,19 +352,18 @@ Definition f_uint63_to_nat := {|
                                   (Econst_int (Int.repr 0) tint)
                                   (tptr (talignas 3%N (tptr tvoid))))
                                 (talignas 3%N (tptr tvoid)))))
-                          (Ssequence
-                            (Sset _t'5
-                              (Efield
-                                (Evar ___FRAME__ (Tstruct _stack_frame noattr))
-                                _prev (tptr (Tstruct _stack_frame noattr))))
-                            (Sassign
-                              (Efield
-                                (Ederef
-                                  (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
-                                  (Tstruct _thread_info noattr)) _fp
-                                (tptr (Tstruct _stack_frame noattr)))
-                              (Etempvar _t'5 (tptr (Tstruct _stack_frame noattr)))))))
-                      Sskip)))
+                          (Sset ___PREV__
+                            (Efield
+                              (Evar ___FRAME__ (Tstruct _stack_frame noattr))
+                              _prev (tptr (Tstruct _stack_frame noattr)))))
+                        (Sassign
+                          (Efield
+                            (Ederef
+                              (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
+                              (Tstruct _thread_info noattr)) _fp
+                            (tptr (Tstruct _stack_frame noattr)))
+                          (Etempvar ___PREV__ (tptr (Tstruct _stack_frame noattr))))))
+                    Sskip))
                 (Ssequence
                   (Ssequence
                     (Scall (Some _t'2)
