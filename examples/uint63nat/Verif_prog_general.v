@@ -551,19 +551,13 @@ semax_body Vprog Gprog
             f_alloc_make_Coq_Init_Datatypes_nat_S
             (_alloc_make_Coq_Init_Datatypes_nat_S, n_arguments 1024 1).
 Proof.
- (* KS: Todo: to be fixed *)
-(*    alloc_start_function. *)
- (*   change_compspecs CompSpecs. 
-      (* TODO: Different definition of thread_info. 
-    What should I do on my site? *)
-    repeat_forward custom_tactics. (* Fast Forward Tactics - floyd/fast_forward *)
-    f_equal.
-    (* Question: Is there a tactic? *)
-    autorewrite with norm norm1 norm2.
-    rewrite ptrofs_of_int64_int64_repr; eauto.
-    now autorewrite with norm.
-Qed. *) 
-Admitted.
+alloc_start_function.
+change_compspecs CompSpecs.
+repeat_forward custom_tactics.
+f_equal.
+rewrite ptrofs_of_int64_int64_repr by auto.
+now autorewrite with norm.
+Qed.
 
 Fixpoint get_fields g to (xs : list rep_type) (n: nat) :=
     let v := new_copied_v g to in 
@@ -749,46 +743,44 @@ Proof.
   simpl. f_equal. simpl. apply IHxs.
 Qed.
 
+
+Lemma InGraph_outlier_compatible {A} `{GP: GraphPredicate A}:
+  forall (g: graph) (x: A) (p: GC_Pointer) outliers,
+    outlier_compatible g outliers ->
+    graph_predicate g x (repOut p) ->
+    In p outliers.
+  (* If this is not provable, we could add any other premises implied by
+      gc_condition_prop *)
+Admitted.
+
 Lemma in_graphs_has:
-  forall (descr : ctor_desc) (gr : graph)
+  forall (descr : ctor_desc) (gr : graph) outliers
     (ps : list rep_type) (args_my : args (ctor_reified descr)),
+    outlier_compatible gr outliers->
     in_graphs gr (ctor_reified descr) args_my ps ->
     Forall
       (fun p : rep_type =>
          match p with
          | repNode v' => graph_has_v gr v' /\ new_copied_v gr 0 <> v'
+         | repOut v' => In v' outliers
          | _ => True
          end) ps.
 Proof.
-  intros.
+  intros * OUT ?.
   remember (ctor_reified descr) as d. clear Heqd. revert ps H. 
   induction d; eauto; intros. 
   - simpl in H.  destruct args_my.  destruct s. simpl in *. eauto. 
   - simpl in *. destruct args_my. destruct ps; eauto. 
     destruct H0. constructor. 
-    + destruct r0. eauto. reflexivity. 
-    split. 
-      * eapply has_v; eauto. (* 
-      (* TODO: BROKEN BY NEWEST COMMIT *)
-      eapply H0.
-      * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
-    + eauto. 
-
-
-  -  simpl in *. destruct args_my. destruct ps; eauto. 
-  destruct H0. constructor. 
-  + destruct cls0. 
-  
-  destruct r0. eauto. reflexivity. 
-  split. 
-    * eapply has_v; eauto.
-    * intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply has_v; eauto.  
-  + eauto. 
-
-  - simpl in *. destruct args_my. eauto. 
-  - simpl in *. destruct args_my. destruct ps; eauto. inversion H. *) 
-Admitted.
-
+    + destruct r0.
+      * auto.
+      * red in H0. eapply InGraph_outlier_compatible in H0; try eassumption.
+      * split.
+       -- eapply (@has_v A _); eauto.
+       -- intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply (@has_v A _); eauto.  
+    + eauto.
+  -  simpl in *. destruct args_my. destruct ps; eauto. discriminate.
+Qed.
 
 Definition X_in_graph_cons' (descr : ctor_desc) (t: nat) : Prop :=
   forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
@@ -819,16 +811,22 @@ Definition general_subsumption A `(InGraph A) t n descr :
   funspec_sub (n_arguments (calc t n) n) (alloc_make_spec_general descr n).
 Proof.
     do_funspec_sub.
-    
-    assert (HH : 0 < Z.of_nat n < two_power_pos 54).  { unfold two_power_pos. simpl. rep_lia. }
     assert (R1 : 0 <= Z.of_nat t < 256) by rep_lia.
     destruct w as 
     ((((((((gv&gr)&ps)&args_my)&roots)&sh)&tinfo_pos)&outliers)&tinfo).
-    entailer.
-  
-    unfold argsHaveTyps in H2.
-    simpl in H2.
-    unfold specs_library.full_gc. Intros.
+
+    unfold full_gc.
+    Intros.
+    unfold fst, snd in H3, H8, H9.
+    subst n args.
+    rename H0 into result_in_graph.
+    rename H5 into args_in_graph.
+    rename H6 into headroom_size.
+    rename H7 into H6.
+    rename H9 into Hgv.
+    rename H10 into gc_cond.
+    clear H3.
+    rename H6 into Hsh. 
     unfold before_gc_thread_info_rep.
     assert (graph_has_gen_0 := graph_has_gen_O gr).
     destruct (heap_head_cons (ti_heap tinfo)) as (g0&space_rest&SPACE_NONEMPTY&g0_eq).
@@ -836,40 +834,18 @@ Proof.
     { subst; eapply spaces_g0; eauto. }
   
     eapply binop_lemmas4.isptr_e in isptr_g0 as (b&x'&isptr_eq).
-    pose (alloc :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))))).
-    pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo)))))) .
+    set (hh := heap_head _) in *.
+    pose (alloc :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * used_space hh)))).
+    pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh)))) .
 
     pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
-    assert (ps_size := in_graphs_size _ _ _ _ H4).
+    assert (ps_size := in_graphs_size _ _ _ _ args_in_graph).
     rewrite ps_size.   erewrite <- map_length.
-    rename H8 into Hgv.
-    rename H9 into gc_cond.
-    rename H5 into headroom_size.
-    rename H0 into result_in_graph.
-    rename H4 into args_in_graph.
-  
+
     (* With Arguments of n_arguments *)
-    Exists ((((((sh, space_sh (heap_head (ti_heap tinfo))), tinfo_pos) , vals), b),  alloc), limit).
+    Exists ((((((sh, space_sh hh), tinfo_pos) , vals), b),  alloc), limit).
 
-(* 
-spatial_gcgraph.heap_struct_rep
-	 : share -> list (reptype env_graph_gc.space_type) -> val -> mpred *)
-
-   unfold before_gc_thread_info_rep.
-
-
-  (*        * data_at sh env_graph_gc.thread_info_type
-         (offset_val (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))
-            (space_start (heap_head (ti_heap tinfo))),
-          (offset_val (WORD_SIZE * total_space (heap_head (ti_heap tinfo)))
-             (space_start (heap_head (ti_heap tinfo))),
-           (ti_heap_p tinfo,
-            (ti_args tinfo,
-             (ti_fp tinfo, (Vptrofs (ti_nalloc tinfo), nullval))))))
-         tinfo_pos     *)
-
-
-    (* The frame *)
+   (* The frame *)
     Exists (outlier_rep outliers * ti_token_rep (ti_heap tinfo) (ti_heap_p tinfo) *
         @graph_rep  gr *
             @field_at env_graph_gc.CompSpecs sh specs_library.thread_info_type [StructField gc_stack._heap] (ti_heap_p tinfo) tinfo_pos *
@@ -877,34 +853,33 @@ spatial_gcgraph.heap_struct_rep
             heap_struct_rep sh
                             ((Vptr b x',
                               (Vundef,
-                               (Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo))))), 
-                               Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo))))))))
+                               (Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh))), 
+                               Vptr b (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh))))))
                                :: map space_tri (tl (spaces (ti_heap tinfo)))) (ti_heap_p tinfo)* 
                                iter_sepcon.iter_sepcon space_rest (* @specs_library.space_rest_rep env_graph_gc.CompSpecs *) space_rest_rep  *
-           @data_at_ env_graph_gc.CompSpecs (space_sh (heap_head (ti_heap tinfo))) (tarray int_or_ptr_type (total_space (heap_head (ti_heap tinfo)) -
-          used_space (heap_head (ti_heap tinfo)) - Z.of_nat (1 + Datatypes.length ps))) (@field_address0 env_graph_gc.CompSpecs (tarray int_or_ptr_type
-            (total_space (heap_head (ti_heap tinfo)) -
-             used_space (heap_head (ti_heap tinfo)))) [ArraySubsc (Z.of_nat (1 + Datatypes.length ps))]  (Vptr b
+           @data_at_ env_graph_gc.CompSpecs (space_sh hh) (tarray int_or_ptr_type (total_space hh -
+          used_space hh - Z.of_nat (1 + Datatypes.length ps))) (@field_address0 env_graph_gc.CompSpecs (tarray int_or_ptr_type
+            (total_space hh -
+             used_space hh)) [ArraySubsc (Z.of_nat (1 + Datatypes.length ps))]  (Vptr b
             (Ptrofs.add x'
-               (Ptrofs.repr (WORD_SIZE * used_space (heap_head (ti_heap tinfo)))))))  
+               (Ptrofs.repr (WORD_SIZE * used_space hh)))))  
             *  frames_rep sh (ti_frames tinfo)
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._fp) (ti_fp tinfo)
             tinfo_pos
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._nalloc)
                 (Vlong (Ptrofs.to_int64 (ti_nalloc tinfo))) tinfo_pos
-(*             * field_at sh env_graph_gc.thread_info_type (DOT gc_stack._odata) nullval tinfo_pos *)
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._odata) nullval tinfo_pos
             * gc_spec.all_string_constants Ers gv
                )%logic.
-
 
 (* The term "map space_tri (tl (spaces (ti_heap tinfo)))" has type
  "list (reptype env_graph_gc.space_type)" while it is expected to have type
  "list (val * (val * val))". *)               
 
-    entailer!.
+    entailer!!; set (hh := heap_head _) in *.
 
-    + (* Postcondition entailment *)
+
++ (* Postcondition entailment *)
     
     repeat match goal with |- context [@data_at CompSpecs ?a ?b ?c] =>
           replace (@data_at CompSpecs a b c) with 
@@ -918,7 +893,7 @@ spatial_gcgraph.heap_struct_rep
           - unfold calc. rewrite map_length. rewrite <- ps_size. unfold Z.shiftl. simpl. rep_lia.
           - unfold vals. now rewrite to_from_vec.  }
 
-    intros rho. entailer!.
+    intros rho. (*entailer!!.*)
 
     pose (fds := map rep_field ps).
     assert (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None fds). rewrite NO_SCAN_TAG_eq. rep_lia.
@@ -927,8 +902,8 @@ spatial_gcgraph.heap_struct_rep
 
 
     pose (v := new_copied_v gr 0). Exists (repNode v).
-     pose (es := get_fields gr 0 ps 0).
-     Exists (add_node gr 0 (newRaw v (Z.of_nat t) fds R1 R2 R3) es).
+    pose (es := get_fields gr 0 ps 0).
+    Exists (add_node gr 0 (newRaw v (Z.of_nat t) fds R1 R2 R3) es).
 
       
    (* Ensuring that there's enough space on the heap. *)
@@ -938,30 +913,33 @@ spatial_gcgraph.heap_struct_rep
     rewrite Zlength_map.
     rewrite Zlength_correct.
     rewrite <- ps_size. 
-    unfold headroom in headroom_size.
+    unfold headroom in headroom_size. fold hh in headroom_size.
     lia. } 
  
    Exists (graph_add.add_node_ti 0 tinfo _ t_size).
    assert (add_node_compatible gr (new_copied_v gr 0) es). 
-   { eapply add_node_compatible_new. eapply in_graphs_has; eauto. eauto.  } 
+   { eapply add_node_compatible_new.
+     destruct gc_cond as [_ [ [ _ [_  [ _ OUTL] ] ] _] ].
+     eapply Forall_impl; [ | apply (in_graphs_has _ _ _ _ _ OUTL args_in_graph)].
+     simpl; intros. destruct a; auto.
+     eassumption. } 
        
-   entailer!.
+   entailer!!.
+   clear H5.
 
-   *  (* Ensuring that the propositional part holds. *)
+ *  (* Ensuring that the propositional part holds. *)
   split3.
    -- apply result_in_graph; eauto. 
-   -- split3.
-      ++ split. 
-        ** unfold headroom. simpl. autorewrite with graph_add.
-           unfold fds.
-           rewrite map_length. rewrite Zlength_map. 
-           rewrite Zlength_correct. rep_lia.
-        **  destruct gc_cond. unfold gc_correct.sound_gc_graph, roots_compatible in *.
-            intuition eauto.
-        apply add_node_iso; eauto; try apply H36; try apply H30. (* ~In (inr (new_copied_v gr 0)) roots *)
-        eapply new_node_roots; eauto. 
-        unfold roots_compatible; split; try apply H36.
-       ++ simpl. rewrite <- H9. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
+   -- split3; [split | | ].
+      ++ unfold headroom. simpl. autorewrite with graph_add.
+         unfold fds.
+         rewrite map_length. rewrite Zlength_map. 
+         rewrite Zlength_correct. rep_lia.
+      ++  red in gc_cond.
+         destruct gc_cond as (GCC & SC & STC & SGC & CC).
+         apply add_node_iso; auto; try apply SGC; try apply SC; try apply RGC; try apply GCC.
+        apply new_node_roots with (outlier:=outliers). apply SC.
+      ++ simpl. rewrite <- H4. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
           destruct comp_g0 as (comp_start&comp_sh&comp_prev).
           unfold gen_start. simpl. rewrite comp_start. unfold vertex_offset.
           simpl. rewrite comp_prev. if_tac; try contradiction.
@@ -971,16 +949,15 @@ spatial_gcgraph.heap_struct_rep
           rewrite <- Ptrofs.add_signed.
           rewrite !Ptrofs.add_assoc; f_equal.
           rewrite ptrofs_add_repr. f_equal. unfold WORD_SIZE. rep_lia.
-       ++ simpl. autorewrite with graph_add; eauto. unfold vertex_address.
+      ++ simpl. autorewrite with graph_add; eauto. unfold vertex_address.
           destruct comp_g0 as (comp_start&comp_sh&comp_prev).
           unfold gen_start. simpl. rewrite comp_start. unfold vertex_offset.
           simpl. rewrite comp_prev. if_tac; try contradiction.
           rewrite isptr_eq. simpl. congruence.
 
-
    -- apply add_node_gc_condition_prop_general; eauto.
-   admit. 
-    (* eapply in_graphs_has; eauto. *)
+      destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
+      apply (in_graphs_has _ _ _ _ _ OUTL args_in_graph).
      * (* Ensuring that the spatial part holds. *)
 
     (* ti_token_rep tinfo *)
@@ -988,7 +965,21 @@ spatial_gcgraph.heap_struct_rep
     2 : { split. lia. simpl. rewrite SPACE_NONEMPTY. rewrite Zlength_cons.
         assert (X := Zlength_nonneg space_rest). lia. } 
     simpl.
-    entailer!.
+   assert_PROP (
+       @field_compatible0 env_graph_gc.CompSpecs
+       (tarray int_or_ptr_type
+         (total_space hh - used_space hh))
+    (SUB Z.pos (Pos.of_succ_nat (Datatypes.length ps)))
+    (Vptr b
+       (Ptrofs.add x'
+          (Ptrofs.repr (WORD_SIZE * used_space hh)))))
+    as FC0. {
+      saturate_local; apply prop_right; clear - H10.
+      unfold field_address0 in H10.
+      if_tac in H10; auto.
+      destruct H10; contradiction.
+    }
+    entailer!!.
    
     autorewrite with graph_add.
     simpl.
@@ -997,17 +988,19 @@ spatial_gcgraph.heap_struct_rep
     unfold_data_at (data_at sh env_graph_gc.thread_info_type _  _).
     autorewrite with graph_add.
     
-    simpl. cancel.
+    simpl.
+    cancel.
     
     (** alloc *)
     assert ((Vptr b
-    (Ptrofs.repr
-       (alloc
+              (Ptrofs.repr
+             (alloc
           + Z.pos
               (Pos.of_succ_nat
                  (Datatypes.length
                     (map (fun p : rep_type => rep_type_val gr p) ps))
-                 * 8)))) = offset_val
+                 * 8)))) = 
+             offset_val
                  (WORD_SIZE
                     * used_space
                         (heap_head
@@ -1015,7 +1008,7 @@ spatial_gcgraph.heap_struct_rep
                  (space_start
                     (heap_head (ti_heap (add_node_ti 0 tinfo (1 + Zlength fds) t_size))))) as ->.
     { unfold alloc, fds, WORD_SIZE.  simpl. 
-      autorewrite with graph_add. rewrite isptr_eq. simpl. f_equal. 
+      autorewrite with graph_add. fold hh. rewrite isptr_eq. simpl. f_equal. 
       rewrite !map_length. autorewrite with norm.
       rewrite Zlength_map. 
       rewrite Pos2Z.inj_mul.
@@ -1029,22 +1022,22 @@ spatial_gcgraph.heap_struct_rep
       rewrite !Ptrofs.signed_repr. 
       rep_lia. 
       - rewrite Zlength_correct. rewrite <- ps_size. rep_lia. 
-      - destruct (heap_head (ti_heap tinfo)) eqn:myspace. unfold MAX_SPACE_SIZE in space_upper_bound. simpl.
+      - destruct hh eqn:myspace. unfold MAX_SPACE_SIZE in space_upper_bound. simpl.
        simpl in space_upper_bound. 
        unfold Ptrofs.min_signed, Ptrofs.max_signed. simpl. lia.
  }
  simpl. autorewrite with graph_add. cancel.
 
     (** limit *)
-    assert ( Vptr b (Ptrofs.repr limit) = offset_val
-    (WORD_SIZE
+    assert ( Vptr b (Ptrofs.repr limit) = 
+      offset_val (WORD_SIZE
        * total_space
            (heap_head
               (ti_heap (add_node_ti 0 tinfo (1 + Zlength fds) t_size))))
     (space_start
        (heap_head (ti_heap (add_node_ti 0 tinfo (1 + Zlength fds) t_size))))) as ->. 
     {  unfold limit, fds, WORD_SIZE.
-       simpl. autorewrite with graph_add. 
+       simpl. autorewrite with graph_add. fold hh.
        rewrite isptr_eq.  simpl. f_equal. 
        rewrite Ptrofs.repr_signed. f_equal.  }
       
@@ -1063,12 +1056,11 @@ spatial_gcgraph.heap_struct_rep
     simpl. rewrite SPACE_NONEMPTY at 4. 
     rewrite upd_Znth0.
     simpl. 
-    autorewrite with graph_add; eauto. 
+    autorewrite with graph_add; eauto. fold hh. 
     cancel.
 
     (* heap_struct_rep *)
-    assert (Vptr b x' = space_start
-    (heap_head (ti_heap tinfo))) as <- by eauto.
+    assert (Vptr b x' = space_start hh) as <- by eauto.
     autorewrite with graph_add. 
     rewrite SPACE_NONEMPTY at 2. simpl. 
     rewrite upd_Znth0. simpl.
@@ -1077,18 +1069,14 @@ spatial_gcgraph.heap_struct_rep
 
     (* space_rest_rep *)
     unfold space_rest_rep. simpl. 
-    if_tac.
-    { exfalso. 
-    rewrite SPACE_NONEMPTY in *. simpl in *.
-    rewrite isptr_eq in *. unfold nullval in *. simpl in *. 
-    congruence. }  
-    simpl. 
+    rewrite if_false
+     by (rewrite SPACE_NONEMPTY; simpl; rewrite isptr_eq; clear; intro; discriminate).  
     rewrite SPACE_NONEMPTY at 1. simpl.
   
-     unfold vertex_at.
+    unfold vertex_at.
     simpl. 
-    apply sepcon_derives.
-    { apply derives_refl'. f_equal. 
+    apply sepcon_derives.  {
+      apply derives_refl'. f_equal. 
       - f_equal. 
       unfold fds. rewrite Zlength_map. rewrite Zlength_correct.
       simpl. 
@@ -1096,13 +1084,11 @@ spatial_gcgraph.heap_struct_rep
       - unfold offset_val. unfold field_address0.
       simpl. rewrite !SPACE_NONEMPTY. simpl. 
       rewrite isptr_eq. simpl.
-      unfold field_address0 in H30. 
-      if_tac in H30. 
-      + f_equal. rewrite Ptrofs.add_assoc. f_equal. 
+      rewrite if_true by auto.
+      f_equal. rewrite Ptrofs.add_assoc. f_equal. 
       unfold fds. rewrite Zlength_map.  rewrite ptrofs_add_repr.
       f_equal. rewrite Zlength_correct. unfold WORD_SIZE. rep_lia. 
-      + simpl in H30. hnf in H30. destruct H30; contradiction.
- }
+    }
 
     unfold vals. rewrite to_from_vec.
     autorewrite with graph_add; eauto. 
@@ -1110,15 +1096,15 @@ spatial_gcgraph.heap_struct_rep
     assert (Zlength
     (fields_new (add_node gr 0 (newRaw v (Z.of_nat t) fds R1 R2 R3) es)
        (newRaw v (Z.of_nat t) fds R1 R2 R3) (new_copied_v gr 0)) = Z.of_nat (Datatypes.length (map (fun p : rep_type => specs_library.rep_type_val gr p) ps)))
-    as ->.
- { unfold fields_new.  simpl. rewrite Zlength_map. unfold make_fields.
-   simpl. rewrite map_length. autorewrite with graph_add. unfold update_vlabel. if_tac; try congruence.
-   rewrite Zlength_correct. rewrite make_fields'_eq_length. simpl. unfold fds.
-   rewrite map_length. reflexivity. }
-
+    as ->. {
+    unfold fields_new.  simpl. rewrite Zlength_map. unfold make_fields.
+    simpl. rewrite map_length. autorewrite with graph_add. unfold update_vlabel. if_tac; try congruence.
+    rewrite Zlength_correct. rewrite make_fields'_eq_length. simpl. unfold fds.
+    rewrite map_length. reflexivity.
+   }
    rewrite !map_length.
 
-   assert (space_sh (heap_head (ti_heap tinfo)) = nth_sh gr 0) as ->.
+   assert (space_sh hh = nth_sh gr 0) as ->.
    { destruct comp_g0 as (comp_start&comp_sh&comp_prev).
    rewrite <- comp_sh. reflexivity. }
 
@@ -1133,8 +1119,8 @@ spatial_gcgraph.heap_struct_rep
     subst alloc.
     unfold WORD_SIZE.
     autorewrite with norm. rewrite eq8.
-    assert (0 <= 8 * (used_space (heap_head (ti_heap tinfo)) + 1) <= Ptrofs.max_signed). 
-    { unfold Ptrofs.max_signed. destruct (heap_head (ti_heap tinfo)). 
+    assert (0 <= 8 * (used_space hh + 1) <= Ptrofs.max_signed). 
+    { unfold Ptrofs.max_signed. destruct hh. 
       simpl in *. unfold MAX_SPACE_SIZE in *. simpl in *. lia. 
     }
 
@@ -1183,7 +1169,8 @@ spatial_gcgraph.heap_struct_rep
     rewrite !map_length in *; eauto. 
    }
   autorewrite with graph_add; eauto. 
-  - assert (HHH := in_graphs_has _ _ _ _ args_in_graph). 
+  - destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
+    assert (HHH := in_graphs_has _ _ _ _ _ OUTL args_in_graph). 
   rewrite Forall_forall in HHH. 
   apply in_combine_r in In_seq. specialize (HHH _ In_seq). simpl in HHH. intuition.  
   -  apply nodup_getfields.
@@ -1205,57 +1192,39 @@ spatial_gcgraph.heap_struct_rep
       rewrite Zlength_map.
       rewrite Zlength_correct. reflexivity.
     - replace (1 + Z.of_nat (Datatypes.length ps) - 1) with (Z.of_nat (Datatypes.length ps)) by lia. 
-       unfold field_address0. simpl. entailer!. autorewrite with norm.
-       if_tac in H33.
-       2: { hnf in H33. destruct H33; contradiction. }
-       entailer!. 
+       unfold field_address0.
+       simpl. entailer!.
+       if_tac; [  | destruct H7; contradiction].
+       cancel.
 
   + (* Precondition:
      The precondition of the actual general alloc entails the precondition of n_arguments. *)
-  intros. subst alloc limit.
-  entailer!.
-
+  subst alloc limit.
   unfold before_gc_thread_info_rep.
   unfold_data_at (data_at sh _ _ _).
-  rewrite !isptr_eq. simpl. rewrite !Ptrofs.repr_signed. entailer!.
+  rewrite !isptr_eq. simpl. rewrite !Ptrofs.repr_signed.
+  cancel.
   unfold heap_rest_rep.
 
   rewrite SPACE_NONEMPTY . (* TODO: Tactic *) 
   simpl.
 
   unfold space_rest_rep at 1.
-  if_tac.
-  { exfalso. unfold nullval in *. rewrite isptr_eq in *. revert H21. simple_if_tac; congruence. }
-  simpl. Intros. entailer!.
+  rewrite if_false by (rewrite isptr_eq; clear; intro; discriminate).
   rewrite isptr_eq. unfold offset_val.
   rewrite data_at__tarray.
-  assert (HEADROOM := H4).
-  unfold headroom in headroom_size.
+  unfold headroom in headroom_size. fold hh in headroom_size.
   rewrite ps_size in headroom_size.
   assert (exists sp, 
-        (total_space (heap_head (ti_heap tinfo)) -
-         used_space (heap_head (ti_heap tinfo))) = ((1 + Z.of_nat (length ps)) + sp) /\ 0 <= sp) as (sp&(sp_eq&sp_ge)).
- { exists (total_space (heap_head (ti_heap tinfo)) -
- used_space (heap_head (ti_heap tinfo)) - Z.of_nat (length ps) - 1).
-    lia. }
+        (total_space hh -
+         used_space hh) = ((1 + Z.of_nat (length ps)) + sp) /\ 0 <= sp) as (sp&(sp_eq&sp_ge)).
+ { exists (total_space hh - used_space hh - Z.of_nat (length ps) - 1). lia. }
   rewrite sp_eq.
-  rewrite <- Zrepeat_app.
-  erewrite split2_data_at_Tarray_app.
-  2 : reflexivity.
-  entailer!.
-  rewrite Zlength_Zrepeat.
-  entailer!.
+  rewrite <- Zrepeat_app by list_solve.
+  erewrite split2_data_at_Tarray_app by list_solve.
   rewrite !map_length.
-  entailer!.
   assert (Z.pos (Pos.of_succ_nat (Datatypes.length ps)) = 1 + Z.of_nat (Datatypes.length ps)) as -> by rep_lia.
-  entailer!.
-
-  * lia. 
-  * rewrite Zlength_Zrepeat. rewrite Zlength_Zrepeat. lia.  
-    -- lia.
-    -- eauto. 
-  * lia. 
-  * eauto.
-Admitted.
+  cancel.
+Qed.
 
 
