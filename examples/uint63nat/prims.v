@@ -99,6 +99,7 @@ Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
 Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
+Definition _save0 : ident := $"save0".
 Definition _space : ident := $"space".
 Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
@@ -225,7 +226,7 @@ Definition f_uint63_to_nat := {|
                 (_t, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := ((___ROOT__, (tarray (talignas 3%N (tptr tvoid)) 1)) ::
               (___FRAME__, (Tstruct _stack_frame noattr)) :: nil);
-  fn_temps := ((_i, tulong) :: (_temp, (talignas 3%N (tptr tvoid))) ::
+  fn_temps := ((_i, tulong) :: (_save0, (talignas 3%N (tptr tvoid))) ::
                (__ALLOC, (tptr (talignas 3%N (tptr tvoid)))) ::
                (__LIMIT, (tptr (talignas 3%N (tptr tvoid)))) ::
                (___PREV__, (tptr (Tstruct _stack_frame noattr))) ::
@@ -245,7 +246,7 @@ Definition f_uint63_to_nat := {|
         (Evar _make_Coq_Init_Datatypes_nat_O (Tfunction Tnil
                                                (talignas 3%N (tptr tvoid))
                                                cc_default)) nil)
-      (Sset _temp (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))
+      (Sset _save0 (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))
     (Ssequence
       (Sassign
         (Efield (Evar ___FRAME__ (Tstruct _stack_frame noattr)) _next
@@ -331,7 +332,7 @@ Definition f_uint63_to_nat := {|
                                         (Econst_int (Int.repr 0) tint)
                                         (tptr (talignas 3%N (tptr tvoid))))
                                       (talignas 3%N (tptr tvoid)))
-                                    (Etempvar _temp (talignas 3%N (tptr tvoid)))))
+                                    (Etempvar _save0 (talignas 3%N (tptr tvoid)))))
                                 (Scall None
                                   (Evar _garbage_collect (Tfunction
                                                            (Tcons
@@ -345,7 +346,7 @@ Definition f_uint63_to_nat := {|
                                   (Ecast (Econst_int (Int.repr 0) tint)
                                     (tptr tvoid))
                                   (talignas 3%N (tptr tvoid)))))
-                            (Sset _temp
+                            (Sset _save0
                               (Ederef
                                 (Ebinop Oadd
                                   (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1))
@@ -376,12 +377,12 @@ Definition f_uint63_to_nat := {|
                                                                    (talignas 3%N (tptr tvoid))
                                                                    cc_default))
                       ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
-                       (Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
-                    (Sset _temp (Etempvar _t'2 (talignas 3%N (tptr tvoid)))))
+                       (Etempvar _save0 (talignas 3%N (tptr tvoid))) :: nil))
+                    (Sset _save0 (Etempvar _t'2 (talignas 3%N (tptr tvoid)))))
                   (Sset _i
                     (Ebinop Osub (Etempvar _i tulong)
                       (Econst_int (Int.repr 1) tint) tulong)))))
-            (Sreturn (Some (Etempvar _temp (talignas 3%N (tptr tvoid)))))))))))
+            (Sreturn (Some (Etempvar _save0 (talignas 3%N (tptr tvoid)))))))))))
 |}.
 
 Definition f_uint63_add := {|

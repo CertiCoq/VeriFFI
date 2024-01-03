@@ -103,22 +103,42 @@ value uint63_to_nat_no_gc (struct thread_info *tinfo, value t) {
   return temp;
 }
 
-#define GC_SAVE1(n,a0) \
+/* Usage of GC_SAVE1
+  Before the invocation of GC_SAVE1(n),
+      the variable __FRAME__ (etc) must be set up as by BEGINFRAME(tinfo,k) with k>=n
+
+  After the invocation of GC_SAVE1(n),
+     n <= tinfo->limit-tinfo->alloc
+  AND  the possibly pointer variable  save0 will have properly forwarded
+  AND  all the pointers in the stack-of-frames (from tinfo->fp) will have been forwarded
+  AND  no other pointer variables are correctly preserved
+  AND  all other nonpointer variables are preserved (except _LIMIT, _ALLOC)
+
+  We cannot allow the name of variable save0 to be a parameter to this macro, 
+  it must be named exactly that for the convenience of Lemma semax_GC_SAVE1.
+ */  
+#define GC_SAVE1(n) \
     if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
     tinfo->nalloc = (n);  \
-    LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),a0);	\
+    LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),save0);	\
+  }
+
+#define GC_SAVE2(n) \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = (n);  \
+    LIVEPOINTERS2(tinfo,(garbage_collect(tinfo),(value)NULL),save0,save1);  \
   }
 
 value uint63_to_nat(struct thread_info *tinfo, value t) {
   uint64_t i = (uint64_t) (((uint64_t) t) >> 1);
-  value temp = make_Coq_Init_Datatypes_nat_O();
+  value save0 = make_Coq_Init_Datatypes_nat_O(); /* must name this save0 for compatibility with GC_SAVE1 */
   BEGINFRAME(tinfo,1)
   while (i) {
-    GC_SAVE1(2,temp);
-    temp = alloc_make_Coq_Init_Datatypes_nat_S(tinfo, temp);
+    GC_SAVE1(2)  /* no semicolon! */
+    save0 = alloc_make_Coq_Init_Datatypes_nat_S(tinfo,save0);
     i--;
   }
-  return temp;
+  return save0;
   ENDFRAME
 }
 

@@ -384,7 +384,7 @@ Proof.
     apply graph_has_gen_O.
 Qed.
 
-Definition GC_SAVE1 n a0 := 
+Definition GC_SAVE1 n := 
                 (Ssequence
                   (Ssequence
                     (Sset __LIMIT
@@ -444,7 +444,7 @@ Definition GC_SAVE1 n a0 :=
                                         (Econst_int (Int.repr 0) tint)
                                         (tptr (talignas 3%N (tptr tvoid))))
                                       (talignas 3%N (tptr tvoid)))
-                                    (Etempvar a0 (talignas 3%N (tptr tvoid)))))
+                                    (Etempvar _save0 (talignas 3%N (tptr tvoid)))))
                                 (Scall None
                                   (Evar _garbage_collect (Tfunction
                                                            (Tcons
@@ -458,7 +458,7 @@ Definition GC_SAVE1 n a0 :=
                                   (Ecast (Econst_int (Int.repr 0) tint)
                                     (tptr tvoid))
                                   (talignas 3%N (tptr tvoid)))))
-                            (Sset a0
+                            (Sset _save0
                               (Ederef
                                 (Ebinop Oadd
                                   (Evar ___ROOT__ (tarray (talignas 3%N (tptr tvoid)) 1))
@@ -479,63 +479,6 @@ Definition GC_SAVE1 n a0 :=
                     Sskip)).
 
 
-(*
-gc_condition_prop =
-fun (g : LGraph) (t_info : GCGraph.thread_info) 
-  (roots : roots_t) (outlier : outlier_t) =>
-graph_unmarked g /\
-no_backward_edge g /\
-no_dangling_dst g /\
-ti_size_spec (ti_heap t_info) /\
-safe_to_copy g /\
-
-
-graph_heap_compatible g (ti_heap t_info) /\
-outlier_compatible g outlier /\
-roots_compatible g outlier roots /\
-rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots /\
-gc_correct.sound_gc_graph g /\ copy_compatible g
-  
-*)
-(*
-Definition gc_state (g : LGraph) (t_info : GCGraph.thread_info) 
-  (roots : roots_t) (outlier : outlier_t) (ti : val) 
-  (sh : share) (gv : globals) : mpred :=
- !! 
-
-Definition garbage_collect_spec_alt :=
-  WITH rsh: share, sh: share, gv: globals, ti: val,
-       g: LGraph, t_info: thread_info,
-       roots : roots_t, outlier: outlier_t
-  PRE [tptr thread_info_type]
-    PROP (readable_share rsh; writable_share sh;
-          super_compatible g (ti_heap t_info) (frames2rootpairs (ti_frames t_info)) roots outlier;
-          garbage_collect_condition g (ti_heap t_info) roots;
-          safe_to_copy g)
-    PARAMS (ti)
-    GLOBALS (gv)
-    SEP (full_gc g t_info roots outlier ti sh gv;
-         library.mem_mgr gv;)
-  POST [tvoid]
-    EX g': LGraph, EX t_info': thread_info, EX roots': roots_t,
-    PROP (super_compatible g' (ti_heap t_info') (frames2rootpairs (ti_frames t_info')) roots' outlier;
-          garbage_collect_relation roots roots' g g';
-          garbage_collect_condition g' (ti_heap t_info') roots';
-          safe_to_copy g';
-          frame_shells_eq (ti_frames t_info) (ti_frames t_info');
-          Ptrofs.unsigned (ti_nalloc t_info) <= 
-                 total_space (heap_head (ti_heap t_info'))
-                    - used_space (heap_head (ti_heap t_info')))
-    LOCAL ()
-    SEP (library.mem_mgr gv; (*MSS_constant gv;*)
-         all_string_constants rsh gv;
-         outlier_rep outlier;
-         graph_rep g';
-         before_gc_thread_info_rep sh t_info' ti;
-         ti_token_rep (ti_heap t_info') (ti_heap_p t_info')).
-*)
-
-
 Lemma semax_GC_SAVE1:
  forall (n: Z) (Espec : OracleKind)
   (gv : globals) (sh : share)
@@ -554,14 +497,14 @@ Lemma semax_GC_SAVE1:
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
   (PROP ( )
-   LOCAL (temp _temp (rep_type_val g v0);
+   LOCAL (temp _save0 (rep_type_val g v0);
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
    lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
    library.mem_mgr gv))
-  (GC_SAVE1 n _temp)
+  (GC_SAVE1 n)
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
@@ -569,7 +512,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-      LOCAL (temp _temp (rep_type_val g' v0');
+      LOCAL (temp _save0 (rep_type_val g' v0');
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
       gvars gv)
@@ -927,14 +870,14 @@ Lemma test_semax_GC_SAVE1:
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
   (PROP ( )
-   LOCAL (temp _temp (rep_type_val g v0); temp _i ival;
+   LOCAL (temp _save0 (rep_type_val g v0); temp _i ival;
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
    lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
    library.mem_mgr gv))
-  (GC_SAVE1 n _temp)
+  (GC_SAVE1 n)
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
@@ -942,7 +885,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-      LOCAL (temp _temp (rep_type_val g' v0'); temp _i ival;
+      LOCAL (temp _save0 (rep_type_val g' v0'); temp _i ival;
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
       gvars gv)
@@ -986,7 +929,7 @@ forward_while
       gc_condition_prop g' t_info' roots' outlier;
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
- LOCAL (temp _temp (rep_type_val g' v);
+ LOCAL (temp _save0 (rep_type_val g' v);
       temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 

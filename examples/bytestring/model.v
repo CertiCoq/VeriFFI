@@ -71,17 +71,74 @@ Module Bytestring_Proofs.
   #[local] Existing Instance Isomorphism_M.
   #[local] Existing Instance Isomorphism_stream.
 
-  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring.
-    refine {| graph_predicate g x p := _ |}.
-    (* TODO this is where we describe how an OCaml bytestring 
-            is represented within the graph *)
-    Admitted.
+  Import sublist.
+
+  Definition padding (len: Z) : list Ascii.ascii := 
+     let n := (7 - len)%Z in
+      Zrepeat Ascii.zero n
+      ++ (Ascii.ascii_of_N (Z.to_N n) :: nil).
+(* 
+  Definition padding (len: Z) : list Byte.byte := 
+     let n := (7 - len)%Z in
+      Zrepeat Byte.x00 n
+      ++ (match Byte.to_N n with Some b => b | _ => Byte.x00 end
+          :: nil).
+*)
+
+  Fixpoint encodebytes (s: list Ascii.ascii) : Z :=
+   match s with
+   | c :: r => encodebytes r * 256 + Z.of_N (Ascii.N_of_ascii c)
+   | nil => 0
+   end%Z.
+
+  Definition endian_encodebytes (s: list Ascii.ascii) : Z :=
+   encodebytes (if Archi.big_endian then rev s else s).
+
+  Function chars_raw_fields (s: list Ascii.ascii) {measure List.length s}: list Z :=
+    if Z.ltb (Zlength s) 8
+    then endian_encodebytes (s ++ padding (Zlength s)) :: nil
+    else endian_encodebytes (sublist 0 8 s) ::
+         chars_raw_fields (sublist 8 (Zlength s) s).
+  Proof.
+  intros. rewrite <- !ZtoNat_Zlength.
+    rewrite Zlength_sublist by lia. lia.
+  Qed.
+
+
+  Definition bytestring_raw_fields (s: FM.bytestring) : list GCGraph.raw_field :=
+    map (fun z => Some (inl z)) 
+    (chars_raw_fields (list_ascii_of_string s)).
+
+  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
+     {| graph_predicate g x p := 
+        match p with
+        | repZ z => False
+        | repOut g0 => False (* TODO: might be a good idea to permit outliers *)
+        | repNode v => GCGraph.graph_has_v g v /\
+            match graph_model.vlabel g v with
+            | GCGraph.Build_raw_vertex_block false _ flds 0 tag _ _ _ _ => 
+                   tag=252%Z /\ flds = bytestring_raw_fields x
+            | _ => False
+            end
+        end
+     |}.
+
   #[local] Instance InGraph_bytestring : InGraph FM.bytestring.
     econstructor.
-    (*  TODO this is where we prove lemmas about the graph predicate above *)
-    * admit.
-    * admit.
-    Admitted.
+    * intros. destruct H; auto. 
+    * intros.  destruct p; try contradiction.
+      destruct H1.
+      destruct (graph_model.vlabel g v) eqn:?H; try contradiction.
+      destruct raw_mark; try contradiction.
+      destruct raw_color; try contradiction.
+      destruct H2. subst raw_tag raw_fields.
+      split.
+      + apply add_node_graph_has_v_impl; auto.
+      + rewrite add_node_vlabel_old.
+        rewrite H3; auto.
+        apply GCGraph.graph_has_v_not_eq; auto.
+    Qed.
+
   #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
     refine {| graph_predicate g x p := _ |}.
     (* TODO this is where we describe how the monad type
