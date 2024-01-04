@@ -131,33 +131,6 @@ Proof. auto. Qed.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
 Defined.
 
-Ltac concretize_PARAMS :=
-lazymatch goal with
-| xs: args (ctor_reified _), H0: in_graphs _ (ctor_reified _) ?xs' ?ps  |- _ =>
-   constr_eq xs xs';
-   repeat (simpl in xs;
-   lazymatch type of xs with
-   | unit => destruct xs;
-        match goal with H: ?a = get_size ?u ?v |- _ =>
-             unify a (get_size u v); clear H
-        end
-   | @sigT _ _ => let x := fresh "x" in destruct xs as [x xs];
-                let p := fresh "p" in destruct ps as [ | p ps];
-                [solve [contradiction] | ]
-   end);
-   repeat lazymatch goal with
-   |  H: in_graphs _ _ _ (_ :: _) |- _ => destruct H
-   |  H: in_graphs _ _ _ ps |- _ => hnf in H; subst ps
-   end
-   | _ => idtac
-end.
-
-Ltac start_function' := 
-  start_function1; 
-  repeat (simple apply intro_prop_through_close_precondition; intro);
-  concretize_PARAMS;
-  start_function2;
-  start_function3.
 
 (** ** Consequences of a Well-Defined Graph *)
 
@@ -465,7 +438,7 @@ Lemma alloc_finish: forall
  (ti : val) 
  (outlier : outlier_t) 
  (t_info : GCGraph.thread_info)
- (H : in_graphs g (ctor_reified c) xs pl)
+ (H : ctor_in_graphs g (ctor_reified c) xs pl)
  (heap := (ti_heap t_info : heap) : heap)
  (g0 := (heap_head heap : space) : space)
  (space := total_space g0 - used_space g0 : Z)

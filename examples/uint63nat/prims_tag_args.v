@@ -162,7 +162,7 @@ struct Coq_Init_Datatypes_S_args *get_Coq_Init_Datatypes_S_args(int_or_ptr64 $v)
     POST [ tptr (Tstruct _Coq_Init_Datatypes_S_args noattr) ]
     EX  (p' : rep_type),
     PROP (  
-            in_graphs g (ctor_reific c) xs [p']
+            ctor_in_graphs g (ctor_reific c) xs [p']
         )
     RETURN  ( rep_type_val g p ) 
     SEP (data_at sh (Tstruct _Coq_Init_Datatypes_S_args noattr) (rep_type_val g p') (rep_type_val g p);
@@ -275,7 +275,7 @@ POST [ tptr int_or_ptr_type ]
 EX  (ps' : list rep_type),
 PROP (  
         let r := result (ctor_reific c) xs in 
-        in_graphs g (ctor_reific c) xs ps'
+        ctor_in_graphs g (ctor_reific c) xs ps'
     )
 RETURN  ( rep_type_val g p ) 
 SEP (data_at sh (Tarray int_or_ptr_type (Zlength ps')) (map (rep_type_val g) ps') (rep_type_val g p);
@@ -302,7 +302,7 @@ POST [ tptr (Tstruct args_type noattr) ]
 EX  (ps' : list rep_type),
 PROP (  
         let r := result (ctor_reific c) xs in 
-        in_graphs g (ctor_reific c) xs ps'
+        ctor_in_graphs g (ctor_reific c) xs ps'
     )
 RETURN  ( rep_type_val g p ) 
 SEP (data_at sh (Tstruct args_type noattr) (map (rep_type_val g) ps') (rep_type_val g p)
@@ -436,9 +436,6 @@ value uint63_to_nat(struct thread_info *tinfo, value t) {
 }
 
 *)
-
-Print Rep.
-Print in_graphs.
 
 (*  Lemma is_in_graphs_nat g n p : 
     is_in_graph g (S n) p -> exists p', in_graphs g (n; tt) [p']. *)

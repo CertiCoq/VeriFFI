@@ -23,8 +23,6 @@ verification/specs_library.v
 verification/specs_general.v
 # verification/proofs_library_general.v
 
-generator/funspec.v
-
 examples/uint63z/prog.v
 examples/uint63z/glue.v
 examples/uint63z/prims.v
@@ -51,3 +49,6 @@ examples/bytestring/prog.v
 examples/bytestring/model.v
 examples/bytestring/glue.v
 examples/bytestring/Verif_prog.v
+examples/bytestring/prims.v
+examples/bytestring/specs.v
+examples/bytestring/prims_verif.v

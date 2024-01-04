@@ -5,23 +5,6 @@ Require Import CertiGraph.CertiGC.spatial_gcgraph.
 
 Require Import VeriFFI.examples.uint63nat.specs.
 
-Ltac limited_change_compspecs' cs cs' :=
-  lazymatch goal with
-  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
-  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
-  end.
-
-Ltac limited_change_compspecs cs :=
- match goal with |- context [?cs'] =>
-   match type of cs' with compspecs =>
-     try (constr_eq cs cs'; fail 1);
-     limited_change_compspecs' cs cs';
-     repeat limited_change_compspecs' cs cs'
-   end
-end.
-
 #[export] Instance CCE3: change_composite_env Verif_prog_general.CompSpecs CompSpecs.
 make_cs_preserve Verif_prog_general.CompSpecs CompSpecs.
 Defined.
@@ -124,11 +107,6 @@ Proof.
  rewrite Int64.shl_mul_two_p, mul64_repr, add64_repr.
  reflexivity.
 Qed.
-
-#[export] Instance Inhabitant_rep_type: Inhabitant rep_type.
-constructor. apply 0.
-Defined.
-
 
 Lemma body_uint63_to_nat_no_gc_spec :
   semax_body Vprog Gprog

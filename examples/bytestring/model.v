@@ -150,16 +150,18 @@ Module Bytestring_Proofs.
     * admit.
     * admit.
     Admitted.
-  #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream.
-    refine {| graph_predicate g x p := _ |}.
-    (* TODO this is where we describe how a stream is represented within the graph *)
-    Admitted.
+  #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream :=
+         {| graph_predicate g x p := 
+             match p with
+             | repOut _ => True  (* This is probably a bit too weak... *)
+             | _ => False end |}.
   #[local] Instance InGraph_stream : InGraph FM.stream.
     econstructor.
     (*  TODO this is where we prove lemmas about the graph predicate above *)
-    * admit.
-    * admit.
-    Admitted.
+    * intros. contradiction H.
+    * intros.  destruct p; try contradiction.
+      hnf; auto.
+    Qed.
 
   Definition append_desc : fn_desc :=
     {| type_desc :=

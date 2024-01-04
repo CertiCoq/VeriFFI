@@ -294,3 +294,92 @@ Ltac do_repr_inj H ::=
                  ?int_repr_byte_signed_eq0, ?int_repr_byte_signed_eq0
       in H.
 
+(* BEGIN delete this in the next VST release that has Ltac prove_cs_preserve_type
+Converging two compspecs fit together.
+*)
+Ltac prove_cs_preserve_type := 
+reflexivity || 
+lazymatch goal with |- cs_preserve_type ?a ?b ?CCE ?t = true =>
+ tryif is_evar CCE 
+ then fail 2 "Before using change_compspecs, define an Instance of change_composite_env"
+ else tryif unify (cs_preserve_type a b CCE t) false
+ then let id := constr:(match t with Tstruct i _ => Some i | Tunion i _ => Some i | _ => None end) in 
+      let id := eval hnf in id in 
+      lazymatch id with 
+      | None => fail 2 "change_compspecs fails because the two compspecs environments disagree on the definition of type" t "(that is," 
+a "versus" b ")"
+      | Some ?id' => let ca := constr:(@get_co a id') in
+               let cb := constr:(@get_co b id') in
+               let ca := eval hnf in ca in
+               let cb := eval hnf in cb in
+               fail 2 "change_compspecs fails because the two compspecs environments disagree on the definition of type" t
+                 ". That is," a "claims" ca "while" b "claims" cb
+       end
+ else fail
+end.
+
+Ltac change_compspecs' cs cs' ::=
+  lazymatch goal with
+  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
+  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
+  | |- _ => 
+    match goal with 
+  | |- context [?A cs'] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs') with (A cs)
+  | |- context [?A cs' ?B] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B) with (A cs B)
+  | |- context [?A cs' ?B ?C] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C) with (A cs B C)
+  | |- context [?A cs' ?B ?C ?D] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D) with (A cs B C D)
+  | |- context [?A cs' ?B ?C ?D ?E] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D E) with (A cs B C D E)
+  | |- context [?A cs' ?B ?C ?D ?E ?F] => 
+     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
+         change (A cs' B C D E F) with (A cs B C D E F)
+   end
+ end.
+(* END delete this in the next VST release that has Ltac prove_cs_preserve_type *)
+
+
+Ltac limited_change_compspecs' cs cs' :=
+  lazymatch goal with
+  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
+  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
+  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
+  end.
+
+Ltac limited_change_compspecs cs :=
+ match goal with |- context [?cs'] =>
+   match type of cs' with compspecs =>
+     try (constr_eq cs cs'; fail 1);
+     limited_change_compspecs' cs cs';
+     repeat limited_change_compspecs' cs cs'
+   end
+end.
+
+
+#[export] Instance Inhabitant_rep_type: Inhabitant rep_type.
+constructor. apply 0.
+Defined.
+
+(* Trying to rewrite with something like: *)
+(* Lemma aux : forall P ps, (A' xs' ps' -> P ps') -> (A xs ps -> P ps) *)
+Lemma combined_sigT_in_arg :
+  forall (A : Type) (P : A -> Type) (T : forall (p : {x : A & P x}), Type),
+     (forall (a1 : A) (a2: P a1), T (existT _ a1 a2)) -> (forall (p : {x : A & P x}), T p).
+Proof. intros A P T f p. destruct p. apply f. Qed.
+
+Lemma separate_sigT_in_arg :
+  forall (A : Type) (P : A -> Type) (T : forall (p : {x : A & P x}), Type),
+      (forall (p : {x : A & P x}), T p) -> (forall (a1 : A) (a2: P a1), T (existT _ a1 a2)).
+Proof. auto. Qed.
+

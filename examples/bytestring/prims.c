@@ -116,7 +116,7 @@ size_t bytestrlen(value s)
 unsigned char ascii_to_char(value x) {
   unsigned char c = 0;
   for(unsigned int i = 0; i < 8; i++) {
-    unsigned int tag = get_Coq_Init_Datatypes_bool_tag(*((value *) *((value *) x) + i));
+    unsigned int tag = get_Coq_Init_Datatypes_bool_tag(get_args(x)[i]);
     c += !tag << i;
   }
   return c;
@@ -246,7 +246,7 @@ value pack(struct thread_info *tinfo, value save0)
   size_t i, len = 0;
   while(get_Coq_Strings_String_string_tag(temp) == 1) {
     len++;
-    temp = *((value *) temp + 1ULL);
+    temp = get_args(temp)[1];
   } 
   size_t mod = len % sizeof(value);
   size_t pad_length = sizeof(value) - (len % sizeof(value));
@@ -259,9 +259,9 @@ value pack(struct thread_info *tinfo, value save0)
   char *ptr = (char *) (argv + 1LLU);
   temp = save0;
   while(get_Coq_Strings_String_string_tag(temp) == 1) {
-    *ptr = ascii_to_char(temp);
+    *ptr = ascii_to_char(get_args(temp)[0]);
     ptr++;
-    temp = *((value *) temp + 1ULL);
+    temp = get_args(temp)[1];
   } 
 
   // make the padding
@@ -367,23 +367,27 @@ value scan_bytestring(struct thread_info *tinfo, value save0)
 /////////////////////////////////////////////////////////////////
 
 typedef enum { PURE, BIND, PRINT, SCAN } M;
+
+extern M get_prog_C_MI_tag(value action);
+
 value runM(struct thread_info * tinfo, value a, value instream, value outstream, value action)
 {
+  /* a is computationally irrelevant, any valid reptype can be passed */
   value temp, arg0, arg1;
   BEGINFRAME(tinfo,4)
   switch (get_prog_C_MI_tag(action)) {
     case PURE:
       return get_args(action)[1];
     case BIND:
-      temp = LIVEPOINTERS4(tinfo,
-			   (arg0 = get_args(action)[2],
-                            runM(tinfo, a, instream, outstream, arg0)),
-			   action,instream,outstream,a);
+      arg0 = get_args(action)[2];
+      arg1 = get_args(action)[3];
       temp = LIVEPOINTERS3(tinfo,
-			   (arg1 = get_args(action)[3],
-			    call(tinfo,arg1,temp)),
-			   instream, outstream,a);
-      return runM(tinfo, a, instream, outstream, temp);
+			   runM(tinfo, (value)1ULL, instream, outstream, arg0),
+			   arg1,instream,outstream);
+      temp = LIVEPOINTERS2(tinfo,
+			   call(tinfo,arg1,temp),
+			   instream, outstream);
+      return runM(tinfo, (value)1ULL, instream, outstream, temp);
     case PRINT:
       {
         value s = *((value *) action);

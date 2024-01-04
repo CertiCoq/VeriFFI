@@ -1,7 +1,7 @@
 Require Import ZArith.
 Require Import Psatz.
 
-Require Import VeriFFI.generator.funspec.
+Require Import VeriFFI.verification.specs_general.
 Require Import VeriFFI.generator.Rep.
 
 (* Obligation Tactic := gen. *)

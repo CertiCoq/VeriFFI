@@ -413,7 +413,7 @@ Definition X_in_graph_cons (descr : specs_general.constructor_description) (t: n
     forall (R1 : 0 <= Z.of_nat t < 256)
       (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
       (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-      in_graphs gr (constr descr) args_my ps ->
+      ctor_in_graphs gr (constr descr) args_my ps ->
       add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) ->
       specs_general.X_in_graph (getRes (constr descr) args_my)
                                (add_node gr 0
@@ -514,10 +514,10 @@ Admitted.
 
 Definition calc t n := Z.of_nat t + Z.shiftl (Z.of_nat n) 10.
 
-Lemma in_graphs_has:
+Lemma ctor_in_graphs_has:
   forall (descr : specs_general.constructor_description) (gr : graph)
     (ps : list rep_type) (args_my : specs_general.args (constr descr)),
-    in_graphs gr (constr descr) args_my ps ->
+    ctor_in_graphs gr (constr descr) args_my ps ->
     Forall
       (fun p : rep_type =>
          match p with
@@ -596,7 +596,7 @@ Proof.
   pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space (heap_head (ti_heap tinfo)))))) .
 
   pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
-  assert (ps_size := in_graphs_size _ _ _ _ H0).
+  assert (ps_size := ctor_in_graphs_size _ _ _ _ H0).
   rewrite ps_size.   erewrite <- map_length.
 
   Exists ((((((sh, space_sh (heap_head (ti_heap tinfo))), tinfo_pos) , vals), b),  alloc), limit).
@@ -666,7 +666,7 @@ Proof.
              rewrite isptr_eq. simpl. congruence.
 
       -- apply add_node_gc_condition_prop_general; eauto.
-         eapply in_graphs_has; eauto.
+         eapply ctor_in_graphs_has; eauto.
    * unfold full_gc.
 
      unfold specs_library.before_gc_thread_info_rep.

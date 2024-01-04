@@ -36,133 +36,9 @@ Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ alloc_make_Coq_Init_Datatypes_nat_S_spec ] .
 
 
-(* BEGIN delete this in the next VST release that has Ltac prove_cs_preserve_type
-Converging two compspecs fit together.
-*)
-Ltac prove_cs_preserve_type := 
-reflexivity || 
-lazymatch goal with |- cs_preserve_type ?a ?b ?CCE ?t = true =>
- tryif is_evar CCE 
- then fail 2 "Before using change_compspecs, define an Instance of change_composite_env"
- else tryif unify (cs_preserve_type a b CCE t) false
- then let id := constr:(match t with Tstruct i _ => Some i | Tunion i _ => Some i | _ => None end) in 
-      let id := eval hnf in id in 
-      lazymatch id with 
-      | None => fail 2 "change_compspecs fails because the two compspecs environments disagree on the definition of type" t "(that is," 
-a "versus" b ")"
-      | Some ?id' => let ca := constr:(@get_co a id') in
-               let cb := constr:(@get_co b id') in
-               let ca := eval hnf in ca in
-               let cb := eval hnf in cb in
-               fail 2 "change_compspecs fails because the two compspecs environments disagree on the definition of type" t
-                 ". That is," a "claims" ca "while" b "claims" cb
-       end
- else fail
-end.
-
-Ltac change_compspecs' cs cs' ::=
-  lazymatch goal with
-  | |- context [@data_at cs' ?sh ?t ?v1] => erewrite (@data_at_change_composite cs' cs _ sh t); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@field_at cs' ?sh ?t ?gfs ?v1] => erewrite (@field_at_change_composite cs' cs _ sh t gfs); [| apply JMeq_refl | prove_cs_preserve_type]
-  | |- context [@data_at_ cs' ?sh ?t] => erewrite (@data_at__change_composite cs' cs _ sh t); [| prove_cs_preserve_type]
-  | |- context [@field_at_ cs' ?sh ?t ?gfs] => erewrite (@field_at__change_composite cs' cs _ sh t gfs); [| prove_cs_preserve_type]
-  | |- _ => 
-    match goal with 
-  | |- context [?A cs'] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs') with (A cs)
-  | |- context [?A cs' ?B] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs' B) with (A cs B)
-  | |- context [?A cs' ?B ?C] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs' B C) with (A cs B C)
-  | |- context [?A cs' ?B ?C ?D] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs' B C D) with (A cs B C D)
-  | |- context [?A cs' ?B ?C ?D ?E] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs' B C D E) with (A cs B C D E)
-  | |- context [?A cs' ?B ?C ?D ?E ?F] => 
-     idtac "Warning: attempting change_compspecs on user-defined mpred:" A;
-         change (A cs' B C D E F) with (A cs B C D E F)
-   end
- end.
-(* END delete this in the next VST release that has Ltac prove_cs_preserve_type *)
-
-(* Implications can be removed. *)
-Lemma intro_prop_through_close_precondition :
-  forall {Espec : OracleKind} Delta (p1 : Prop) f ps LS sf c post,
-  (p1 -> semax Delta (sepcon (close_precondition f ((PROPx ps LS))) sf) c post) ->
-  semax Delta (sepcon (close_precondition f (PROPx (p1 :: ps) LS)) sf) c post.
-Proof.
-  intros.
-  unfold close_precondition in *.
-  simpl in *.
-  eapply semax_pre with (andp (prop p1)
-  (fun rho : environ =>
-        ((EX vals : list val,
-          !! (map (Map.get (te_of rho)) f = map Some vals /\
-              Forall (fun v : val => v <> Vundef) vals) &&
-          PROPx ps LS (ge_of rho, vals))
-            * sf rho)%logic)).
-  2: apply semax_extract_prop; auto.
-  clear H.
-  intro rho.
-  simpl.
-  apply andp_left2.
-  Intro vals.
-  Exists vals.
-  unfold PROPx.
-  simpl.
-  normalize.
-  apply andp_right; auto.
-  apply prop_right; auto.
-Qed.
-
-(* Trying to rewrite with something like: *)
-(* Lemma aux : forall P ps, (A' xs' ps' -> P ps') -> (A xs ps -> P ps) *)
-Lemma combined_sigT_in_arg :
-  forall (A : Type) (P : A -> Type) (T : forall (p : {x : A & P x}), Type),
-     (forall (a1 : A) (a2: P a1), T (a1; a2)) -> (forall (p : {x : A & P x}), T p).
-Proof. intros A P T f p. destruct p. apply f. Qed.
-
-Lemma separate_sigT_in_arg :
-  forall (A : Type) (P : A -> Type) (T : forall (p : {x : A & P x}), Type),
-      (forall (p : {x : A & P x}), T p) -> (forall (a1 : A) (a2: P a1), T (a1; a2)).
-Proof. auto. Qed.
-
 #[export] Instance CCE1: change_composite_env env_graph_gc.CompSpecs CompSpecs.
 make_cs_preserve env_graph_gc.CompSpecs CompSpecs.
 Defined.
-
-Ltac concretize_PARAMS :=
-lazymatch goal with
-| xs: args (ctor_reified _), H0: in_graphs _ (ctor_reified _) ?xs' ?ps  |- _ =>
-   constr_eq xs xs';
-   repeat (simpl in xs;
-   lazymatch type of xs with
-   | unit => destruct xs;
-        match goal with H: ?a = get_size ?u ?v |- _ =>
-             unify a (get_size u v); clear H
-        end
-   | @sigT _ _ => let x := fresh "x" in destruct xs as [x xs];
-                let p := fresh "p" in destruct ps as [ | p ps];
-                [solve [contradiction] | ]
-   end);
-   repeat lazymatch goal with
-   |  H: in_graphs _ _ _ (_ :: _) |- _ => destruct H
-   |  H: in_graphs _ _ _ ps |- _ => hnf in H; subst ps
-   end
-   | _ => idtac
-end.
-
-Ltac start_function' := 
-  start_function1; 
-  repeat (simple apply intro_prop_through_close_precondition; intro);
-  concretize_PARAMS;
-  start_function2;
-  start_function3.
 
 (** ** Consequences of a Well-Defined Graph *)
 
@@ -718,7 +594,7 @@ Definition X_in_graph_cons (descr : ctor_desc) (t: nat) : Prop :=
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reified descr) args_my in 
     @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
@@ -753,11 +629,11 @@ Lemma InGraph_outlier_compatible {A} `{GP: GraphPredicate A}:
       gc_condition_prop *)
 Admitted.
 
-Lemma in_graphs_has:
+Lemma ctor_in_graphs_has:
   forall (descr : ctor_desc) (gr : graph) outliers
     (ps : list rep_type) (args_my : args (ctor_reified descr)),
     outlier_compatible gr outliers->
-    in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
     Forall
       (fun p : rep_type =>
          match p with
@@ -788,7 +664,7 @@ Definition X_in_graph_cons' (descr : ctor_desc) (t: nat) : Prop :=
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reified descr) args_my in 
     @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
@@ -839,7 +715,7 @@ Proof.
     pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh)))) .
 
     pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
-    assert (ps_size := in_graphs_size _ _ _ _ args_in_graph).
+    assert (ps_size := ctor_in_graphs_size _ _ _ _ args_in_graph).
     rewrite ps_size.   erewrite <- map_length.
 
     (* With Arguments of n_arguments *)
@@ -920,7 +796,7 @@ Proof.
    assert (add_node_compatible gr (new_copied_v gr 0) es). 
    { eapply add_node_compatible_new.
      destruct gc_cond as [_ [ [ _ [_  [ _ OUTL] ] ] _] ].
-     eapply Forall_impl; [ | apply (in_graphs_has _ _ _ _ _ OUTL args_in_graph)].
+     eapply Forall_impl; [ | apply (ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph)].
      simpl; intros. destruct a; auto.
      eassumption. } 
        
@@ -957,7 +833,7 @@ Proof.
 
    -- apply add_node_gc_condition_prop_general; eauto.
       destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
-      apply (in_graphs_has _ _ _ _ _ OUTL args_in_graph).
+      apply (ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph).
      * (* Ensuring that the spatial part holds. *)
 
     (* ti_token_rep tinfo *)
@@ -1170,7 +1046,7 @@ Proof.
    }
   autorewrite with graph_add; eauto. 
   - destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
-    assert (HHH := in_graphs_has _ _ _ _ _ OUTL args_in_graph). 
+    assert (HHH := ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph). 
   rewrite Forall_forall in HHH. 
   apply in_combine_r in In_seq. specialize (HHH _ In_seq). simpl in HHH. intuition.  
   -  apply nodup_getfields.
