@@ -109,35 +109,11 @@ Module Bytestring_Proofs.
     map (fun z => Some (inl z)) 
     (chars_raw_fields (list_ascii_of_string s)).
 
-  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
-     {| graph_predicate g x p := 
-        match p with
-        | repZ z => False
-        | repOut g0 => False (* TODO: might be a good idea to permit outliers *)
-        | repNode v => GCGraph.graph_has_v g v /\
-            match graph_model.vlabel g v with
-            | GCGraph.Build_raw_vertex_block false _ flds 0 tag _ _ _ _ => 
-                   tag=252%Z /\ flds = bytestring_raw_fields x
-            | _ => False
-            end
-        end
-     |}.
+  #[local] Instance InGraph_bytestring : InGraph FM.bytestring := InGraph_string.
 
-  #[local] Instance InGraph_bytestring : InGraph FM.bytestring.
-    econstructor.
-    * intros. destruct H; auto. 
-    * intros.  destruct p; try contradiction.
-      destruct H1.
-      destruct (graph_model.vlabel g v) eqn:?H; try contradiction.
-      destruct raw_mark; try contradiction.
-      destruct raw_color; try contradiction.
-      destruct H2. subst raw_tag raw_fields.
-      split.
-      + apply add_node_graph_has_v_impl; auto.
-      + rewrite add_node_vlabel_old.
-        rewrite H3; auto.
-        apply GCGraph.graph_has_v_not_eq; auto.
-    Qed.
+  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
+          GraphPredicate_string.
+   (* TODO: might be a good idea to permit outliers *)
 
   #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
     refine {| graph_predicate g x p := _ |}.
@@ -176,8 +152,8 @@ Module Bytestring_Proofs.
 
   Definition pack_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ string transparent (fun _ =>
-          @RES _ FM.bytestring (opaque C.bytestring))
+        @ARG _ string (@transparent _ InGraph_bytestring) (fun _ =>
+          @RES _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _))
      ; prim_fn := C.pack
      ; model_fn := fun '(x; tt) => FM.pack x
      ; f_arity := 1
@@ -186,8 +162,8 @@ Module Bytestring_Proofs.
 
   Definition unpack_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
-          @RES _ string transparent)
+        @ARG _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _) (fun _ =>
+          @RES _ string (@transparent _ InGraph_bytestring))
      ; prim_fn := C.unpack
      ; model_fn := fun '(x; tt) => FM.unpack x
      ; f_arity := 1
