@@ -215,6 +215,31 @@ Ltac start_function' :=
   start_function2;
   start_function3.
 
+Definition need_composites := [gc_stack._space; gc_stack._heap; gc_stack._stack_frame; gc_stack._thread_info].
+
+Definition filtered_composites : list composite_definition :=
+  List.filter (fun c => match c with Composite i _ _ _ => 
+                   in_dec Pos.eq_dec i need_composites end) gc_stack.composites.
+
+Definition filtered_prog := 
+  Clightdefs.mkprogram filtered_composites nil nil gc_stack._main Logic.I.
+
+
+Definition filteredCompSpecs : compspecs. 
+let c := constr:(prog_types filtered_prog) in
+let c := eval unfold prog_types, Clightdefs.mkprogram in c in
+let c := eval hnf in c in 
+let c := eval simpl in c in
+let comp' := make_composite_env c in
+  match comp' with
+  | Errors.OK ?ce => make_compspecs_cenv ce
+  end.
+Defined.
+
+
+#[export] Instance CCE3: change_composite_env env_graph_gc.CompSpecs filteredCompSpecs.
+make_cs_preserve env_graph_gc.CompSpecs filteredCompSpecs.
+Defined.
 
 Lemma is_pointer_or_integer_rep_type_val:
   forall {A} `{InG: InGraph A} g (n: A) p, 
@@ -564,25 +589,51 @@ Definition GC_SAVE1 n :=
                           (Etempvar ___PREV__ (tptr (Tstruct _stack_frame noattr))))))
                     Sskip)).
 
-
 Ltac get_rep_temps ti Q :=
  lazymatch Q with
  | nil => constr:(Q)
  | temp ti ?v :: ?r => let r' := get_rep_temps ti r in constr:(temp ti v :: r')
- | temp ?i (rep_type_val ?g ?v) :: ?r => 
+ | temp ?i (rep_type_val ?g ?v) :: ?r =>
     let r' := get_rep_temps ti r in constr:(temp i (rep_type_val g v) :: r')
- | temp ?i ?v :: ?r => get_rep_temps ti r
+ | temp ?i ?v :: ?r => 
+    get_rep_temps ti r
  | ?t :: ?r => let r' := get_rep_temps ti r in constr:(t::r')
  end.
 
 Ltac get_nonrep_temps ti Q :=
- lazymatch Q with
+ match Q with
  | nil => constr:(Q)
  | temp ti _ :: ?r => get_nonrep_temps ti r 
- | temp ?i (rep_type_val ?g ?v) :: ?r => get_nonrep_temps ti r
- | temp ?i ?x :: ?r => let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
+ | temp ?i (rep_type_val ?g ?v) :: ?r => 
+    get_nonrep_temps ti r
+ | temp ?i ?x :: ?r => 
+    let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
  | _ :: ?r => get_nonrep_temps ti r
  end.
+(*
+Ltac get_rep_temps ti Q :=
+ match Q with
+ | nil => constr:(Q)
+ | temp ?ti' ?v :: ?r => unify ti ti'; let r' := get_rep_temps ti r in constr:(temp ti v :: r')
+ | temp ?i (rep_type_val ?g ?v) :: ?r =>
+    tryif unify ti i then fail else  
+    let r' := get_rep_temps ti r in constr:(temp i (rep_type_val g v) :: r')
+ | temp ?i ?v :: ?r => 
+    tryif unify ti i then fail else  get_rep_temps ti r
+ | ?t :: ?r => let r' := get_rep_temps ti r in constr:(t::r')
+ end.
+
+Ltac get_nonrep_temps ti Q :=
+ match Q with
+ | nil => constr:(Q)
+ | temp ?ti' _ :: ?r => unify ti ti'; get_nonrep_temps ti r 
+ | temp ?i (rep_type_val ?g ?v) :: ?r => 
+    tryif unify ti i then fail else  get_nonrep_temps ti r
+ | temp ?i ?x :: ?r => 
+    tryif unify ti i then fail else let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
+ | _ :: ?r => get_nonrep_temps ti r
+ end.
+*)
 
 Ltac get_gc_mpreds R :=
  lazymatch R with
@@ -628,4 +679,487 @@ rewrite app_nil_r.
 auto.
 Qed.
 
+
+Ltac solve_load_rule_evaluation ::=
+  (* See: https://github.com/PrincetonUniversity/VST/issues/748 *)
+  eapply JMeq_trans;
+  [ clear;
+    repeat
+    match goal with
+    | A : _ |- _ => clear A 
+    | A := _ |- _ => clear A 
+    end;
+    match goal with
+    | |- JMeq (@proj_reptype _ _ ?gfs _) _ =>
+      remember_indexes gfs
+    end;
+    match goal with
+    | |- JMeq (@proj_reptype ?cs ?t ?gfs ?v) _ =>
+        let opaque_v := fresh "opaque_v" in
+              remember v as opaque_v;
+              change @proj_reptype with @proj_reptype';
+              cbv - [ sublist.Znth Int.repr JMeq myfst mysnd];
+              change @myfst with @fst;
+              change @mysnd with @snd;
+              subst opaque_v;
+              repeat match goal with
+                     | |- context [@fst ?a ?b (?c,?d)] =>
+                              let u := eval hnf in (@fst a b (c,d)) in
+                                 change_no_check (@fst a b (c,d)) with c
+                     | |- context [@snd ?a ?b (?c,?d)] =>
+                               let u := eval hnf in (@snd a b (c,d)) in
+                                  change_no_check (@snd a b (c,d)) with d
+                    end
+
+        end;
+        subst; apply JMeq_refl
+  | canon_load_result; apply JMeq_refl ].
+
+Ltac solve_store_rule_evaluation ::=
+  (* See: https://github.com/PrincetonUniversity/VST/issues/748 *)
+  match goal with |- @upd_reptype ?cs ?t ?gfs ?v0 ?v1 = ?B =>
+   let rhs := fresh "rhs" in set (rhs := B);
+  match type of rhs with ?A =>
+   let a := fresh "a" in set (a:=A) in rhs; 
+    lazy beta zeta iota delta [reptype reptype_gen] in a;
+    cbn in a; subst a
+  end;
+   let h0 := fresh "h0" in let h1 := fresh "h1" in
+   set (h0:=v0 : @reptype cs t); 
+   set (h1:=v1 : @reptype cs (@nested_field_type cs t gfs)); 
+   change (@upd_reptype cs t gfs h0 h1 = rhs);
+   remember_indexes gfs;
+   let j := fresh "j" in match type of h0 with ?J => set (j := J) in h0 end;
+   lazy beta zeta iota delta in j; subst j;
+   change @upd_reptype with @upd_reptype';
+   cbv - [rhs h0 h1 Znth upd_Znth Zlength myfst mysnd];
+   change @myfst with @fst;
+   change @mysnd with @snd;
+   try unfold v1 in h1;
+   revert h1; simplify_casts; cbv zeta;
+   subst rhs h0; subst_indexes gfs;
+  repeat match goal with
+            | |- context [fst (@pair ?t1 ?t2 ?A ?B)] => change (fst(@pair t1 t2 A B)) with A
+            | |- context [snd(@pair ?t1 ?t2 ?A ?B)] => change (snd(@pair t1 t2 A B)) with B
+            | |-  context [@pair ?t1 ?t2 _ _] => 
+                      let u1 := eval compute in t1 in
+                      let u2 := eval compute in t2 in
+                      progress (change_no_check t1 with u1; change_no_check t2 with u2)
+            end;
+  apply eq_refl
+  end.
+
+Ltac SEP_field_at_strong_unify gfs ::=
+  (* See: https://github.com/PrincetonUniversity/VST/issues/748 *)
+  match goal with
+  | |- @data_at_ ?cs ?sh ?t ?p = _ /\ _ =>
+        change (@data_at_ cs sh t p) with (@data_at cs sh t (@default_val _ t) p);
+         SEP_field_at_strong_unify' gfs
+  | |- @field_at_ ?cs _ _ _ _ = _ /\ _ =>
+        unfold field_at_; SEP_field_at_strong_unify' gfs
+  | _ => SEP_field_at_strong_unify' gfs
+  end.
+
+
+Ltac simplify_func_tycontext' DD ::=
+  (* More general version of simplify_func_tycontext that makes 
+    fewer assumptions about the form of DD.
+   Compared to the one in floyd/semax_tactics.v, this one
+  does not assume that DD is in the form of a func_tycontext *)
+let D1 := fresh "D1" in 
+let Delta := fresh "Delta" in 
+let DS := fresh "Delta_specs" in 
+pose (D1 := DD);
+pose (Delta := @abbreviate tycontext D1);
+change DD with Delta;
+hnf in D1;
+match goal with D1 := mk_tycontext _ _ _ _ ?d _ |- _ =>
+ let d' := make_ground_PTree d in
+ pose (DS := @abbreviate (Maps.PTree.t funspec) d');
+  change d with DS in D1;
+ cbv beta iota zeta delta - [DS] in D1;
+ subst D1;
+ check_ground_Delta
+end.
+
+Definition GC_SAVE1_G := [gc_spec.garbage_collect_spec].
+
+Definition GC_SAVE1_tycontext :=
+ mk_tycontext  
+  (make_tycontext_t [(_tinfo, (tptr (Tstruct _thread_info noattr)))]
+         [(_save0, (talignas 3%N (tptr tvoid)));
+          (__ALLOC, (tptr (talignas 3%N (tptr tvoid))));
+          (__LIMIT, (tptr (talignas 3%N (tptr tvoid))));
+          (___PREV__, (tptr (Tstruct _stack_frame noattr)));
+          (___RTEMP__, (talignas 3%N (tptr tvoid)))])
+  (make_tycontext_v [(___ROOT__, (tarray (talignas 3%N (tptr tvoid)) 1));
+              (___FRAME__, (Tstruct _stack_frame noattr))])
+  int_or_ptr_type
+  (make_tycontext_g nil GC_SAVE1_G)
+  (make_tycontext_s GC_SAVE1_G)
+  (make_tycontext_a nil).
+
+(* delete this from examples/*/*.v *)
+Lemma gc_preserved {A: Type} `{InG: InGraph A}:
+  forall (g1 :graph) (roots1: list root_t)
+         (g2: graph) (roots2: list root_t),
+    gc_graph_iso g1 roots1 g2 roots2 ->
+    graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
+    forall (a: A) (n: Z),
+      0 <= n < Zlength roots1 ->
+    @graph_predicate _ (@in_graph_pred _ InG) g1 a (rep_type_of_root_t (Znth n roots1)) ->
+    @graph_predicate _ (@in_graph_pred _ InG) g2 a (rep_type_of_root_t (Znth n roots2)).
+Admitted.
+
+(* delete this from examples/*/*.v *)
+Lemma InGraph_outlier_compatible {A} `{GP: GraphPredicate A}:
+  forall (g: graph) (x: A) (p: GC_Pointer) outliers,
+    outlier_compatible g outliers ->
+    graph_predicate g x (repOut p) ->
+    In p outliers.
+  (* If this is not provable, we could add any other premises implied by gc_condition_prop *)
+Admitted.
+
+Lemma semax_GC_SAVE1:
+ forall (n: Z) (Espec : OracleKind)
+  (gv : globals) (sh : share)
+  (ti : val)
+  (outlier : outlier_t)
+  (v___ROOT__  v___FRAME__ : val)
+  (SH : writable_share sh)
+  (v0 : rep_type)
+  (m : nat)
+  (IG: InGraph nat)
+  (g : graph)
+  (t_info : GCGraph.thread_info)
+  (roots : roots_t)
+  (Hn: 0 <= n <= Int.max_signed)
+  (H2 : @is_in_graph _ IG g m v0) 
+  (GCP : gc_condition_prop g t_info roots outlier)
+  (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
+@semax filteredCompSpecs _ GC_SAVE1_tycontext (*(func_tycontext f_uint63_to_nat Vprog Gprog nil)*)
+  (PROP ( )
+   LOCAL (temp _save0 (rep_type_val g v0);
+   lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+   lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+   gvars gv)
+   SEP (full_gc g t_info roots outlier ti sh gv;
+   frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
+   library.mem_mgr gv))
+  (GC_SAVE1 n)
+  (normal_ret_assert
+     (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
+      (t_info' : GCGraph.thread_info),
+      PROP (headroom t_info' >= n; is_in_graph g' m v0';
+      gc_condition_prop g' t_info' roots' outlier; 
+      gc_graph_iso g roots g' roots';
+      frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
+      LOCAL (temp _save0 (rep_type_val g' v0');
+      lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+      gvars gv)
+      SEP (full_gc g' t_info' roots' outlier ti sh gv;
+      frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
+      library.mem_mgr gv))%argsassert).
+Proof.
+intros.
+assert (H5 := I).
+assert (H4 := I).
+assert (H0 := I).
+assert (H1 := I).
+assert (H := I).
+unfold GC_SAVE1.
+abbreviate_semax.
+  unfold full_gc.
+  unfold before_gc_thread_info_rep (*;  limited_change_compspecs CompSpecs*).
+  Intros.
+  limited_change_compspecs filteredCompSpecs.
+  forward.
+  forward.
+  destruct (space_start (heap_head (ti_heap t_info))) eqn:STARTeq; try contradiction.
+  rename b into startb; rename i into starti.
+  forward_if.
+ + apply prop_right; simpl. destruct (peq startb startb); try contradiction. auto.
+ +
+  forward.
+  forward.
+  unfold frame_rep_.
+  Intros.
+  limited_change_compspecs filteredCompSpecs.
+  forward.
+  forward.
+  deadvars!.
+  change (upd_Znth 0 _ _) with [rep_type_val g v0].
+  change (Tpointer tvoid _) with int_or_ptr_type.
+  assert_PROP (force_val (@sem_add_ptr_int filteredCompSpecs int_or_ptr_type Signed v___ROOT__ (Vint (Int.repr 1))) =
+      offset_val (@sizeof filteredCompSpecs int_or_ptr_type * 1) v___ROOT__)  as H99;
+      [ entailer! | rewrite H99; clear H99].
+  sep_apply_compspecs filteredCompSpecs
+      (frame_rep_fold sh v___FRAME__ v___ROOT__ (ti_fp t_info) 1 [rep_type_val g v0]).
+  unfold ti_fp.
+  sep_apply (frames_rep_cons sh v___FRAME__ v___ROOT__ [rep_type_val g v0] (ti_frames t_info)).
+  compute; clear; congruence.
+  set (frames'' := _ :: ti_frames t_info).
+  pose (t_info' := {| ti_heap_p := ti_heap_p t_info; ti_heap := ti_heap t_info;
+                      arg_size := arg_size t_info; ti_frames := frames'';
+                      ti_nalloc := Ptrofs.repr n |}).
+  change frames'' with (ti_frames t_info').
+  rewrite Int.signed_repr by rep_lia.
+  change (ti_args t_info) with (ti_args t_info').
+  change (ti_heap_p t_info) with (ti_heap_p t_info').
+  clear H3.
+  forward_call (Ers, sh, gv, ti, g, t_info', root_t_of_rep_type v0 :: roots, outlier).
+  *
+   unfold before_gc_thread_info_rep.
+   rewrite <- STARTeq.
+   change (ti_heap t_info) with (ti_heap t_info').
+   change (ti_fp t_info') with v___FRAME__.
+   change (ti_nalloc t_info') with (Ptrofs.repr n).
+   replace (Vptrofs (Ptrofs.repr n)) with (Vlong (Int64.repr n))
+     by (rewrite Vptrofs_unfold_true by reflexivity;
+         rewrite ptrofs_to_int64_repr by reflexivity; auto).
+  limited_change_compspecs filteredCompSpecs.
+   cancel.
+  * simpl.
+    split3; try apply GCP.
+    red in GCP.
+    split3. apply GCP. 2: split; try apply GCP. 
+    --
+     subst frames''; clear t_info'.
+     unfold frames2rootpairs. simpl concat.
+     unfold rootpairs_compatible. simpl.
+     f_equal.  destruct v0; auto.
+     change (rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots).
+     apply GCP.
+    -- decompose [and] GCP; clear GCP. 
+       red in H7; decompose [and] H7; clear H7.
+       destruct H11.
+       split. 
+       ++ clear t_info' frames'' STARTptr STARTeq startb starti.
+          unfold root_t_of_rep_type.
+          destruct v0; auto.
+          pose proof (InGraph_outlier_compatible _ _ _ _ H14 H2).
+          red in H7|-*. simpl.
+          change (?A :: ?B) with ([A]++B).
+          apply incl_app; auto.
+          apply incl_cons; auto. apply incl_nil.
+       ++ destruct v0; try apply H11. constructor; auto.
+          clear - H2. unfold is_in_graph in H2.
+          apply has_v in H2; auto.
+  * (* after the call to garbage_collect() *)
+   Intros vret. destruct vret as [ [g3 t_info3] roots3].
+   simpl snd in *. simpl fst in *.
+   rename H9 into FSE. rename H10 into ROOM.
+   forward.
+   unfold before_gc_thread_info_rep.
+   simpl in FSE. unfold frames'' in FSE.
+   remember (ti_frames t_info3) as frames3.
+   inversion FSE; clear FSE. subst r1 fr1.
+   destruct fr2 as [a3 r3 s3]; simpl in H11, H12, H13.
+   subst a3 r3.
+   destruct s3 as [ | v0x s3]. exfalso; clear - H13; list_solve.
+   destruct s3. 2: exfalso; clear - H13; list_solve.
+   subst frames3.
+   sep_apply (frames_rep_pop sh v___FRAME__ v___ROOT__ [v0x] r2).
+   compute; clear; congruence.
+   unfold frame_rep at 1.
+   Intros. change (Zlength [_]) with 1.
+   assert (roots_graph_compatible (root_t_of_rep_type v0 :: roots) g). {
+       destruct GCP as [_ [ [ _ [ _ [ [ _ RGC ] _ ] ] ] _ ] ].
+       destruct v0; try apply RGC.
+       constructor; auto.
+       red in H2.
+       eapply has_v; eauto.
+    }
+   assert (ISO: gc_graph_iso g (root_t_of_rep_type v0 :: roots) g3 roots3). {
+     red in H6; decompose [and] H6.
+     apply garbage_collect_isomorphism; auto; try apply GCP.
+    }
+   assert (exists v0', exists roots3',
+        v0x = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
+       rewrite <- H14 in H3. simpl frames2rootpairs in H3.
+    pose proof @gc_preserved _ IG _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
+    m 0 ltac:(clear; Zlength_solve).
+    rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H10.
+    specialize (H10 H2).
+    exists (rep_type_of_root_t (Znth 0 roots3)), (sublist 1 (Zlength roots3) roots3).
+    rewrite root_t_of_rep_type_of_root_t.
+    split3; auto.
+    destruct H3 as [_ [H3 _] ].
+    red in H3. simpl in H3.
+    assert (v0x = root2val g3 (Znth 0 roots3)) by list_solve.
+    rewrite H11.
+    destruct (Znth 0 roots3); try destruct s ; auto.
+    apply graph_iso_Zlength in ISO.    
+    clear - ISO. rewrite Zlength_cons in ISO. 
+    destruct roots3; autorewrite with sublist in ISO. rep_lia.
+    autorewrite with sublist.
+    f_equal. rewrite sublist_S_cons by lia.
+    rewrite Z.sub_diag. unfold Z.succ.
+    rewrite sublist_same by lia. auto.
+    }
+   destruct H10 as [v0' [roots3' [ ? [? ?] ] ] ].
+   subst v0x roots3.
+  limited_change_compspecs filteredCompSpecs.
+   forward. entailer!!. rewrite Znth_0_cons. { 
+        destruct v0'; simpl; auto. destruct g0; simpl; auto.
+        apply has_v in H11. destruct H11 as [? _].
+        pose proof (graph_has_gen_start_isptr _ _ H10).
+        unfold vertex_address.
+        destruct (gen_start g3 (vgeneration _)); auto.
+    }
+   forward.  
+   forward.
+   pose (t_info4 := {|
+      ti_heap_p := ti_heap_p t_info3;
+      ti_heap := ti_heap t_info3;
+      ti_args := ti_args t_info3;
+      arg_size := arg_size t_info3;
+      ti_frames := r2;
+      ti_nalloc := ti_nalloc t_info3
+    |} ).
+   Exists g3 v0' roots3' t_info4.
+   rewrite Znth_0_cons.
+    unfold full_gc.
+    entailer!!.
+    --  assert (gc_condition_prop g3 t_info4 roots3' outlier). {
+      unfold gc_condition_prop, garbage_collect_condition.
+      change (ti_heap t_info4) with (ti_heap t_info3).
+      repeat simple apply conj; try apply GCP; try apply H7; auto.
+      - destruct H3 as [? [? [ ?  ? ] ] ].
+        destruct H12.
+        red; unfold roots_compatible; repeat simple apply conj; auto.
+        + rewrite <- H14 in H10.
+            unfold frames2rootpairs in H10. simpl in H10.
+            red in H10. simpl in H10. inversion H10; subst; auto.
+        +  red in H12|-*.
+            destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H12; auto.
+            eapply incl_app_inv_r with (l1:=[g0]); auto.
+        + destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H17; auto.
+              red in H17|-*. simpl in H17. inversion H17; subst; auto. 
+       - eapply gc_sound; eauto. apply GCP.
+       - apply graph_unmarked_copy_compatible; apply H7.
+    }
+    repeat simple apply conj; auto.
+      ++ simpl ti_heap.
+ 
+        clear - Hn ROOM. simpl in ROOM.
+         rewrite Ptrofs.unsigned_repr in ROOM by rep_lia.
+         unfold headroom. simpl.  lia.
+      ++ apply gc_graph_iso_cons_roots_inv in ISO; auto.
+    -- unfold before_gc_thread_info_rep, frame_rep_.
+      limited_change_compspecs filteredCompSpecs.
+      unfold ti_fp. 
+      unfold t_info4; simpl.
+      replace (Vlong (Ptrofs.to_int64 (ti_nalloc t_info3))) with (Vptrofs (ti_nalloc t_info3))
+        by (rewrite Vptrofs_unfold_true by reflexivity; reflexivity).
+      cancel.
+      generalize (frame_rep_unfold sh v___FRAME__ v___ROOT__ (frames_p r2) 1 [rep_type_val g3 v0']);
+      limited_change_compspecs filteredCompSpecs;
+        intro Hx; apply Hx; clear Hx; auto.
+      compute; clear; congruence.
+  + forward.
+    apply headroom_check in H3; [ | rep_lia].
+    Exists g v0 roots t_info.
+    unfold full_gc, before_gc_thread_info_rep.
+    rewrite <- STARTeq.
+      limited_change_compspecs filteredCompSpecs.
+    entailer!!.
+    split.
+    apply gc_graph_iso_refl.
+    apply frame_shells_eq_refl.
+Qed.
+
+Ltac apply_semax_GC_SAVE1 :=
+  match goal with |- semax _ (PROPx ?P (LOCALx ?Q (SEPx ?R))) _ (normal_ret_assert ?Post) =>
+  let Q1 := get_rep_temps _tinfo Q in
+  let Q2 := get_nonrep_temps _tinfo Q in
+  let R1 := get_gc_mpreds R in
+  let R2 := get_nongc_mpreds R in
+ eapply (semax_frame_PQR'' Q1 Q2 R1 R2); 
+  [solve [auto 50 with closed] 
+  | solve [go_lowerx; autorewrite with norm; cancel]
+  | apply perhaps_gc_1_live_root_aux
+  | eapply semax_GC_SAVE1; eauto ]
+ end.
+
+Import Maps.
+
+Lemma prove_ptree_sub:
+ forall {A} (m1 m2 : PTree.t A),
+  PTree.fold (fun p i t => PTree.get i m2 = Some t /\ p) m1 True ->
+  forall i, sub_option (PTree.get i m1) (PTree.get i m2).
+Proof.
+intros; hnf; intros.
+rewrite PTree.fold_spec in H.
+destruct (PTree.get i m1) eqn:?H; auto.
+ apply PTree.elements_correct in H0.
+ rewrite <- fold_left_rev_right in H.
+ rewrite in_rev in H0.
+ induction (rev (PTree.elements m1)).
+ inversion H0.
+ destruct H0.
+ + subst a0. destruct H. auto.
+ + destruct H as [_ ?]. apply IHl in H; auto.
+Qed.
+
+Lemma prove_cssub:
+  forall CS1 CS2: compspecs,
+  PTree.fold (fun p i t => PTree.get i (@cenv_cs CS2) = Some t /\ p) (@cenv_cs CS1) True ->
+  PTree.fold (fun p i t => PTree.get i (@ha_env_cs CS2) = Some t /\ p) (@ha_env_cs CS1) True ->
+  PTree.fold (fun p i t => PTree.get i (@la_env_cs CS2) = Some t /\ p) (@la_env_cs CS1) True ->
+  cspecs_sub CS1 CS2.
+Proof.
+intros.
+split3; red; apply prove_ptree_sub; auto.
+Qed.
+
+Lemma prove_tycontext_sub:
+ forall D1 D2 : tycontext,
+  (PTree.fold (fun p i t => PTree.get i (temp_types D2) = Some t /\ p) (temp_types D1) True) ->
+  (PTree.fold (fun p i t => PTree.get i (var_types D2) = Some t /\ p) (var_types D1) True) ->
+  (PTree.fold (fun p i t => PTree.get i (var_types D1) = Some t /\ p) (var_types D2) True) ->
+  ret_type D1 = ret_type D2 ->
+  (PTree.fold (fun p i t => PTree.get i (glob_types D2) = Some t /\ p) (glob_types D1) True) ->
+  (PTree.fold (fun p i t => PTree.get i (glob_specs D2) = Some t /\ p) (glob_specs D1) True) ->
+  annotations D1 = annotations D2 ->
+  tycontext_sub D1 D2.
+Proof.
+intros ? ? Ht Hv Hv' Hr Hg Hs Ha.
+split3; [ | | split3; [ | | split ] ].
+- (* temps *)
+ clear Hv Hv' Hr Hg Hs Ha.
+ intro i; apply prove_ptree_sub with (i:=i) in Ht.
+ red in Ht. destruct ((temp_types D1) ! i); auto. rewrite Ht; auto.
+- (* vars *)
+ intros.
+ clear Ht Hr Hg Hs Ha.
+ apply prove_ptree_sub with (i:=id) in Hv.
+ apply prove_ptree_sub with (i:=id) in Hv'.
+ red in Hv, Hv'. destruct ((var_types D1) ! id), ((var_types D2) ! id); auto.
+- auto.
+- clear Ht Hv Hv' Hr Hs Ha.
+ intros.
+ apply prove_ptree_sub; auto.
+- clear Ht Hv Hv' Hr Hg Ha.
+ intros.
+ apply prove_ptree_sub with (i:=id) in Hs.
+ red in Hs. destruct ((glob_specs D1) ! id); auto.  rewrite Hs.
+ apply subsumespec_refl.
+- clear Ht Hv Hv' Hr Hg Hs.
+ intros. rewrite Ha. apply Annotation_sub_refl.
+Qed.
+
+
+Lemma semax_cssub:
+(* A version of this is proved for the shallow-embedded semax, and it 
+  should be not severely difficult to prove for the deep-embedded one;
+  but it might need to be by induction over the syntax... *)
+  forall {CS CS' : compspecs},
+  cspecs_sub CS CS' ->
+  forall (Espec : OracleKind) (Delta : tycontext) 
+    (P : assert) (c : statement) (R : ret_assert),
+  @semax CS Espec Delta P c R ->
+  @semax CS' Espec Delta P c R.
+Admitted.
 
