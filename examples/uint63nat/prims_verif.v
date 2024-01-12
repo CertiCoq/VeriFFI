@@ -184,20 +184,21 @@ Lemma test_semax_GC_SAVE1:
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
   (ival: val)
-  (Hn: 0 <= n <= Int.max_signed)
+  (Hn: 0 <= n <= Int64.max_signed)
   (H2 : is_in_graph g m v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
   (PROP ( )
-   LOCAL (temp _save0 (rep_type_val g v0); temp _i ival;
+   LOCAL (temp _nalloc (Vlong (Int64.repr n));
+          temp _save0 (rep_type_val g v0); temp _i ival;
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
    lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
    library.mem_mgr gv))
-  (GC_SAVE1 n)
+  GC_SAVE1
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
@@ -217,8 +218,7 @@ intros.
 eapply semax_post_flipped'.
 eapply semax_Delta_subsumption with GC_SAVE1_tycontext.
 apply prove_tycontext_sub; try reflexivity; repeat split; auto.
-apply (@semax_cssub filteredCompSpecs).
-apply prove_cssub; repeat split; auto; try reflexivity.
+change _nalloc with specs_general._nalloc.
 match goal with |- context [full_gc _ _ _ _ ?ti _ _] =>
  match goal with |- context [temp ?tix ti] =>
    change tix with specs_general._tinfo
@@ -279,23 +279,25 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   rename H4 into GCP. rename H6 into H4.
   assert (STARTptr := space_start_isptr' GCP).
   assert (m<n)%nat by lia. clear H3 HRE HRE'. rename H6 into HRE.
+  forward.
   eapply semax_seq'.
  + eapply semax_Delta_subsumption with GC_SAVE1_tycontext.
    apply prove_tycontext_sub; try reflexivity; repeat split; auto.
    apply (@semax_cssub filteredCompSpecs).
    apply prove_cssub; repeat split; auto; try reflexivity.
+   change _nalloc with specs_general._nalloc.
    match goal with |- context [full_gc _ _ _ _ ?ti _ _] =>
     match goal with |- context [temp ?tix ti] =>
       change tix with specs_general._tinfo
     end end.
    apply_semax_GC_SAVE1.
-   rep_lia.
+   rewrite Int.signed_repr; rep_lia.
   + simpl app. 
    abbreviate_semax.
   Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
-   * split; auto. reflexivity.
+   * split. split; auto. reflexivity. clear - H3.  rewrite Int.signed_repr in H3 by rep_lia. rep_lia.
    * Intros vret.
      destruct vret as [ [ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.

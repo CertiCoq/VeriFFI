@@ -11,6 +11,7 @@
    value __ROOT__[n];   \
    struct stack_frame __FRAME__ = { NULL/*bogus*/, __ROOT__, tinfo->fp }; \
    struct stack_frame *__PREV__; \
+   size_t nalloc; \
    value __RTEMP__;
 
 #define ENDFRAME }}}}}
@@ -43,15 +44,15 @@
   (a0)=__ROOT__[0], (a1)=__ROOT__[1], (a2)=__ROOT__[2], (a3)=__ROOT__[3],    \
    __PREV__=__FRAME__.prev, tinfo->fp=__PREV__, __RTEMP__)
 
-#define GC_SAVE1(n) \
-    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
-    tinfo->nalloc = (n);  \
+#define GC_SAVE1 \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, nalloc <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = nalloc;  \
     LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),save0);	\
   }
 
-#define GC_SAVE2(n) \
-    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
-    tinfo->nalloc = (n);  \
+#define GC_SAVE2 \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, nalloc <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = nalloc;  \
     LIVEPOINTERS2(tinfo,(garbage_collect(tinfo),(value)NULL),save0,save1);  \
   }
 
@@ -211,9 +212,9 @@ value append(struct thread_info *tinfo, value save0, value save1)
   size_t sum = len1 + len2;
   size_t mod = sum % sizeof(value);
   size_t pad_length = sizeof(value) - (sum % sizeof(value));
-  size_t nalloc = (sum + pad_length) / sizeof(value) + 1;
   BEGINFRAME(tinfo,2)
-  GC_SAVE2(nalloc) /* no semicolon */
+  nalloc = (sum + pad_length) / sizeof(value) + 1;
+  GC_SAVE2 /* no semicolon */
 
   value *argv = tinfo->alloc;
   argv[0LLU] = (value*)(((nalloc - 1) << 10) + 252LLU); // string tag
@@ -250,8 +251,8 @@ value pack(struct thread_info *tinfo, value save0)
   } 
   size_t mod = len % sizeof(value);
   size_t pad_length = sizeof(value) - (len % sizeof(value));
-  size_t nalloc = (len + pad_length) / sizeof(value) + 1ULL;
-  GC_SAVE1(nalloc) /* no semicolon */
+  nalloc = (len + pad_length) / sizeof(value) + 1ULL;
+  GC_SAVE1 /* no semicolon */
 
   value *argv = tinfo->alloc;
   argv[0LLU] = (value)(((nalloc - 1) << 10) + 252LLU); // string tag
@@ -284,7 +285,8 @@ value unpack(struct thread_info *tinfo, value save0)
   value save1 = make_Coq_Strings_String_string_EmptyString();
   BEGINFRAME(tinfo,2)
   while (len--) {
-    GC_SAVE2(12)   // 3 for the String constructor, 9 for the ASCII constructor.
+    nalloc=12;   // 3 for the String constructor, 9 for the ASCII constructor.
+    GC_SAVE2
     c = ((char*)save1)[len];
     v = char_to_value(tinfo, c);
     save1 = alloc_make_Coq_Strings_String_string_String(tinfo, v, save1);
@@ -344,8 +346,8 @@ value scan_bytestring(struct thread_info *tinfo, value save0)
 
   size_t mod = len % sizeof(value);
   size_t pad_length = sizeof(value) - (len % sizeof(value));
-  size_t nalloc = (len + pad_length) / sizeof(value) + 1;
-  GC_SAVE1(nalloc)  /* no semicolon */
+  nalloc = (len + pad_length) / sizeof(value) + 1;
+  GC_SAVE1  /* no semicolon */
 
   value *argv = tinfo->alloc;
   *((value *) argv + 0LLU) = (value)(((nalloc - 1) << 10) + 252LLU); // string tag

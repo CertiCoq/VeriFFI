@@ -351,28 +351,25 @@ Qed.
 
 Lemma headroom_check {cs: compspecs}: 
  forall (n: Z) (hh: space) (startb: block) (starti: ptrofs),
-  Int.min_signed <= n <= Int.max_signed ->
+  0 <= n <= Int64.max_signed ->
   typed_false tint
        match
          sem_unary_operation Onotbool tint
-           (force_val
-              (both_long
-                 (fun n1 n2 : int64 => Some (bool2val (negb (Int64.lt n2 n1))))
-                 (sem_cast_i2l Signed) sem_cast_pointer 
-                 (Vint (Int.repr n))
+            (force_val
+              (both_long (fun n1 n2 : int64 => Some (bool2val (negb (Int64.ltu n2 n1))))
+                 sem_cast_pointer sem_cast_pointer (Vlong (Int64.repr n))
                  (force_val
                     (sem_sub_pp
-                       int_or_ptr_type
+                       (Tpointer tvoid
+                          {| attr_volatile := false; attr_alignas := Some 3%N |})
                        (Vptr startb
                           (Ptrofs.add starti
                              (Ptrofs.repr
-                                (WORD_SIZE
-                                   * total_space hh))))
+                                (WORD_SIZE * total_space hh))))
                        (Vptr startb
                           (Ptrofs.add starti
                              (Ptrofs.repr
-                                (WORD_SIZE
-                                   * used_space hh))))))))
+                                (WORD_SIZE * used_space hh))))))))
        with
        | Some v' => v'
        | None => Vundef
@@ -386,9 +383,9 @@ intros * H7 H8.
     set (use := used_space hh) in *. clearbody use.
     simpl in H8.
     unfold sem_sub_pp in H8. simpl in *. rewrite if_true in H8 by auto. simpl in H8.
-     rewrite Int.signed_repr in H8 by auto.
-    destruct (Int64.lt _ _) eqn:?H in H8; try discriminate.
-    unfold Int64.lt in H.
+(*     rewrite Int.signed_repr in H8 by auto.*)
+    destruct (Int64.ltu _ _) eqn:?H in H8; try discriminate.
+    unfold Int64.ltu in H.
     if_tac in H; try discriminate. clear H H8.
     rewrite !(Ptrofs.add_commut starti), Ptrofs.sub_shifted, ptrofs_sub_repr in H0.
     unfold MAX_SPACE_SIZE in *. simpl in UB.
@@ -397,7 +394,8 @@ intros * H7 H8.
     rewrite ptrofs_divs_repr in H0 by rep_lia.
     rewrite ptrofs_to_int64_repr in H0 by reflexivity.
     rewrite Z.mul_comm, Z.quot_mul in H0 by lia.
-    rewrite !Int64.signed_repr in H0 by rep_lia. auto.
+    rewrite !Int64.unsigned_repr in H0 by rep_lia.
+    auto.
 Qed.
 
 
@@ -495,7 +493,7 @@ Definition ___RTEMP__ : ident := ident_of_string "__RTEMP__".
 Definition ___PREV__ : ident := ident_of_string "__PREV__".
 
 
-Definition GC_SAVE1 n := 
+Definition GC_SAVE1 := 
                 (Ssequence
                   (Ssequence
                     (Sset __LIMIT
@@ -511,7 +509,7 @@ Definition GC_SAVE1 n :=
                           (Tstruct _thread_info noattr)) _alloc
                         (tptr (talignas 3%N (tptr tvoid))))))
                   (Sifthenelse (Eunop Onotbool
-                                 (Ebinop Ole (Econst_int (Int.repr n) tint)
+                                 (Ebinop Ole (Etempvar _nalloc tulong)
                                    (Ebinop Osub
                                      (Etempvar __LIMIT (tptr (talignas 3%N (tptr tvoid))))
                                      (Etempvar __ALLOC (tptr (talignas 3%N (tptr tvoid))))
@@ -522,7 +520,7 @@ Definition GC_SAVE1 n :=
                           (Ederef
                             (Etempvar _tinfo (tptr (Tstruct _thread_info noattr)))
                             (Tstruct _thread_info noattr)) _nalloc tulong)
-                        (Econst_int (Int.repr n) tint))
+                        (Etempvar _nalloc tulong))
                       (Ssequence
                         (Ssequence
                           (Ssequence
@@ -589,51 +587,29 @@ Definition GC_SAVE1 n :=
                           (Etempvar ___PREV__ (tptr (Tstruct _stack_frame noattr))))))
                     Sskip)).
 
-Ltac get_rep_temps ti Q :=
+Ltac get_rep_temps ti nalloc Q :=
  lazymatch Q with
  | nil => constr:(Q)
- | temp ti ?v :: ?r => let r' := get_rep_temps ti r in constr:(temp ti v :: r')
+ | temp ti ?v :: ?r => let r' := get_rep_temps ti nalloc r in constr:(temp ti v :: r')
+ | temp nalloc ?v :: ?r => let r' := get_rep_temps ti nalloc r in constr:(temp nalloc v :: r')
  | temp ?i (rep_type_val ?g ?v) :: ?r =>
-    let r' := get_rep_temps ti r in constr:(temp i (rep_type_val g v) :: r')
+    let r' := get_rep_temps ti nalloc r in constr:(temp i (rep_type_val g v) :: r')
  | temp ?i ?v :: ?r => 
-    get_rep_temps ti r
- | ?t :: ?r => let r' := get_rep_temps ti r in constr:(t::r')
+    get_rep_temps ti nalloc r
+ | ?t :: ?r => let r' := get_rep_temps ti nalloc r in constr:(t::r')
  end.
 
-Ltac get_nonrep_temps ti Q :=
+Ltac get_nonrep_temps ti nalloc Q :=
  match Q with
  | nil => constr:(Q)
- | temp ti _ :: ?r => get_nonrep_temps ti r 
+ | temp ti _ :: ?r => get_nonrep_temps ti nalloc r 
+ | temp nalloc _ :: ?r => get_nonrep_temps ti nalloc r 
  | temp ?i (rep_type_val ?g ?v) :: ?r => 
-    get_nonrep_temps ti r
+    get_nonrep_temps ti nalloc r
  | temp ?i ?x :: ?r => 
-    let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
- | _ :: ?r => get_nonrep_temps ti r
+    let r' := get_nonrep_temps ti nalloc r in constr:(temp i x ::r')
+ | _ :: ?r => get_nonrep_temps ti nalloc r
  end.
-(*
-Ltac get_rep_temps ti Q :=
- match Q with
- | nil => constr:(Q)
- | temp ?ti' ?v :: ?r => unify ti ti'; let r' := get_rep_temps ti r in constr:(temp ti v :: r')
- | temp ?i (rep_type_val ?g ?v) :: ?r =>
-    tryif unify ti i then fail else  
-    let r' := get_rep_temps ti r in constr:(temp i (rep_type_val g v) :: r')
- | temp ?i ?v :: ?r => 
-    tryif unify ti i then fail else  get_rep_temps ti r
- | ?t :: ?r => let r' := get_rep_temps ti r in constr:(t::r')
- end.
-
-Ltac get_nonrep_temps ti Q :=
- match Q with
- | nil => constr:(Q)
- | temp ?ti' _ :: ?r => unify ti ti'; get_nonrep_temps ti r 
- | temp ?i (rep_type_val ?g ?v) :: ?r => 
-    tryif unify ti i then fail else  get_nonrep_temps ti r
- | temp ?i ?x :: ?r => 
-    tryif unify ti i then fail else let r' := get_nonrep_temps ti r in constr:(temp i x ::r')
- | _ :: ?r => get_nonrep_temps ti r
- end.
-*)
 
 Ltac get_gc_mpreds R :=
  lazymatch R with
@@ -791,7 +767,8 @@ Definition GC_SAVE1_tycontext :=
           (__ALLOC, (tptr (talignas 3%N (tptr tvoid))));
           (__LIMIT, (tptr (talignas 3%N (tptr tvoid))));
           (___PREV__, (tptr (Tstruct _stack_frame noattr)));
-          (___RTEMP__, (talignas 3%N (tptr tvoid)))])
+          (___RTEMP__, (talignas 3%N (tptr tvoid)));
+          (_nalloc, tulong)])
   (make_tycontext_v [(___ROOT__, (tarray (talignas 3%N (tptr tvoid)) 1));
               (___FRAME__, (Tstruct _stack_frame noattr))])
   int_or_ptr_type
@@ -833,20 +810,21 @@ Lemma semax_GC_SAVE1:
   (g : graph)
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
-  (Hn: 0 <= n <= Int.max_signed)
+  (Hn: 0 <= n <= Int64.max_signed)
   (H2 : @is_in_graph _ IG g m v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 @semax filteredCompSpecs _ GC_SAVE1_tycontext (*(func_tycontext f_uint63_to_nat Vprog Gprog nil)*)
   (PROP ( )
-   LOCAL (temp _save0 (rep_type_val g v0);
+   LOCAL (temp _nalloc (Vlong (Int64.repr n));
+   temp _save0 (rep_type_val g v0);
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
    lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
    library.mem_mgr gv))
-  (GC_SAVE1 n)
+  GC_SAVE1
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
@@ -904,7 +882,7 @@ abbreviate_semax.
                       arg_size := arg_size t_info; ti_frames := frames'';
                       ti_nalloc := Ptrofs.repr n |}).
   change frames'' with (ti_frames t_info').
-  rewrite Int.signed_repr by rep_lia.
+(*  rewrite Int64.signed_repr by rep_lia.*)
   change (ti_args t_info) with (ti_args t_info').
   change (ti_heap_p t_info) with (ti_heap_p t_info').
   clear H3.
@@ -1072,8 +1050,8 @@ Qed.
 
 Ltac apply_semax_GC_SAVE1 :=
   match goal with |- semax _ (PROPx ?P (LOCALx ?Q (SEPx ?R))) _ (normal_ret_assert ?Post) =>
-  let Q1 := get_rep_temps _tinfo Q in
-  let Q2 := get_nonrep_temps _tinfo Q in
+  let Q1 := get_rep_temps _tinfo _nalloc Q in
+  let Q2 := get_nonrep_temps _tinfo _nalloc Q in
   let R1 := get_gc_mpreds R in
   let R2 := get_nongc_mpreds R in
  eapply (semax_frame_PQR'' Q1 Q2 R1 R2); 

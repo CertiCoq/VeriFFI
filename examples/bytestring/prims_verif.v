@@ -68,29 +68,31 @@ _get_Coq_Strings_String_string_tag (level 98).
    forward.
    forward.
    deadvars!.
+  set (len := Z.of_nat (String.length x)).
+  set (pad_length := 8 - len mod 8).
+  set (n := (len + pad_length) / 8 + 1).
+  replace (Int64.add (Int64.divu _ _) _) with (Int64.repr n) by admit.
    eapply semax_seq'.
   +
    eapply semax_Delta_subsumption with GC_SAVE1_tycontext.
    apply prove_tycontext_sub; try reflexivity; repeat split; auto.
    apply (@semax_cssub filteredCompSpecs).
    apply prove_cssub; repeat split; auto; try reflexivity.
-   match goal with |- context [full_gc _ _ _ _ ?ti _ _] =>
-    match goal with |- context [temp ?tix ti] =>
-      change tix with specs_general._tinfo
-    end end.
 
   match goal with |- semax _ (PROPx ?P (LOCALx ?Q (SEPx ?R))) _ (normal_ret_assert ?Post) =>
-  let Q1 := get_rep_temps _tinfo Q in
-  let Q2 := get_nonrep_temps _tinfo Q in
+  let Q1 := get_rep_temps _tinfo _nalloc Q in
+  let Q2 := get_nonrep_temps _tinfo _nalloc Q in
   let R1 := get_gc_mpreds R in
   let R2 := get_nongc_mpreds R in
-(* apply_semax_GC_SAVE1. *)
  eapply (semax_frame_PQR'' Q1 Q2 R1 R2); 
   [solve [auto 50 with closed] 
   | solve [go_lowerx; autorewrite with norm; cancel]
   | apply perhaps_gc_1_live_root_aux
-  | (*eapply semax_GC_SAVE1; eauto*) ]
+  |  ]
  end.
-(* PROBLEM: GC_SAVE1 has a constant n, but here we have a variable _nalloc. *)
+eapply semax_pre; [ | 
+  apply (semax_GC_SAVE1 n Espec gv sh ti outlier v___ROOT__ v___FRAME__ H); try eassumption].
+entailer!!.
+(* Still some work to do *)
  
 Abort.

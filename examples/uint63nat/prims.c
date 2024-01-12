@@ -43,6 +43,7 @@ value myfunc(struct thread_info *tinfo, ...other args...) {
    value __ROOT__[n];   \
    struct stack_frame __FRAME__ = { NULL/*bogus*/, __ROOT__, tinfo->fp }; \
    struct stack_frame *__PREV__; \
+   size_t nalloc; \
    value __RTEMP__;
 
 #define ENDFRAME }}}}}
@@ -117,15 +118,15 @@ value uint63_to_nat_no_gc (struct thread_info *tinfo, value t) {
   We cannot allow the name of variable save0 to be a parameter to this macro, 
   it must be named exactly that for the convenience of Lemma semax_GC_SAVE1.
  */  
-#define GC_SAVE1(n) \
-    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
-    tinfo->nalloc = (n);  \
+#define GC_SAVE1 \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, nalloc <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = nalloc;  \
     LIVEPOINTERS1(tinfo,(garbage_collect(tinfo),(value)NULL),save0);	\
   }
 
-#define GC_SAVE2(n) \
-    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, (n) <= _LIMIT-_ALLOC)) { \
-    tinfo->nalloc = (n);  \
+#define GC_SAVE2 \
+    if (!(_LIMIT=tinfo->limit, _ALLOC=tinfo->alloc, nalloc <= _LIMIT-_ALLOC)) { \
+    tinfo->nalloc = nalloc;  \
     LIVEPOINTERS2(tinfo,(garbage_collect(tinfo),(value)NULL),save0,save1);  \
   }
 
@@ -134,7 +135,7 @@ value uint63_to_nat(struct thread_info *tinfo, value t) {
   value save0 = make_Coq_Init_Datatypes_nat_O(); /* must name this save0 for compatibility with GC_SAVE1 */
   BEGINFRAME(tinfo,1)
   while (i) {
-    GC_SAVE1(2)  /* no semicolon! */
+    nalloc=2; GC_SAVE1  /* no semicolon! */
     save0 = alloc_make_Coq_Init_Datatypes_nat_S(tinfo,save0);
     i--;
   }
