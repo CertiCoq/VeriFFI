@@ -89,7 +89,7 @@ Definition fn_desc_to_funspec_aux
               prim_in_graphs g c xs ps)
        (PARAMSx (ti :: map (rep_type_val g) ps)
         (GLOBALSx [gv]
-         (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
+         (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ int_or_ptr_type ]
        EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
@@ -97,7 +97,7 @@ Definition fn_desc_to_funspec_aux
                   (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots)
           RETURN  (rep_type_val g' p')
-          SEP (full_gc g' t_info' roots outlier ti sh gv).
+          SEP (full_gc g' t_info' roots outlier ti sh gv; library.mem_mgr gv).
 
 Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
   (ident_of_string (c_name d),
@@ -805,13 +805,14 @@ Lemma semax_GC_SAVE1:
   (v___ROOT__  v___FRAME__ : val)
   (SH : writable_share sh)
   (v0 : rep_type)
-  (m : nat)
-  (IG: InGraph nat)
+  (T0: Type)
+  (m0 : T0)
+  (IG0: InGraph T0)
   (g : graph)
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
   (Hn: 0 <= n <= Int64.max_signed)
-  (H2 : @is_in_graph _ IG g m v0) 
+  (H2 : @is_in_graph _ IG0 g m0 v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 @semax filteredCompSpecs _ GC_SAVE1_tycontext (*(func_tycontext f_uint63_to_nat Vprog Gprog nil)*)
@@ -828,11 +829,11 @@ Lemma semax_GC_SAVE1:
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
-      PROP (headroom t_info' >= n; is_in_graph g' m v0';
+      PROP (headroom t_info' >= n; is_in_graph g' m0 v0';
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
-      LOCAL (temp _save0 (rep_type_val g' v0');
+      LOCAL (temp _save0 (rep_type_val g' v0'); temp _nalloc (Vlong (Int64.repr n));
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
       lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
       gvars gv)
@@ -954,10 +955,10 @@ abbreviate_semax.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
    assert (exists v0', exists roots3',
-        v0x = rep_type_val g3 v0' /\ is_in_graph g3 m v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
+        v0x = rep_type_val g3 v0' /\ is_in_graph g3 m0 v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
        rewrite <- H14 in H3. simpl frames2rootpairs in H3.
-    pose proof @gc_preserved _ IG _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
-    m 0 ltac:(clear; Zlength_solve).
+    pose proof @gc_preserved _ IG0 _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
+    m0 0 ltac:(clear; Zlength_solve).
     rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H10.
     specialize (H10 H2).
     exists (rep_type_of_root_t (Znth 0 roots3)), (sublist 1 (Zlength roots3) roots3).
