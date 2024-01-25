@@ -43,8 +43,6 @@ rewrite Zlength_cons in *.
 auto.
 Qed.
 
-Print headroom.
-
 Lemma allocate_in_full_gc :
  forall (n: Z) g t_info roots outlier ti sh gv
   (H: 0 <= n <= headroom t_info),
@@ -161,22 +159,19 @@ _get_Coq_Strings_String_string_tag (level 98).
   set (len := Z.of_nat (String.length x)) in *.
   assert (LEN: 0 <= len < Int64.max_unsigned / 4) by rep_lia. clear H2.
   set (pad_length := 8 - len mod 8).
+  assert (PAD: 0 < pad_length <= 8) by admit.
   set (n := (len + pad_length) / 8 + 1).
-  replace (Int64.add (Int64.divu _ _) _) with (Int64.repr n).
-  2:{
+  replace (Int64.sub _ _) with (Int64.repr pad_length). 2:{
     change (Ptrofs.to_int64 _) with (Int64.repr 8).
     unfold Int64.modu.
     rewrite Int64.unsigned_repr
        by (clear - LEN;  clearbody len; simpl in *; rep_lia).
     rewrite Int64.unsigned_repr by rep_lia.
-     rewrite sub64_repr, add64_repr, divu_repr64, add64_repr.
-    f_equal; auto.
-    assert (0 <= len mod 8 < 8) by (apply Z.mod_bound_pos; lia).
-    clearbody len; clear - H2 LEN.
-    set (j := Int64.max_unsigned) in *; compute in j; subst j.
-    simpl in LEN. lia.
-    rep_lia.
+     rewrite sub64_repr. f_equal; auto.
   }
+  rewrite add64_repr.
+  change (Ptrofs.to_int64 _) with (Int64.repr 8).
+  rewrite divu_repr64, add64_repr. fold n.
   eapply semax_seq'.
   +
    eapply semax_Delta_subsumption with GC_SAVE1_tycontext.
@@ -264,6 +259,7 @@ entailer!!.
  clear KK.
  change (Tpointer _ _) with int_or_ptr_type.
  set (new0 := offset_val _ _).
+ assert_PROP (field_compatible0 (tarray int_or_ptr_type n) (SUB 1) new0) as FC by entailer!. 
  rewrite (split2_data_at__Tarray_app 1) by lia.
  Intros.
  forward.
@@ -272,7 +268,6 @@ entailer!!.
  set (new1 := field_address0 (tarray int_or_ptr_type n) (SUB 1) new0).
  sep_apply data_at__memory_block_cancel.
  assert (0 <= 8 * (n - 1) < Ptrofs.modulus). {
-  Search total_space.
    pose proof (total_space_tight_range (heap_head (ti_heap t_info'))).
    pose proof (space_order (heap_head (ti_heap t_info'))).
    clear - H7 H9 H10 H99. unfold MAX_SPACE_SIZE in H9. simpl in H9.
@@ -301,8 +296,206 @@ entailer!!.
  rewrite !Zmod_mod.
  rewrite Z.sub_diag. reflexivity.
  }
- 
+ forward.
+ forward.
+ fold (rep_type_val g' v0').
+ deadvars!. change (Tpointer _ _) with int_or_ptr_type.
+ rewrite Int64.shl_mul_two_p.
+ rewrite Int.signed_repr by rep_lia.
+ rewrite Int.unsigned_repr by rep_lia.
+ rewrite !Int64.unsigned_repr by rep_lia.
+ rewrite sub64_repr, mul64_repr, add64_repr.
+ replace (force_val (sem_binary_operation' _ _ _ _ _)) with new1.
+ 2:{ clear - H8 FC.
+     simpl in new0.
+     set (s := space_start _) in *.
+     subst new0 new1.
+     clearbody s. destruct s; try contradiction.
+     unfold field_address0.
+     rewrite if_true; auto.
+ }
+ freeze FR1 := - (data_at_ sh (tarray tuchar (len + pad_length)) new1).
+ assert (FC1: field_compatible (tarray tuchar (len + pad_length)) nil new1). {   
+   destruct new0; generalize FC; intros [HH _]; try contradiction HH.
+   subst new1.
+   unfold field_address0.
+   rewrite if_true; auto. simpl. 
+   clear - FC LEN PAD H9.
+   destruct FC as [? [? [? [? [?  ?] ] ] ] ].
+   split3; auto. split3; auto.
+   red in H1|-*. simpl in H1|-*. rewrite Z.max_r by lia. rewrite Z.mul_1_l.
+   rewrite Z.max_r in H1 by lia.
+   rewrite <- (Ptrofs.repr_unsigned i). rewrite ptrofs_add_repr.
+   rewrite Ptrofs.unsigned_repr by rep_lia.
+   assert (8 + (len + pad_length) <= 8*n); [ | lia].
+   subst n. rewrite Z.mul_add_distr_l.
+   rewrite <- Zdivide_Zdiv_eq. lia. lia.
+   subst pad_length. replace (len + (8 - len mod 8)) with (8 + (len - len mod 8)) by lia.
+   apply Z.divide_add_r.
+   exists 1; lia.
+   apply Zmod_divide_minus; auto. lia.
+   apply align_compatible_rec_Tarray; intros.
+   eapply align_compatible_rec_by_value. reflexivity. apply Z.divide_1_l.
+ } 
 
-(* Still some work to do *)
+Definition bytes_of_string (s: string) : list Integers.Byte.int :=
+  map (Integers.Byte.repr oo Z.of_N oo Strings.Byte.to_N) (list_byte_of_string s).
+
+(* assert_PROP (FC1: field_compatible0 (tarray int_or_ptr_type n)*)
+ forward_loop 
+  (EX i, EX v: rep_type, 
+   PROP (0 <= i <= len; is_in_graph g' (substring (Z.to_nat i) (String.length x) x) v)
+   LOCAL (temp _temp (rep_type_val g' v); 
+          temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB i) new1);
+          temp _argv new0;
+   temp specs_general._nalloc (Vlong (Int64.repr n));
+   lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
+   lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
+   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   SEP (FRZL FR1; 
+        data_at sh (tarray tuchar (len+pad_length)) 
+            (app (map Vbyte (sublist 0 i (bytes_of_string x))) (Zrepeat Vundef (len+pad_length-i)))
+            new1))
+  break: 
+   (PROP ()
+   LOCAL (temp _temp (rep_type_val g' v0'); 
+          temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB len) new1);
+          temp _argv new0;
+   temp specs_general._nalloc (Vlong (Int64.repr n));
+   lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
+   lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
+   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   SEP (FRZL FR1; 
+        data_at sh (tarray tuchar (len+pad_length)) 
+            (app (map Vbyte (bytes_of_string x)) (Zrepeat Vundef pad_length)) new1)).
+* Exists 0. Exists v0'. change (Z.to_nat 0) with O.
+  rewrite (proj1 (prefix_correct x x))
+    by (clear; induction x; simpl; auto; rewrite if_true; auto).
+ entailer!!.
+  --
+   rewrite arr_field_address0; try lia; auto.
+   destruct FC1 as [HH _]. simpl. apply isptr_offset_val_zero; auto. 
+ --
+   simpl app. apply derives_refl.
+* 
+  Intros i v.
+Fail forward_call. (*
+The command has indeed failed with message:
+Tactic failure: Your Gprog contains no funspec with the name
+_get_Coq_Strings_String_string_tag (level 98).
+*)
+   admit.
+* 
+ forward_for_simple_bound (pad_length - 1) 
+  (EX i, 
+   PROP ( )
+   LOCAL (temp _temp (rep_type_val g' v0');
+   temp _ptr (field_address0 (tarray tuchar (len + pad_length)) [ArraySubsc len] new1); 
+   temp _argv new0; temp specs_general._nalloc (Vlong (Int64.repr n));
+   lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
+   lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
+   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   SEP (FRZL FR1;
+   data_at sh (tarray tuchar (len + pad_length)) 
+     (app (map Vbyte (bytes_of_string x))
+       (app (Zrepeat (Vbyte Integers.Byte.zero) i) (Zrepeat Vundef (pad_length-i)))) new1)).
+ -- entailer!!.
+    apply derives_refl'. f_equal.
+ --
+  assert (force_val
+   (sem_add_ptr_long tschar (field_address0 (tarray tuchar (len + pad_length)) (SUB len) new1)
+      (Vlong (Int64.repr i))) = 
+      field_address (tarray tuchar (len + pad_length)) [ArraySubsc (len+i)] new1). {
+   rewrite sem_add_pl_ptr_special;
+   [ | reflexivity
+    | unfold field_address0; rewrite if_true by auto with field_compatible;
+       auto with field_compatible].
+   simpl. unfold field_address; rewrite if_true by auto with field_compatible. simpl.
+   unfold field_address0; rewrite if_true by auto with field_compatible.
+   simpl. rewrite offset_offset_val. f_equal. lia.
+  }
+ forward.
+ entailer!!. 
+ unfold field_address0. rewrite if_true by auto with field_compatible. simpl.
+ destruct FC1 as [HH _]; destruct new1; try contradiction; simpl; auto.
+ entailer!!.
+ unfold data_at.
+ apply derives_refl'. f_equal.
+ change (Int.zero_ext _ _) with Int.zero.
+ assert (Zlength (bytes_of_string x) = len). {
+   unfold bytes_of_string.
+   admit.
+  }
+ rewrite !upd_Znth_app2 by Zlength_solve.
+ rewrite !Zlength_map, Zlength_Zrepeat, H12 by lia.
+ f_equal.
+ replace (len + i - len - i) with 0 by lia.
+ replace (pad_length - i) with (1 + (pad_length - (i+1))) by lia.
+ rewrite <- !Zrepeat_app by lia.
+ rewrite <- !app_assoc.
+ f_equal.
+ rewrite upd_Znth_app1 by Zlength_solve.
+ f_equal.
+--
+ assert (force_val
+   (sem_add_ptr_long tuchar (field_address0 (tarray tuchar (len + pad_length)) (SUB len) new1)
+      (Vlong (Int64.repr (pad_length - 1)))) = 
+      field_address (tarray tuchar (len + pad_length)) [ArraySubsc (len+(pad_length-1))] new1). {
+   rewrite sem_add_pl_ptr_special;
+   [ | reflexivity
+    | unfold field_address0; rewrite if_true by auto with field_compatible;
+       auto with field_compatible].
+   simpl. unfold field_address; rewrite if_true by auto with field_compatible. simpl.
+   unfold field_address0; rewrite if_true by auto with field_compatible.
+   simpl. rewrite offset_offset_val. f_equal. lia.
+  }
+ forward.
+ entailer!!. 
+ unfold field_address0. rewrite if_true by auto with field_compatible. simpl.
+ destruct FC1 as [HH _]; destruct new1; try contradiction; simpl; auto.
+ thaw FR1.
+ unfold full_gc.
+ unfold before_gc_thread_info_rep.
+ Intros.
+ forward.
+ change (Tpointer _ _) with int_or_ptr_type.
+ replace (force_val (sem_add_ptr_long int_or_ptr_type new0 (Vlong (Int64.repr n))))
+  with  (offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info3)))
+        (space_start (heap_head (ti_heap t_info3)))). 2:{
+  simpl.
+  admit.
+  }
+ sep_apply (before_gc_thread_info_rep_fold sh t_info3 ti).
+ sep_apply (full_gc_fold gv g' t_info3 roots' outlier ti sh).
+ Local Ltac entailer_for_return ::= entailer!!.
+ forward.
+ unfold ti_heap.
+ assert (ING: exists g3: graph, exists x': rep_type,
+  full_gc g' t_info3 roots' outlier ti sh gv  
+ * data_at sh (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + 252))] new0
+ * field_at sh (tarray tuchar (len + pad_length)) []
+      (upd_Znth (len + (pad_length - 1))
+         (map Vbyte (bytes_of_string x) ++
+          Zrepeat (Vbyte Byte.zero) (pad_length - 1) ++
+          Zrepeat Vundef (pad_length - (pad_length - 1)))%list
+         (Vint (Int.zero_ext 8 (Int.repr (pad_length - 1))))) new1
+ |-- full_gc g3 t_info3 roots' outlier ti sh gv 
+   && !! (is_in_graph g3 (model_fn Bytestring_Proofs.pack_desc (x; xs)) x'
+          /\ gc_graph_iso g roots g3 roots')).
+   admit.
+ destruct ING as [g3 [x' ING] ].
+ sep_apply ING.
+ Exists x' g3 roots' t_info3.
+ entailer!!.
+ ++ admit.
+ ++
+ unfold frame_rep_.
+ limited_change_compspecs CompSpecs.
+ cancel.
++ clear - LEN PAD.
+  revert LEN; really_simplify Int64.max_unsigned; intros. simpl in LEN. lia.
++ rep_lia.
+
+all: fail.
  
 Abort.

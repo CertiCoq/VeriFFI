@@ -102,7 +102,7 @@ size_t bytestrlen(value s)
 {
   size_t header = (size_t)((value*)s)[-1];
   size_t bytes = (header >> 10) * sizeof(value);
-  size_t padding = *((char *) s + (bytes - 1)) + 1;
+  size_t padding = *((unsigned char *) s + (bytes - 1)) + 1;
   return bytes - padding;
 }
 
@@ -110,7 +110,7 @@ size_t bytestrlen(value s)
 /* { */
 /*   value words = (*((value *) s - 1) >> 10); */
 /*   value bytes = words * sizeof(value); */
-/*   value padding = (value) *((char *) s + (bytes - 1)) + 1; */
+/*   value padding = (value) *((unsigned char *) s + (bytes - 1)) + 1; */
 /*   return bytes - padding; */
 /* } */
 
@@ -132,7 +132,7 @@ value bool_to_value(_Bool b) {
     return make_Coq_Init_Datatypes_bool_false();
 }
 
-value char_to_value(struct thread_info *tinfo, char c) {
+value char_to_value(struct thread_info *tinfo, unsigned char c) {
   value v[8];
   for(unsigned int i = 0; i < 8; i++) {
     v[i] = bool_to_value(c & (1 << i));
@@ -140,7 +140,7 @@ value char_to_value(struct thread_info *tinfo, char c) {
   return alloc_make_Coq_Strings_Ascii_ascii_Ascii(tinfo, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
-value string_to_value(struct thread_info *tinfo, char *s) {
+value string_to_value(struct thread_info *tinfo, unsigned char *s) {
   value temp = make_Coq_Strings_String_string_EmptyString();
   for (unsigned int i = strlen(s); 0 < i; i--) {
     value c = char_to_value(tinfo, s[i-1]);
@@ -165,8 +165,8 @@ value ascii_to_word8(struct thread_info *tinfo, value v)
 
 value to_upper(struct thread_info *tinfo, value v)
 {
-  char c = (char) (v >> 1); 
-  char up = toupper(c);
+  unsigned char c = (unsigned char) (v >> 1); 
+  unsigned char up = toupper(c);
   return (((value) up) << 1) + 1;
 }
 
@@ -185,8 +185,8 @@ value map(struct thread_info *tinfo, value f, value s)
   value *argv = (value *) tinfo->alloc;
   *((value *) argv + 0LLU) = ((needed - 1) << 10) + 252LLU; // string tag
 
-  char *ptr = (char *) (argv + 1LLU);
-  char *t = (char *) s;
+  unsigned char *ptr = (unsigned char *) (argv + 1LLU);
+  unsigned char *t = (unsigned char *) s;
   for (value i = 0; i < len; i++) {
     value c = (*t << 1) + 1;
     *ptr = call(tinfo, f, c) >> 1;; 
@@ -194,7 +194,7 @@ value map(struct thread_info *tinfo, value f, value s)
   }
 
   // make the padding
-  char i = 0;
+  unsigned char i = 0;
   while (i < pad_length - 1) { *ptr = 0; ptr++; i++; }
   *ptr = i; // last char in the padding is # of 0s coming before the last char
 
@@ -220,9 +220,9 @@ value append(struct thread_info *tinfo, value save0, value save1)
   argv[0LLU] = (value*)(((nalloc - 1) << 10) + 252LLU); // string tag
   
   // take a pointer pointing to the beginning of destination string
-  char *ptr = (char *) (argv + 1LLU);
-  char *t1 = (char *) save0;
-  char *t2 = (char *) save1;
+  unsigned char *ptr = (unsigned char *) (argv + 1LLU);
+  unsigned char *t1 = (unsigned char *) save0;
+  unsigned char *t2 = (unsigned char *) save1;
 
   // copy the OCaml-string pointed by t1 and t2
   // into the array pointed by ptr
@@ -257,7 +257,7 @@ value pack(struct thread_info *tinfo, value save0)
   value *argv = tinfo->alloc;
   argv[0LLU] = (value)(((nalloc - 1) << 10) + 252LLU); // string tag
 
-  char *ptr = (char *) (argv + 1LLU);
+  unsigned char *ptr = (unsigned char *) (argv + 1LLU);
   temp = save0;
   while(get_Coq_Strings_String_string_tag(temp) == 1) {
     *ptr = ascii_to_char(get_args(temp)[0]);
@@ -270,7 +270,7 @@ value pack(struct thread_info *tinfo, value save0)
   for (i=0; i<pad_length-1; i++) ptr[i]=0;
   ptr[i]=i;
 
-  tinfo->alloc += nalloc;
+  tinfo->alloc = argv + nalloc;
   return (value) (argv + 1LLU);
   ENDFRAME
 }
@@ -280,14 +280,14 @@ value pack(struct thread_info *tinfo, value save0)
 value unpack(struct thread_info *tinfo, value save0)
   /* args and save1 must be exactly these names for convenience of GC_SAVE2 */
 {
-  char c; value v;
+  unsigned char c; value v;
   size_t len = bytestrlen(save0);
   value save1 = make_Coq_Strings_String_string_EmptyString();
   BEGINFRAME(tinfo,2)
   while (len--) {
     nalloc=12;   // 3 for the String constructor, 9 for the ASCII constructor.
     GC_SAVE2
-    c = ((char*)save1)[len];
+    c = ((unsigned char*)save1)[len];
     v = char_to_value(tinfo, c);
     save1 = alloc_make_Coq_Strings_String_string_String(tinfo, v, save1);
   }
@@ -303,10 +303,10 @@ extern void * malloc(size_t size);
 extern void *realloc(void *ptr, size_t size);
 extern void free(void *ptr);
 
-char *scan(FILE *stream, size_t *length)
+unsigned char *scan(FILE *stream, size_t *length)
 {
   size_t capacity = 16;
-  char *buffer = malloc(capacity);
+  unsigned char *buffer = malloc(capacity);
   if (!buffer) { return NULL; }
   size_t i = 0;
 
@@ -315,7 +315,7 @@ char *scan(FILE *stream, size_t *length)
     if (i + 2 > capacity) {
       // ensure space for c and terminating NUL
       capacity *= 2;
-      char *newbuf = realloc(buffer, capacity);
+      unsigned char *newbuf = realloc(buffer, capacity);
       if (!newbuf) {
         // allocation failed - undo the read, terminate string, and return
         ungetc(c, stdin);
@@ -327,7 +327,7 @@ char *scan(FILE *stream, size_t *length)
 
     // We have enough space; now store it
     if (c == '\n') { break; }
-    buffer[i++] = (char) c;
+    buffer[i++] = (unsigned char) c;
   }
 
   if (i == 0) { free(buffer); return NULL; } // we didn't read anything
@@ -342,7 +342,7 @@ value scan_bytestring(struct thread_info *tinfo, value save0)
 {
   BEGINFRAME(tinfo,1)
   size_t len;
-  char *s = scan((FILE *) save0, &len);
+  unsigned char *s = scan((FILE *) save0, &len);
 
   size_t mod = len % sizeof(value);
   size_t pad_length = sizeof(value) - (len % sizeof(value));
@@ -352,12 +352,12 @@ value scan_bytestring(struct thread_info *tinfo, value save0)
   value *argv = tinfo->alloc;
   *((value *) argv + 0LLU) = (value)(((nalloc - 1) << 10) + 252LLU); // string tag
 
-  char *ptr = (char *) (argv + 1LLU);
-  char *t = (char *) s;
+  unsigned char *ptr = (unsigned char *) (argv + 1LLU);
+  unsigned char *t = (unsigned char *) s;
   while (*t != '\0') { *ptr = *t; ptr++; t++; }
 
   // make the padding
-  char i = 0;
+  unsigned char i = 0;
   while (i < pad_length - 1) { *ptr = 0; ptr++; i++; }
   *ptr = i; // last char in the padding is # of 0s coming before the last char
 
@@ -395,7 +395,7 @@ value runM(struct thread_info * tinfo, value a, value instream, value outstream,
         value s = *((value *) action);
         size_t len = bytestrlen(s);
         for (size_t i = 0; i < len; i ++) {
-          fprintf((FILE *) outstream, "%c", ((char *) s)[i]);
+          fprintf((FILE *) outstream, "%c", ((unsigned char *) s)[i]);
         }
         fprintf((FILE *) outstream, "\n");
         return 0;

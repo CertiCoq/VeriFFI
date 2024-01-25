@@ -91,13 +91,13 @@ Definition fn_desc_to_funspec_aux
         (GLOBALSx [gv]
          (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ int_or_ptr_type ]
-       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
+       EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
                 @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
                   (model_fn xs) p' ;
-                gc_graph_iso g roots g' roots)
+                gc_graph_iso g roots g' roots')
           RETURN  (rep_type_val g' p')
-          SEP (full_gc g' t_info' roots outlier ti sh gv; library.mem_mgr gv).
+          SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
 
 Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
   (ident_of_string (c_name d),
