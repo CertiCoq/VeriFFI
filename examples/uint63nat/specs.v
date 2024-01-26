@@ -84,7 +84,7 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
 RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
-Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec := 
+Definition args_spec_S'  : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
   x: nat, roots : roots_t, sh : share,
   ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
@@ -108,7 +108,7 @@ Definition args_spec_S' (c : ctor_desc) (n : nat) : funspec :=
 
 Definition args_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
 DECLARE _get_args
-        (args_spec_S' (@desc _ S _) 1).
+        (args_spec_S').
 
 (* Same as in UVRooster - TODO: encode_Z as relation to fit our general scheme *)
 Definition encode_Z (x: Z): Z := x * 2 + 1.

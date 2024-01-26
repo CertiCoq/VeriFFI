@@ -99,6 +99,91 @@ Proof.
  cancel.
 Qed.
 
+
+Definition bytes_of_string (s: string) : list Integers.Byte.int :=
+  map (Integers.Byte.repr oo Z.of_N oo Strings.Byte.to_N) (list_byte_of_string s).
+
+Lemma Zlength_bytes_of_string:
+  forall s, Zlength (bytes_of_string s) = Z.of_nat (String.length s).
+Proof.
+intros.
+unfold bytes_of_string.
+unfold list_byte_of_string.
+rewrite !Zlength_map.
+rewrite Zlength_correct.
+f_equal.
+induction s; simpl; auto.
+Qed.
+
+Lemma substring_sublist:
+  forall i j s, 0 <= i -> 0 <= j <= Zlength (bytes_of_string s)-i ->
+       bytes_of_string (substring (Z.to_nat i) (Z.to_nat j) s) = sublist i (i+j) (bytes_of_string s).
+Proof.
+intros.
+unfold bytes_of_string, list_byte_of_string in *.
+rewrite map_map.
+rewrite Zlength_map in H0.
+revert i j H H0; induction s; simpl; intros.
+-
+change (Zlength _) with 0 in H0.
+assert (j=0) by lia. subst j. assert (i=0) by lia. subst. simpl. reflexivity.
+-
+rewrite Zlength_cons in H0.
+destruct (Z.to_nat i) eqn:?H.
+assert (i=0) by lia; subst i.
+destruct (Z.to_nat j) eqn:?H.
+assert (j=0) by lia. subst j.
+autorewrite with sublist.
+reflexivity.
+simpl.
+rewrite sublist_0_cons by lia.
+f_equal.
+specialize (IHs 0 (Z.of_nat n)) .
+rewrite Nat2Z.id, Z.add_0_l in IHs.
+change (Z.to_nat 0) with O in IHs.
+unfold compose in IHs.
+rewrite IHs; try lia.
+f_equal.
+lia.
+specialize (IHs (i-1) j).
+unfold compose in IHs.
+replace (Z.to_nat (i-1)) with n in IHs by lia.
+rewrite IHs; try lia.
+rewrite sublist_pos_cons by lia.
+f_equal.
+lia.
+Qed.
+
+Lemma bytes_of_string_inj: forall r s, bytes_of_string r = bytes_of_string s -> r=s.
+Proof.
+intros ? ?.
+unfold bytes_of_string, list_byte_of_string.
+rewrite !map_map.
+set (f := fun _ => _).
+revert s;
+induction r; destruct s; simpl; intros; auto; try discriminate.
+f_equal.
+-
+assert (f a = f a0) by congruence.
+clear - H0.
+subst f.
+simpl in *.
+rewrite <- (Ascii.ascii_of_byte_of_ascii a), <- (Ascii.ascii_of_byte_of_ascii a0).
+f_equal.
+apply bytestring.to_N_inj.
+forget (Ascii.byte_of_ascii a) as x. forget (Ascii.byte_of_ascii a0) as y.
+pose proof (Byte.to_N_bounded x).
+pose proof (Byte.to_N_bounded y).
+apply N2Z.inj.
+rewrite <- Byte.unsigned_repr by rep_lia.
+rewrite <- (Byte.unsigned_repr (Z.of_N (Byte.to_N x))) by rep_lia.
+f_equal.
+auto.
+-
+apply IHr.
+congruence.
+Qed.
+
 Lemma body_pack:
   semax_body Vprog Gprog f_pack pack_spec.
 Proof.
@@ -144,12 +229,31 @@ Proof.
           frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1)).
  - Exists x p. entailer!!. f_equal. f_equal. lia.
  - Intros s ps.
-Fail forward_call. (*
-The command has indeed failed with message:
-Tactic failure: Your Gprog contains no funspec with the name
-_get_Coq_Strings_String_string_tag (level 98).
-*)
-   admit.
+   forward_call (gv,g,ps,s,roots,sh,ti,outlier,t_info).
+   forward_if.
+   + (* then *)
+   destruct s; try discriminate H5.
+   forward.
+   forward_call (gv,g,ps,(a,s),roots,sh,ti,outlier,t_info).
+   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   assert_PROP (is_pointer_or_integer (rep_type_val g p0)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g a p0). entailer!!.
+   }
+   assert_PROP (is_pointer_or_integer (rep_type_val g p1)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g s p1). entailer!!.
+   }
+   forward.
+   sep_apply modus_ponens_wand.
+   Exists s p1.
+   simpl in H3.
+   entailer!!.
+   f_equal. f_equal. simpl. lia.
+  + (* else *)
+   forward.
+   destruct s; simpl in H5; try congruence.
+   entailer!!.
  - change (Tpointer _ _) with int_or_ptr_type.
    forward.
    change (Tpointer _ _) with int_or_ptr_type.
@@ -159,7 +263,7 @@ _get_Coq_Strings_String_string_tag (level 98).
   set (len := Z.of_nat (String.length x)) in *.
   assert (LEN: 0 <= len < Int64.max_unsigned / 4) by rep_lia. clear H2.
   set (pad_length := 8 - len mod 8).
-  assert (PAD: 0 < pad_length <= 8) by admit.
+  assert (PAD: 0 < pad_length <= 8) by (clear; pose proof (Z.mod_pos_bound len 8); lia).
   set (n := (len + pad_length) / 8 + 1).
   replace (Int64.sub _ _) with (Int64.repr pad_length). 2:{
     change (Ptrofs.to_int64 _) with (Int64.repr 8).
@@ -248,6 +352,7 @@ entailer!!.
  
  assert (isptr (space_start (heap_head (ti_heap t_info')))) by 
    (eapply space_start_isptr'; eassumption).
+ 
  sep_apply get_tinfo_alloc.
  Intros.
  set (JJ :=  _ -* _).
@@ -314,7 +419,8 @@ entailer!!.
      unfold field_address0.
      rewrite if_true; auto.
  }
- freeze FR1 := - (data_at_ sh (tarray tuchar (len + pad_length)) new1).
+ freeze FR1 := - (data_at_ sh (tarray tuchar (len + pad_length)) new1) 
+    (full_gc g' t_info3 roots' outlier ti sh gv).
  assert (FC1: field_compatible (tarray tuchar (len + pad_length)) nil new1). {   
    destruct new0; generalize FC; intros [HH _]; try contradiction HH.
    subst new1.
@@ -338,13 +444,9 @@ entailer!!.
    eapply align_compatible_rec_by_value. reflexivity. apply Z.divide_1_l.
  } 
 
-Definition bytes_of_string (s: string) : list Integers.Byte.int :=
-  map (Integers.Byte.repr oo Z.of_N oo Strings.Byte.to_N) (list_byte_of_string s).
-
-(* assert_PROP (FC1: field_compatible0 (tarray int_or_ptr_type n)*)
  forward_loop 
   (EX i, EX v: rep_type, 
-   PROP (0 <= i <= len; is_in_graph g' (substring (Z.to_nat i) (String.length x) x) v)
+   PROP (0 <= i <= len; is_in_graph g' (substring (Z.to_nat i) (Z.to_nat (len-i)) x) v)
    LOCAL (temp _temp (rep_type_val g' v); 
           temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB i) new1);
           temp _argv new0;
@@ -352,23 +454,23 @@ Definition bytes_of_string (s: string) : list Integers.Byte.int :=
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
    temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
-   SEP (FRZL FR1; 
+   SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
         data_at sh (tarray tuchar (len+pad_length)) 
             (app (map Vbyte (sublist 0 i (bytes_of_string x))) (Zrepeat Vundef (len+pad_length-i)))
             new1))
   break: 
    (PROP ()
-   LOCAL (temp _temp (rep_type_val g' v0'); 
-          temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB len) new1);
+   LOCAL (temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB len) new1);
           temp _argv new0;
    temp specs_general._nalloc (Vlong (Int64.repr n));
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
    temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
-   SEP (FRZL FR1; 
+   SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
         data_at sh (tarray tuchar (len+pad_length)) 
             (app (map Vbyte (bytes_of_string x)) (Zrepeat Vundef pad_length)) new1)).
 * Exists 0. Exists v0'. change (Z.to_nat 0) with O.
+  unfold len at 3. rewrite Z.sub_0_r. rewrite Nat2Z.id.
   rewrite (proj1 (prefix_correct x x))
     by (clear; induction x; simpl; auto; rewrite if_true; auto).
  entailer!!.
@@ -379,23 +481,141 @@ Definition bytes_of_string (s: string) : list Integers.Byte.int :=
    simpl app. apply derives_refl.
 * 
   Intros i v.
-Fail forward_call. (*
-The command has indeed failed with message:
-Tactic failure: Your Gprog contains no funspec with the name
-_get_Coq_Strings_String_string_tag (level 98).
-*)
-   admit.
+  set (s := substring (Z.to_nat i) (Z.to_nat (len-i)) x) in *.
+   forward_call (gv,g',v,s,roots',sh,ti,outlier,t_info3).
+   forward_if; fold len in H12; fold s in H12.
+   -- (* then clause *)
+       destruct s as [ | ch r] eqn:?H; try discriminate H12.
+       abbreviate_semax. deadvars!.
+   forward_call (gv,g',v,(ch,r),roots',sh,ti,outlier,t_info3).
+   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g' ch  p0). entailer!!.
+   }
+   assert_PROP (is_pointer_or_integer (rep_type_val g' p1)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g' r p1). entailer!!.
+   }
+   forward.
+   sep_apply modus_ponens_wand.
+   rewrite Znth_0_cons.
+   forward_call (gv,g',p0,ch,roots',sh,ti,outlier,t_info3).
+   assert_PROP (field_address0 (tarray tuchar (len + pad_length)) (SUB i) new1 = 
+                field_address (tarray tuchar (len+pad_length)) (SUB i) new1
+           /\ isptr (field_address0 (tarray tuchar (len + pad_length)) (SUB i) new1)).
+    {entailer!.
+     apply field_address0_isptr.
+     apply arr_field_compatible0; auto.
+     lia.
+     }
+   deadvars!.
+   clear p0 p1 H17 H16 H18 H19 sh' H15.
+   destruct H20.
+   forward.
+   forward.
+   assert (Zlength (bytes_of_string x) = len) by (rewrite Zlength_bytes_of_string; auto).
+   assert (i < len). {
+     clear - H10 H14.
+    destruct (len - i) eqn:?H; try lia.
+    subst s. simpl in H14.
+    elimtype False. clear - H14. forget (Z.to_nat i) as j.
+    revert j H14; induction x; destruct j; simpl; intros; try discriminate; eauto.
+   }
+   rewrite upd_Znth_app2 by list_solve.
+   autorewrite with sublist.
+   replace (len + pad_length - i) with (1 + (len + pad_length - (i+1))) by lia.
+   rewrite <- Zrepeat_app by lia.
+   rewrite upd_Znth_app1 by list_solve.
+   change (upd_Znth 0 _ ?a) with ([a]).
+   rewrite app_assoc.
+   replace [Vint (Int.zero_ext _ _)] with (map Vbyte (sublist i (i+1) (bytes_of_string x))).
+ 2:{ rewrite sublist_one; try lia. 
+     clear - H17 H18 H10 H14. subst s.
+     unfold Vbyte, bytes_of_string.
+     simpl. f_equal. f_equal.
+     pose proof substring_sublist i (len-i) x ltac:(lia) ltac:(lia).
+     rewrite H14 in H; clear H14.
+     replace (i + (len - i)) with len in H by lia.
+     assert (Znth 0 (sublist i len (bytes_of_string x)) = 
+             Znth 0 (bytes_of_string (String ch r))) by congruence.
+     rewrite Znth_sublist in H0 by lia.
+     rewrite Z.add_0_l in H0. unfold bytes_of_string in H0.
+     rewrite H0; clear H0.
+     unfold list_byte_of_string, list_ascii_of_string. simpl.
+     rewrite Znth_0_cons.
+     replace (Ascii.N_of_ascii ch) with (Byte.to_N (Ascii.byte_of_ascii ch)).
+       2:{ apply Byte.to_of_N. symmetry; apply Ascii.byte_of_ascii_via_N. }
+     clear.
+     forget (Ascii.byte_of_ascii ch) as b.
+     admit. (* WRONG!  signed bytes versus unsigned bytes *)
+    }
+   rewrite <- map_app. rewrite sublist_rejoin by lia.
+   forward_call (gv,g',v,(ch,r),roots',sh,ti,outlier,t_info3).
+   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g' ch p0). entailer!!.
+   }
+   assert_PROP (is_pointer_or_integer (rep_type_val g' p1)). {
+    sep_apply modus_ponens_wand. unfold full_gc. Intros.
+    sep_apply (is_pointer_or_integer_rep_type_val g' r p1). entailer!!.
+   }
+   forward.
+   sep_apply modus_ponens_wand.
+   Exists (i+1) p1.
+   entailer!!.
+   split.
+   ++
+     replace (substring _ _ _) with r; auto.
+     clear - H17 H14 H18 H10.
+     pose proof substring_sublist i (Z.of_nat (String.length x)-i) x ltac:(lia) ltac:(lia).
+     rewrite H14 in H.
+     change (bytes_of_string (String ch r)) 
+     with ((Byte.repr oo Z.of_N oo Byte.to_N) (Ascii.byte_of_ascii ch) :: bytes_of_string r) in H.
+     rewrite (sublist_split i (i+1)) in H by lia.
+     rewrite sublist_one in H by lia.
+     simpl in H. inv H.
+     replace (i + (_ - i)) with (Z.of_nat (String.length x)) in H2 by lia.
+     pose proof substring_sublist (i+1) (Z.of_nat (String.length x)-(i+1)) x ltac:(lia) ltac:(lia).
+     set (s := substring _ _ x). fold s in H.
+     apply bytes_of_string_inj.
+     rewrite H,H2.
+     f_equal; lia.
+   ++
+    unfold field_address0.
+     rewrite !if_true by auto with field_compatible.
+     simpl. rewrite offset_offset_val. f_equal. lia.
+ -- (* else clause *)
+  forward.
+  destruct s eqn:?H; try (contradiction H12; reflexivity). subst s.
+  assert (i=len). { clear - H10 H14. subst len.
+     rewrite <- (Z2Nat.id i) by lia. f_equal.
+     replace (Z.to_nat ( _ - _)) with (String.length x - (Z.to_nat i))%nat in H14 by lia.
+     assert (Z.to_nat i <= String.length x)%nat by lia.
+     forget (Z.to_nat i) as j. clear H10 i.
+     revert j H14 H; induction x; simpl; intros; try lia.
+     destruct j; try discriminate.
+     f_equal. apply IHx; auto. lia.
+  }
+  subst i.
+  entailer!!.
+  apply derives_refl'; f_equal. 
+  replace (len + pad_length - len) with pad_length by lia.
+  f_equal. f_equal.
+  apply sublist_same; try lia.
+  clear. rewrite Zlength_bytes_of_string; auto.
 * 
  forward_for_simple_bound (pad_length - 1) 
   (EX i, 
    PROP ( )
-   LOCAL (temp _temp (rep_type_val g' v0');
+   LOCAL (
    temp _ptr (field_address0 (tarray tuchar (len + pad_length)) [ArraySubsc len] new1); 
    temp _argv new0; temp specs_general._nalloc (Vlong (Int64.repr n));
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
    temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
-   SEP (FRZL FR1;
+   SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
    data_at sh (tarray tuchar (len + pad_length)) 
      (app (map Vbyte (bytes_of_string x))
        (app (Zrepeat (Vbyte Integers.Byte.zero) i) (Zrepeat Vundef (pad_length-i)))) new1)).
@@ -422,10 +642,7 @@ _get_Coq_Strings_String_string_tag (level 98).
  unfold data_at.
  apply derives_refl'. f_equal.
  change (Int.zero_ext _ _) with Int.zero.
- assert (Zlength (bytes_of_string x) = len). {
-   unfold bytes_of_string.
-   admit.
-  }
+ assert (Zlength (bytes_of_string x) = len) by apply Zlength_bytes_of_string.
  rewrite !upd_Znth_app2 by Zlength_solve.
  rewrite !Zlength_map, Zlength_Zrepeat, H12 by lia.
  f_equal.
@@ -467,6 +684,7 @@ _get_Coq_Strings_String_string_tag (level 98).
   }
  sep_apply (before_gc_thread_info_rep_fold sh t_info3 ti).
  sep_apply (full_gc_fold gv g' t_info3 roots' outlier ti sh).
+
  Local Ltac entailer_for_return ::= entailer!!.
  forward.
  unfold ti_heap.
@@ -481,14 +699,17 @@ _get_Coq_Strings_String_string_tag (level 98).
          (Vint (Int.zero_ext 8 (Int.repr (pad_length - 1))))) new1
  |-- full_gc g3 t_info3 roots' outlier ti sh gv 
    && !! (is_in_graph g3 (model_fn Bytestring_Proofs.pack_desc (x; xs)) x'
-          /\ gc_graph_iso g roots g3 roots')).
+          /\ gc_graph_iso g roots g3 roots'
+          /\ rep_type_val g3 x' =
+              offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info3)) + sizeof int_or_ptr_type)
+                  (space_start (heap_head (ti_heap t_info3))))).
    admit.
  destruct ING as [g3 [x' ING] ].
- sep_apply ING.
+ sep_apply ING; clear ING.
+ match goal with |- context [allocate_in_nursery ?N] => change N with n end.
+ change (heap_head _) with (heap_head (ti_heap t_info3)).
  Exists x' g3 roots' t_info3.
  entailer!!.
- ++ admit.
- ++
  unfold frame_rep_.
  limited_change_compspecs CompSpecs.
  cancel.
