@@ -12,6 +12,120 @@ Lemma representable_string_max_length:
    graph_rep g |-- !! (Z.of_nat (String.length s) < Ptrofs.max_unsigned/4).
 Admitted.
 
+(* copied from examples/uint63nat/Verif_prog_general.v *)
+Lemma spaces_g0 g t_info roots outlier :
+    gc_condition_prop g t_info roots outlier
+    -> isptr (space_start (heap_head (ti_heap t_info)))
+      /\  writable_share (space_sh (heap_head (ti_heap t_info)))
+      /\ generation_space_compatible g (0%nat, nth_gen g 0, heap_head (ti_heap t_info)).
+Proof.
+   destruct (heap_head_cons (ti_heap t_info)) as (g0&space_rest&SPACE_NONEMPTY&g0_eq). rewrite !g0_eq in *.
+  intros gc_cond.
+  unfold nth_gen.
+    destruct (graph_model.glabel g) eqn: glabel_g.
+    simpl GCGraph.g_gen.
+    destruct g_gen; try congruence. 
+    simpl nth.
+    unfold gc_condition_prop in *.
+    destruct gc_cond as (gc1&gc2&gc3&gc4&gc5).
+    red in gc2.
+    destruct gc2 as (?&?&?&?).
+    red in H; destruct H as  (gc61&gc62&gc63).
+    simpl in *. rewrite !glabel_g in gc61. simpl in *.
+    rewrite !SPACE_NONEMPTY in *.
+    apply Forall_inv in gc61. destruct gc61 as (?&?&?).
+    destruct g1; simpl in *.
+    split3; eauto; congruence.
+Qed.
+
+Lemma body_bump_allocptr:
+  semax_body Vprog Gprog f_bump_allocptr bump_allocptr_spec.
+Proof.
+start_function.
+unfold full_gc, before_gc_thread_info_rep.
+Intros.
+destruct enough as [ [tinfo n] ?H].
+simpl fst in *. simpl snd in *.
+limited_change_compspecs CompSpecs.
+destruct (spaces_g0 _ _ _ _ H) as [? [? ?] ].
+forward.
+forward.
+forward.
+Exists (space_sh (heap_head (ti_heap tinfo))).
+unfold full_gc, before_gc_thread_info_rep.
+limited_change_compspecs CompSpecs.
+simpl ti_args. simpl ti_fp. simpl ti_heap_p. simpl ti_frames.
+rewrite <- !(andp_comm (prop _)).
+rewrite prop_true_andp by (split; auto).
+rewrite prop_true_andp.
+-
+set (hh := heap_head (ti_heap tinfo)).
+set (hh' := heap_head _).
+simpl.
+rewrite !sepcon_assoc.
+change (total_space (heap_head (ti_heap tinfo))) with (total_space hh).
+change (space_start (heap_head (ti_heap tinfo))) with (space_start hh).
+match goal with |- _ * (?A * _) |-- _ * (?B * _) => set (dd := A); set (dd' := B) end.
+cancel.
+subst dd dd'.
+do 2 unfold_data_at 1%nat.
+change (ti_fp (tinfo_bump_alloc _)) with (ti_fp tinfo).
+change (used_space (heap_head (ti_heap tinfo))) with (used_space hh).
+change 8 with WORD_SIZE.
+rewrite <- Z.mul_add_distr_l.
+cancel.
+unfold heap_rest_rep.
+subst hh hh'.
+clear H7 H6 H5 H4.
+rewrite <- (sepcon_comm (data_at_ _ _ _)).
+rewrite <- !sepcon_assoc.
+apply sepcon_derives.
++
+simpl.
+unfold headroom in H0.
+destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ?] ] ].
+destruct (ti_heap tinfo).
+unfold space_rest_rep.
+simpl in *.
+unfold heap_head in *. simpl in *.
+subst spaces.
+clear H5.
+if_tac.
+rewrite H4 in H1; contradiction H1.
+simpl.
+rewrite if_false by auto.
+cancel.
+admit.  (* looks OK *)
++
+unfold headroom in H0.
+clear H H3.
+destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ?] ] ].
+destruct (ti_heap tinfo).
+simpl in *.
+subst spaces. simpl in *.
+unfold ti_token_rep.
+simpl. cancel.
+rewrite <- H3 at 1.
+apply derives_refl.
+-
+unfold tinfo_bump_alloc; simpl.
+unfold headroom in H0.
+destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ?] ] ].
+destruct H.
+destruct (ti_heap tinfo).
+simpl in *.
+subst spaces.
+split; auto.
+destruct H as [? [? [? ?] ] ]; split; [ | split3]; auto.
+simpl.
+Search ti_size_spec.
+admit.  (* looks OK *)
+simpl.
+admit.
+Admitted.
+
+
+(*
 Lemma allocate_in_nursery_pf {n: Z} {nursery : space}
    (H: 0 <= n <= nursery.(total_space)-nursery.(used_space)) :
   0 <= nursery.(used_space)+n <= nursery.(total_space).
@@ -57,7 +171,7 @@ Lemma allocate_in_full_gc :
                     ti_frames := t_info.(ti_frames);
                     ti_nalloc := t_info.(ti_nalloc) |}
  in @data_at_ env_graph_gc.CompSpecs sh (tarray int_or_ptr_type n)
-      (offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info'))) 
+      (offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info))) 
        (space_start (heap_head (ti_heap t_info'))))
    * full_gc g t_info' roots outlier ti sh gv.
 Proof.
@@ -76,6 +190,7 @@ entailer!!.
   simpl.
   admit.
 Admitted.
+
 
  Lemma get_tinfo_alloc:
   forall g t_info roots outlier ti sh gv,
@@ -98,6 +213,8 @@ Proof.
  rewrite <- wand_sepcon_adjoint.
  cancel.
 Qed.
+*)
+
 
 
 Definition bytes_of_string (s: string) : list Integers.Byte.int :=
@@ -275,7 +392,10 @@ Proof.
   }
   rewrite add64_repr.
   change (Ptrofs.to_int64 _) with (Int64.repr 8).
-  rewrite divu_repr64, add64_repr. fold n.
+  rewrite divu_repr64;
+    [ | clear - LEN PAD; revert LEN; really_simplify Int64.max_unsigned; intros; simpl in LEN; lia
+      | rep_lia].
+  rewrite add64_repr. fold n.
   eapply semax_seq'.
   +
    eapply semax_Delta_subsumption with GC_SAVE1_tycontext.
@@ -332,8 +452,7 @@ entailer!!.
 +
  Intros g' v0' roots' t_info'.
  abbreviate_semax.
- simpl app.
-
+ simpl app. 
  assert (0 < n). {
    subst n.
    assert (len mod 8 < 8) by (apply Z_mod_lt; lia).
@@ -342,29 +461,21 @@ entailer!!.
    lia.
   }
 
- assert (H99: 0 <= n <=
-  total_space (heap_head (ti_heap t_info')) - used_space (heap_head (ti_heap t_info'))).
- { clear - H2 H7. unfold headroom in H2. lia. }
- sep_apply (allocate_in_full_gc n g' t_info' roots' outlier ti sh gv H99).
- cbv zeta.
- match goal with |- context [full_gc g' ?A] =>  set (t_info3 := A) end.
+ assert (Enough : 0 <= snd (t_info', n) <= headroom (fst (t_info', n))) by (simpl; lia).
+ set (enough := exist (fun tn: GCGraph.thread_info * Z => 0 <= snd tn <= headroom (fst tn))
+                   (t_info', n) Enough).
+ forward_call (gv,g',roots',sh,ti,outlier,enough).
+ simpl fst. cancel.
+ Intros sh'. rename H8 into Hsh'.
+ set (t_info3 := tinfo_bump_alloc enough).
  change (ti_fp t_info') with (ti_fp t_info3).
  
  assert (isptr (space_start (heap_head (ti_heap t_info')))) by 
    (eapply space_start_isptr'; eassumption).
- 
- sep_apply get_tinfo_alloc.
- Intros.
- set (JJ :=  _ -* _).
- limited_change_compspecs CompSpecs.
- forward.
- subst JJ.
- set (KK := field_at _ _ _ _ _).
- sep_apply (modus_ponens_wand KK).
- clear KK.
+ simpl fst. simpl snd.
  change (Tpointer _ _) with int_or_ptr_type.
- set (new0 := offset_val _ _).
- assert_PROP (field_compatible0 (tarray int_or_ptr_type n) (SUB 1) new0) as FC by entailer!. 
+ set (new0 := alloc_at t_info').
+ assert_PROP (field_compatible (tarray int_or_ptr_type n) nil new0) as FC by entailer!. 
  rewrite (split2_data_at__Tarray_app 1) by lia.
  Intros.
  forward.
@@ -375,10 +486,11 @@ entailer!!.
  assert (0 <= 8 * (n - 1) < Ptrofs.modulus). {
    pose proof (total_space_tight_range (heap_head (ti_heap t_info'))).
    pose proof (space_order (heap_head (ti_heap t_info'))).
-   clear - H7 H9 H10 H99. unfold MAX_SPACE_SIZE in H9. simpl in H9.
+   clear - H7 H9 H10 Enough. unfold MAX_SPACE_SIZE in H9. simpl in H9, Enough.
+   unfold headroom in Enough.
    really_simplify Ptrofs.modulus.
    set (tot := total_space _) in *. set (use := used_space _) in *.
-   clearbody tot. clearbody use. clearbody n. clear - H7 H9 H10 H99.
+   clearbody tot. clearbody use. clearbody n. clear - H7 H9 H10 Enough.
    split; try lia.
  }
  sep_apply memory_block_data_at__tarray_tuchar.
@@ -411,23 +523,23 @@ entailer!!.
  rewrite !Int64.unsigned_repr by rep_lia.
  rewrite sub64_repr, mul64_repr, add64_repr.
  replace (force_val (sem_binary_operation' _ _ _ _ _)) with new1.
- 2:{ clear - H8 FC.
-     simpl in new0.
+ 2:{ clear - H8 FC H7.
+     hnf in new0.
      set (s := space_start _) in *.
      subst new0 new1.
      clearbody s. destruct s; try contradiction.
      unfold field_address0.
-     rewrite if_true; auto.
+     rewrite if_true; auto with field_compatible.
  }
- freeze FR1 := - (data_at_ sh (tarray tuchar (len + pad_length)) new1) 
+ freeze FR1 := - (data_at_ sh' (tarray tuchar (len + pad_length)) new1) 
     (full_gc g' t_info3 roots' outlier ti sh gv).
  assert (FC1: field_compatible (tarray tuchar (len + pad_length)) nil new1). {   
    destruct new0; generalize FC; intros [HH _]; try contradiction HH.
    subst new1.
    unfold field_address0.
-   rewrite if_true; auto. simpl. 
+   rewrite if_true by auto with field_compatible. simpl. 
    clear - FC LEN PAD H9.
-   destruct FC as [? [? [? [? [?  ?] ] ] ] ].
+   destruct FC as [? [? [? [? ?] ] ] ].
    split3; auto. split3; auto.
    red in H1|-*. simpl in H1|-*. rewrite Z.max_r by lia. rewrite Z.mul_1_l.
    rewrite Z.max_r in H1 by lia.
@@ -450,25 +562,23 @@ entailer!!.
    LOCAL (temp _temp (rep_type_val g' v); 
           temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB i) new1);
           temp _argv new0;
-   temp specs_general._nalloc (Vlong (Int64.repr n));
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
-   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
    SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
-        data_at sh (tarray tuchar (len+pad_length)) 
-            (app (map Vbyte (sublist 0 i (bytes_of_string x))) (Zrepeat Vundef (len+pad_length-i)))
+        data_at sh' (tarray tuchar (len+pad_length)) 
+            (app (map Vubyte (sublist 0 i (bytes_of_string x))) (Zrepeat Vundef (len+pad_length-i)))
             new1))
   break: 
    (PROP ()
    LOCAL (temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB len) new1);
           temp _argv new0;
-   temp specs_general._nalloc (Vlong (Int64.repr n));
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
-   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
    SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
-        data_at sh (tarray tuchar (len+pad_length)) 
-            (app (map Vbyte (bytes_of_string x)) (Zrepeat Vundef pad_length)) new1)).
+        data_at sh' (tarray tuchar (len+pad_length)) 
+            (app (map Vubyte (bytes_of_string x)) (Zrepeat Vundef pad_length)) new1)).
 * Exists 0. Exists v0'. change (Z.to_nat 0) with O.
   unfold len at 3. rewrite Z.sub_0_r. rewrite Nat2Z.id.
   rewrite (proj1 (prefix_correct x x))
@@ -488,7 +598,7 @@ entailer!!.
        destruct s as [ | ch r] eqn:?H; try discriminate H12.
        abbreviate_semax. deadvars!.
    forward_call (gv,g',v,(ch,r),roots',sh,ti,outlier,t_info3).
-   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
     sep_apply (is_pointer_or_integer_rep_type_val g' ch  p0). entailer!!.
@@ -510,7 +620,7 @@ entailer!!.
      lia.
      }
    deadvars!.
-   clear p0 p1 H17 H16 H18 H19 sh' H15.
+   clear p0 p1 H17 H16 H18 H19 sh'' H15.
    destruct H20.
    forward.
    forward.
@@ -529,10 +639,10 @@ entailer!!.
    rewrite upd_Znth_app1 by list_solve.
    change (upd_Znth 0 _ ?a) with ([a]).
    rewrite app_assoc.
-   replace [Vint (Int.zero_ext _ _)] with (map Vbyte (sublist i (i+1) (bytes_of_string x))).
+   replace [Vint (Int.zero_ext _ _)] with (map Vubyte (sublist i (i+1) (bytes_of_string x))).
  2:{ rewrite sublist_one; try lia. 
      clear - H17 H18 H10 H14. subst s.
-     unfold Vbyte, bytes_of_string.
+     unfold Vubyte, bytes_of_string.
      simpl. f_equal. f_equal.
      pose proof substring_sublist i (len-i) x ltac:(lia) ltac:(lia).
      rewrite H14 in H; clear H14.
@@ -548,11 +658,15 @@ entailer!!.
        2:{ apply Byte.to_of_N. symmetry; apply Ascii.byte_of_ascii_via_N. }
      clear.
      forget (Ascii.byte_of_ascii ch) as b.
-     admit. (* WRONG!  signed bytes versus unsigned bytes *)
+     pose proof (Byte.to_N_bounded b).
+     rewrite Byte.unsigned_repr by rep_lia.
+     rewrite zero_ext_inrange; auto.
+     rewrite Int.unsigned_repr by rep_lia.
+     simpl. lia.
     }
    rewrite <- map_app. rewrite sublist_rejoin by lia.
    forward_call (gv,g',v,(ch,r),roots',sh,ti,outlier,t_info3).
-   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
     sep_apply (is_pointer_or_integer_rep_type_val g' ch p0). entailer!!.
@@ -609,16 +723,15 @@ entailer!!.
  forward_for_simple_bound (pad_length - 1) 
   (EX i, 
    PROP ( )
-   LOCAL (
+   LOCAL (temp _argv new0;
    temp _ptr (field_address0 (tarray tuchar (len + pad_length)) [ArraySubsc len] new1); 
-   temp _argv new0; temp specs_general._nalloc (Vlong (Int64.repr n));
    lvar specs_general.___FRAME__ (Tstruct specs_general._stack_frame noattr) v___FRAME__;
    lvar specs_general.___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__;
-   temp specs_general._tinfo ti; gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
+   gvars gv; temp _pad_length (Vlong (Int64.repr pad_length)))
    SEP (FRZL FR1; full_gc g' t_info3 roots' outlier ti sh gv;
-   data_at sh (tarray tuchar (len + pad_length)) 
-     (app (map Vbyte (bytes_of_string x))
-       (app (Zrepeat (Vbyte Integers.Byte.zero) i) (Zrepeat Vundef (pad_length-i)))) new1)).
+   data_at sh' (tarray tuchar (len + pad_length)) 
+     (app (map Vubyte (bytes_of_string x))
+       (app (Zrepeat (Vubyte Integers.Byte.zero) i) (Zrepeat Vundef (pad_length-i)))) new1)).
  -- entailer!!.
     apply derives_refl'. f_equal.
  --
@@ -674,14 +787,7 @@ entailer!!.
  unfold full_gc.
  unfold before_gc_thread_info_rep.
  Intros.
- forward.
  change (Tpointer _ _) with int_or_ptr_type.
- replace (force_val (sem_add_ptr_long int_or_ptr_type new0 (Vlong (Int64.repr n))))
-  with  (offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info3)))
-        (space_start (heap_head (ti_heap t_info3)))). 2:{
-  simpl.
-  admit.
-  }
  sep_apply (before_gc_thread_info_rep_fold sh t_info3 ti).
  sep_apply (full_gc_fold gv g' t_info3 roots' outlier ti sh).
 
@@ -690,33 +796,28 @@ entailer!!.
  unfold ti_heap.
  assert (ING: exists g3: graph, exists x': rep_type,
   full_gc g' t_info3 roots' outlier ti sh gv  
- * data_at sh (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + 252))] new0
- * field_at sh (tarray tuchar (len + pad_length)) []
+ * data_at sh' (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + 252))] new0
+ * field_at sh' (tarray tuchar (len + pad_length)) []
       (upd_Znth (len + (pad_length - 1))
-         (map Vbyte (bytes_of_string x) ++
-          Zrepeat (Vbyte Byte.zero) (pad_length - 1) ++
+         (map Vubyte (bytes_of_string x) ++
+          Zrepeat (Vubyte Byte.zero) (pad_length - 1) ++
           Zrepeat Vundef (pad_length - (pad_length - 1)))%list
          (Vint (Int.zero_ext 8 (Int.repr (pad_length - 1))))) new1
  |-- full_gc g3 t_info3 roots' outlier ti sh gv 
    && !! (is_in_graph g3 (model_fn Bytestring_Proofs.pack_desc (x; xs)) x'
           /\ gc_graph_iso g roots g3 roots'
-          /\ rep_type_val g3 x' =
-              offset_val (WORD_SIZE * used_space (heap_head (ti_heap t_info3)) + sizeof int_or_ptr_type)
-                  (space_start (heap_head (ti_heap t_info3))))).
+          /\ rep_type_val g3 x' = new1)).
    admit.
  destruct ING as [g3 [x' ING] ].
  sep_apply ING; clear ING.
- match goal with |- context [allocate_in_nursery ?N] => change N with n end.
- change (heap_head _) with (heap_head (ti_heap t_info3)).
  Exists x' g3 roots' t_info3.
- entailer!!.
  unfold frame_rep_.
  limited_change_compspecs CompSpecs.
- cancel.
-+ clear - LEN PAD.
-  revert LEN; really_simplify Int64.max_unsigned; intros. simpl in LEN. lia.
-+ rep_lia.
-
+ entailer!!.
+ rewrite H14.
+ unfold field_address0.
+ rewrite if_true by auto with field_compatible.
+ reflexivity.
 all: fail.
  
 Abort.

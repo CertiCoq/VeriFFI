@@ -75,7 +75,70 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
 RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
+Lemma allocate_in_nursery_pf {n: Z} {nursery : space}
+   (H: 0 <= n <= nursery.(total_space)-nursery.(used_space)) :
+  0 <= nursery.(used_space)+n <= nursery.(total_space).
+Proof.
+intros.
+pose proof space_order nursery.
+lia.
+Qed.
 
+Definition allocate_in_nursery (n: Z) (nursery : space)
+   (H: 0 <= n <= nursery.(total_space)-nursery.(used_space)) :=
+  {| space_start := nursery.(space_start);
+     used_space := nursery.(used_space) + n;
+     total_space := nursery.(total_space);
+     space_sh := nursery.(space_sh);
+     space_order := allocate_in_nursery_pf H;
+     space_upper_bound := nursery.(space_upper_bound) |}.
+
+Lemma allocate_in_full_gc_aux:
+  forall n nursery H h,
+Zlength (allocate_in_nursery n nursery H :: tl (spaces h)) = MAX_SPACES.
+Proof.
+intros.
+pose proof spaces_size h.
+destruct (spaces h).
+inversion H0.
+simpl.
+rewrite Zlength_cons in *.
+auto.
+Qed.
+
+Definition tinfo_bump_alloc (enough: {tn : GCGraph.thread_info * Z | 0 <= snd tn <= headroom (fst tn)})
+  : GCGraph.thread_info :=
+  let tinfo := (fst (proj1_sig enough)) in
+  let nursery := heap_head (ti_heap tinfo) in
+   {| ti_heap_p := tinfo.(ti_heap_p);
+      ti_heap := {| spaces := allocate_in_nursery (snd (proj1_sig enough)) nursery (proj2_sig enough) ::
+                                      tl (spaces (ti_heap tinfo));
+                                  spaces_size := allocate_in_full_gc_aux _ nursery (proj2_sig enough) _ |};
+      ti_args := tinfo.(ti_args);
+      arg_size := tinfo.(arg_size);
+      ti_frames := tinfo.(ti_frames);
+      ti_nalloc := tinfo.(ti_nalloc) |}.
+
+Definition alloc_at (tinfo: GCGraph.thread_info) : val :=
+  let nursery := heap_head (ti_heap tinfo) in
+   offset_val (WORD_SIZE * (used_space nursery)) (space_start nursery).
+
+Definition bump_allocptr_spec: ident * funspec :=
+ DECLARE _bump_allocptr
+ WITH gv: globals, g: graph, roots: roots_t, 
+      sh: share, ti: val, outlier: outlier_t, 
+      enough: {tn : GCGraph.thread_info * Z | 0 <= snd tn <= headroom (fst tn)}
+ PRE [ thread_info, size_t ]
+  PROP( writable_share sh)
+  PARAMS (ti; Vptrofs (Ptrofs.repr (snd (proj1_sig enough)))) GLOBALS (gv)
+  SEP (full_gc g (fst (proj1_sig enough)) roots outlier ti sh gv)
+ POST [ tptr int_or_ptr_type ]
+ EX sh': share,
+  PROP( writable_share sh' )
+  RETURN ( alloc_at (fst (proj1_sig enough)))
+  SEP (full_gc g (tinfo_bump_alloc enough) roots outlier ti sh gv
+     * @data_at_ env_graph_gc.CompSpecs sh'
+     (tarray int_or_ptr_type (snd (proj1_sig enough))) (alloc_at (fst (proj1_sig enough)))).
 
 Definition args_spec_String : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
@@ -143,6 +206,7 @@ Definition append_spec : ident * funspec :=
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ ascii_to_char_spec;
                       tag_spec_string;
+                      bump_allocptr_spec;
                       args_make_Coq_Init_Datatypes_String_String_spec;
                       make_Coq_Strings_String_string_EmptyString_spec;
                       alloc_make_Coq_Strings_String_string_String_spec;

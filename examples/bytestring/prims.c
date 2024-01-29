@@ -239,6 +239,12 @@ value append(struct thread_info *tinfo, value save0, value save1)
   ENDFRAME
 }
 
+value *bump_allocptr(struct thread_info *tinfo, size_t n) {
+    value *new = tinfo->alloc;
+    tinfo->alloc = new+n;
+    return new;
+}
+
 value pack(struct thread_info *tinfo, value save0)
   /* args must be exactly these names for convenience of GC_SAVE1 */
 {
@@ -254,7 +260,7 @@ value pack(struct thread_info *tinfo, value save0)
   nalloc = (len + pad_length) / sizeof(value) + 1ULL;
   GC_SAVE1 /* no semicolon */
 
-  value *argv = tinfo->alloc;
+    value *argv = bump_allocptr(tinfo,nalloc);
   argv[0LLU] = (value)(((nalloc - 1) << 10) + 252LLU); // string tag
 
   unsigned char *ptr = (unsigned char *) (argv + 1LLU);
@@ -270,7 +276,6 @@ value pack(struct thread_info *tinfo, value save0)
   for (i=0; i<pad_length-1; i++) ptr[i]=0;
   ptr[i]=i;
 
-  tinfo->alloc = argv + nalloc;
   return (value) (argv + 1LLU);
   ENDFRAME
 }
