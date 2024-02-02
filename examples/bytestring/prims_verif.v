@@ -22,14 +22,21 @@ sep_apply modus_ponens_wand.
 cancel.
 Qed.
 
+Definition MAX_WORDS_IN_GRAPH := MAX_SPACE_SIZE * 2.  (* because each space is twice as big as previous,
+       sum of geometric series *)
+
 Lemma representable_string_max_length:
  (* PROVABLE! but not easy.  Rely on the fact that every node in the graph
    must exist in some generation, and the total of all generation sizes is  
    bounded. *)
   forall (s: string) (g: graph) (p: rep_type),
    is_in_graph g s p ->
-   graph_rep g |-- !! (Z.of_nat (String.length s) < Ptrofs.max_unsigned/4).
-Admitted.
+   graph_rep g |-- !! (Z.of_nat (String.length s) < MAX_WORDS_IN_GRAPH/3).
+    (* because each char in string is represented by a "String" constructor of 3 words
+       (including header).  You might (erroneously) think that each one also needs
+       an "Ascii" constructor of 9 words (including header), but in fact they can all
+       share the same character *)
+Admitted. 
 
 (* copied from examples/uint63nat/Verif_prog_general.v *)
 Lemma spaces_g0 g t_info roots outlier :
@@ -261,7 +268,41 @@ apply IHr.
 congruence.
 Qed.
 
-Definition bytes_to_words (bl: list byte) : list Int64.int. Admitted.
+
+Fixpoint bytes_to_words (bl: list byte) : list Int64.int :=
+ match bl with
+ | b0 :: b1 :: b2 :: b3 :: b4 ::b5 :: b6 :: b7 :: b' =>
+     Int64.repr (fold_left (fun i b => i*256+Byte.unsigned b) 
+                  ((if Archi.big_endian then (@id (list byte)) else (@rev byte))
+                  [b0;b1;b2;b3;b4;b5;b6;b7]) 0) 
+     :: bytes_to_words b'
+ | _ => nil
+ end.
+
+Local Lemma bytes_to_words_length': forall n: nat,
+  forall bl, Zlength bl < Z.of_nat n ->
+   Zlength (bytes_to_words bl) = Zlength bl / 8.
+Proof.
+ induction n; intros. rep_lia.
+ do 8 (destruct bl as [ | ?b bl]; [reflexivity | ] ).
+ unfold bytes_to_words. fold (bytes_to_words bl).
+ set (j := Int64.repr _). clearbody j.
+ rewrite !Zlength_cons.
+ unfold Z.succ.
+ rewrite <- !Z.add_assoc.
+ change (1 + _) with (1*8).
+ rewrite Z.div_add by lia.
+ rewrite <- IHn. auto.
+ rewrite !Zlength_cons in H. lia.
+Qed.
+ 
+Lemma bytes_to_words_length: forall bl, 
+   Zlength (bytes_to_words bl) = Zlength bl / 8.
+Proof.
+ intros.
+ apply (bytes_to_words_length' (S (Z.to_nat (Zlength bl)))).
+ lia.
+Qed.
 
 Lemma body_pack:
   semax_body Vprog Gprog f_pack pack_spec.
@@ -343,7 +384,9 @@ Proof.
    forward.
    deadvars!.
   set (len := Z.of_nat (String.length x)) in *.
-  assert (LEN: 0 <= len < Int64.max_unsigned / 4) by rep_lia. clear H2.
+  assert (LEN: 0 <= len < Int64.max_unsigned / 4) by 
+     (revert H2; really_simplify (MAX_WORDS_IN_GRAPH / 3);
+        really_simplify (Int64.max_unsigned / 4);  lia). clear H2.
   set (pad_length := 8 - len mod 8).
   assert (PAD: 0 < pad_length <= 8) by (clear; pose proof (Z.mod_pos_bound len 8); lia).
   set (n := (len + pad_length) / 8 + 1).
@@ -429,34 +472,6 @@ entailer!!.
  pose (pp := Build_alloc_prepackage g' t_info' n HEADROOM).
  forward_call (gv,roots',sh,ti,outlier,pp).
  simpl. cancel.
-(*
-Record alloc_prepackage : Type := Build_alloc_prepackage
-  { AP_g : graph;
-    AP_ti : GCGraph.thread_info;
-    AP_n : Z;
-    AP_enough : 0 <= AP_n <= headroom AP_ti }.
-Print raw_field.
- pose (rawf := Zrepeat (Some (inl (0(*wrong*)))) (len + pad_length) : list raw_field).
- assert (RAWF_LEN: 0 < Zlength rawf < two_p (WORD_SIZE * 8 - 10)). {
- unfold rawf. simpl. rewrite Zlength_Zrepeat by lia. really_simplify (two_power_pos 54).
-   revert LEN; really_simplify (Int64.max_unsigned/4). intro. clear - LEN PAD.
-   admit. (* NOT TRUE! Can't have a bytestring that long!  *)
- }
- assert (JJ: NO_SCAN_TAG <= 252 -> ~In None rawf). {
-   clear - LEN PAD. subst rawf. intros ? ?. list_solve.
- }
-  pose (rvb := Build_raw_vertex_block false (O,O(*wrong *)) rawf 0 252 ltac:(lia) ltac:(lia)
-                RAWF_LEN JJ).
- pose (ap := Build_alloc_package rvb nil 8 9).
-
-Record alloc_package (pp: alloc_prepackage) : Type := {
-   AP_rvb: raw_vertex_block;
-   AP_fields: list (EType * (VType * VType));
-   AP_len: AP_n pp = (1 + Zlength (raw_fields AP_rvb))%Z;
-   AP_compat: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) O) AP_fields;
-   AP_newg := add_node (AP_g pp) O AP_rvb AP_fields
-}.
-*)
  Intros sh'. rename H8 into Hsh'.
  set (t_info3 := bump_alloc pp).
  change (ti_fp t_info') with (ti_fp t_info3).
@@ -793,14 +808,21 @@ Record alloc_package (pp: alloc_prepackage) : Type := {
  rewrite upd_Znth0.
  rewrite Int64.unsigned_repr by rep_lia.
  rewrite <- (map_Zrepeat Vubyte).
- rewrite zero_ext_inrange by admit.
+ rewrite zero_ext_inrange
+   by (rewrite Int.unsigned_repr by rep_lia; really_simplify (two_p 8); lia).
  replace (Vint (Int.repr (pad_length-1))) with (Vubyte (Byte.repr (pad_length-1)))
    by (unfold Vubyte; rewrite Byte.unsigned_repr by rep_lia; auto).
  change [Vubyte ?x] with (map Vubyte [x]).
  rewrite <- !map_app.
  set (bytes := (_ ++ _ ++ _)%list).
 
- assert (bytes_len: Zlength (bytes_to_words bytes) = n-1) by admit.
+ assert (bytes_len: Zlength (bytes_to_words bytes) = n-1). {
+    rewrite bytes_to_words_length. unfold n.
+    unfold bytes. rewrite !Zlength_app. 
+   rewrite Zlength_bytes_of_string.
+   rewrite <- Z.add_sub_assoc, Z.sub_diag, Z.add_0_r.
+   f_equal. autorewrite with sublist. reflexivity.
+ }
  thaw FR1.
  unfold full_gc.
  unfold before_gc_thread_info_rep.
@@ -809,7 +831,28 @@ Record alloc_package (pp: alloc_prepackage) : Type := {
  pose (rawf := map (fun i => Some (inl (Int64.unsigned i))) (bytes_to_words bytes) : list raw_field).
  assert (RAWF_LEN: 0 < Zlength rawf < two_p (WORD_SIZE * 8 - 10)). {
  unfold rawf. rewrite Zlength_map, bytes_len.
- admit.  (* This might be provable based on max generation sizes *)
+ clear - LEN PAD. subst n.
+ really_simplify (two_p (WORD_SIZE * 8 - 10)).
+ rewrite <- Z.add_sub_assoc, Z.sub_diag, Z.add_0_r.
+ subst pad_length.
+Search Z.div Z.modulo.
+ pose proof (Z_div_mod_eq_full len 8).
+ replace (len + (8 - len mod 8)) with (8 * (len/8) + (8*1)) by lia.
+ rewrite <- Z.mul_add_distr_l.
+ rewrite Z.mul_comm, Z.div_mul by lia.
+ clearbody len. clear - LEN.
+ revert LEN; really_simplify (Int64.max_unsigned / 4); intro.
+ Search (_ <= _ / _).
+ assert (0 <= len / 8) by (apply Z_div_nonneg_nonneg; lia).
+ split. lia.
+ change 18014398509481984 with (18014398509481982 * 8 / 8 + 2).
+ assert (len / 8 <= 18014398509481982 * 8 / 8); [ | lia].
+ apply Z.div_le_mono; try lia.
+ simpl Z.mul. 
+ admit.  (* FALSE!  
+    The problem here is that there are not enough bits in the header reserved
+   for the length, and it's conceivably possible to make a Coq.String.string
+   that's longer than this length.  *)
  }
  assert (JJ: NO_SCAN_TAG <= 252 -> ~In None rawf). {
    clear - H7. subst rawf. intros ? ?. list_solve.
