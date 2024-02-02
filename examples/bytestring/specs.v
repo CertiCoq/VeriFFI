@@ -42,7 +42,12 @@ end.
 Inductive string_has_tag_prop : string -> ctor_desc -> Prop := 
 | tagEmpty : string_has_tag_prop EmptyString (@desc _ EmptyString _)
 | tagString c r : string_has_tag_prop (String c r) (@desc _ String _).
-     
+    
+Remark string_desc_has_tag_prop: forall x, string_has_tag_prop x (string_get_desc x).
+Proof.
+destruct x; constructor.
+Qed.
+ 
 Definition tag_spec_string : ident * funspec := 
 DECLARE _get_Coq_Strings_String_string_tag
 WITH gv : globals, g : graph, p : rep_type,
@@ -57,23 +62,41 @@ PROP (
 (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ tuint ]
 (* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
-PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
-              a. Tag function relating to x.
-              b. x = ctor_real c xs (* Doesn't type as this. *)
-
-          TODO: Discuss - something around this should already exist for 
-          generating general in_graph functions, and we want things to match.   
-      *)
-      (* let c := nat_get_desc x in 
-      nat_has_tag_prop x c; *)
-      (* let c := nat_get_desc x in 
-      let r := result (ctor_reific c) xs in
-      @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g (ctor_real c xs) p   *)
+PROP ( (* don't need this, it's a tautology, see string_desc_has_tag_prop above 
       let c := string_get_desc x in 
-      string_has_tag_prop x c (* Not 100% sure this is how we want it*)
+      string_has_tag_prop x c 
+      *)
     )
 RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
+
+Definition tag_spec_string2 : ident * funspec := 
+DECLARE _get_Coq_Strings_String_string_tag
+WITH g : graph, p : rep_type, x : string
+PRE  [int_or_ptr_type]
+  PROP (@is_in_graph string _ g x p )
+  PARAMS (rep_type_val g p)
+  SEP (graph_rep g)
+POST [ tuint ]
+  PROP (string_has_tag_prop x (string_get_desc x))
+  RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+SEP (graph_rep g).
+
+Record alloc_prepackage : Type := {
+   AP_g: graph;
+   AP_ti: GCGraph.thread_info;
+   AP_n: Z;
+   AP_enough: 0 <= AP_n <= headroom AP_ti
+ }.
+   
+
+Record alloc_package (pp: alloc_prepackage) : Type := {
+   AP_rvb: raw_vertex_block;
+   AP_fields: list (EType * (VType * VType));
+   AP_len: AP_n pp = (1 + Zlength (raw_fields AP_rvb))%Z;
+   AP_compat: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) O) AP_fields;
+   AP_newg := add_node (AP_g pp) O AP_rvb AP_fields
+}.
 
 Lemma allocate_in_nursery_pf {n: Z} {nursery : space}
    (H: 0 <= n <= nursery.(total_space)-nursery.(used_space)) :
@@ -106,14 +129,13 @@ rewrite Zlength_cons in *.
 auto.
 Qed.
 
-Definition tinfo_bump_alloc (enough: {tn : GCGraph.thread_info * Z | 0 <= snd tn <= headroom (fst tn)})
-  : GCGraph.thread_info :=
-  let tinfo := (fst (proj1_sig enough)) in
+Definition bump_alloc (pp: alloc_prepackage) : GCGraph.thread_info :=
+  let tinfo := AP_ti pp in
   let nursery := heap_head (ti_heap tinfo) in
    {| ti_heap_p := tinfo.(ti_heap_p);
-      ti_heap := {| spaces := allocate_in_nursery (snd (proj1_sig enough)) nursery (proj2_sig enough) ::
+      ti_heap := {| spaces := allocate_in_nursery (AP_n pp) nursery (AP_enough pp) ::
                                       tl (spaces (ti_heap tinfo));
-                                  spaces_size := allocate_in_full_gc_aux _ nursery (proj2_sig enough) _ |};
+                                  spaces_size := allocate_in_full_gc_aux _ nursery (AP_enough pp) _ |};
       ti_args := tinfo.(ti_args);
       arg_size := tinfo.(arg_size);
       ti_frames := tinfo.(ti_frames);
@@ -125,20 +147,26 @@ Definition alloc_at (tinfo: GCGraph.thread_info) : val :=
 
 Definition bump_allocptr_spec: ident * funspec :=
  DECLARE _bump_allocptr
- WITH gv: globals, g: graph, roots: roots_t, 
-      sh: share, ti: val, outlier: outlier_t, 
-      enough: {tn : GCGraph.thread_info * Z | 0 <= snd tn <= headroom (fst tn)}
+ WITH gv: globals, roots: roots_t, 
+      sh: share, ti: val, outlier: outlier_t,
+      pp: alloc_prepackage
  PRE [ thread_info, size_t ]
-  PROP( writable_share sh)
-  PARAMS (ti; Vptrofs (Ptrofs.repr (snd (proj1_sig enough)))) GLOBALS (gv)
-  SEP (full_gc g (fst (proj1_sig enough)) roots outlier ti sh gv)
+  PROP( writable_share sh )
+  PARAMS (ti; Vptrofs (Ptrofs.repr (AP_n pp))) GLOBALS (gv)
+  SEP (full_gc (AP_g pp) (AP_ti pp) roots outlier ti sh gv)
  POST [ tptr int_or_ptr_type ]
  EX sh': share,
   PROP( writable_share sh' )
-  RETURN ( alloc_at (fst (proj1_sig enough)))
-  SEP (full_gc g (tinfo_bump_alloc enough) roots outlier ti sh gv
-     * @data_at_ env_graph_gc.CompSpecs sh'
-     (tarray int_or_ptr_type (snd (proj1_sig enough))) (alloc_at (fst (proj1_sig enough)))).
+  RETURN ( alloc_at (AP_ti pp))
+  SEP (graph_rep (AP_g pp);
+       @data_at_ env_graph_gc.CompSpecs sh'
+        (tarray int_or_ptr_type (AP_n pp)) (alloc_at (AP_ti pp));
+       ALL pk: alloc_package pp,
+       (graph_rep (AP_g pp)*
+        vertex_at (nth_sh (AP_g pp) O) (vertex_address (AP_newg _ pk) (new_copied_v (AP_g pp) O)) 
+              (header_new (AP_rvb _ pk)) 
+              (fields_new (AP_newg _ pk) (AP_rvb _ pk) (new_copied_v (AP_g pp) O))) -*
+       full_gc (AP_newg _ pk) (bump_alloc pp) roots outlier ti sh gv ).
 
 Definition args_spec_String : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
@@ -161,24 +189,38 @@ Definition args_spec_String : funspec :=
   SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
       data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh gv). 
   
+Definition args_spec_String2 : funspec := 
+  WITH g : graph, p : rep_type, chs: ascii*string
+  PRE [int_or_ptr_type]
+   PROP (is_in_graph g (String (fst chs) (snd chs)) p)
+   PARAMS (rep_type_val g p)
+   SEP (graph_rep g)
+  POST [ tptr int_or_ptr_type ]
+  EX  (p0 : rep_type) (p1: rep_type) (sh' : share),
+  PROP (  writable_share sh';
+          is_in_graph g (fst chs) p0; is_in_graph g (snd chs) p1
+      )
+  RETURN  ( rep_type_val g p ) 
+  SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
+      data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p) -* graph_rep g). 
+  
 
 Definition ascii_to_char_spec: ident * funspec :=
  DECLARE _ascii_to_char
- WITH gv: globals, g: graph, p: rep_type, ch: ascii, roots: roots_t, 
-      sh: share, ti: val, outlier: outlier_t, t_info: GCGraph.thread_info
+ WITH g: graph, p: rep_type, ch: ascii
  PRE [ int_or_ptr_type ]
-   PROP (readable_share sh; is_in_graph g ch p)
-   PARAMS (rep_type_val g p) GLOBALS (gv)
-   SEP (full_gc g t_info roots outlier ti sh gv)
+   PROP (is_in_graph g ch p)
+   PARAMS (rep_type_val g p)
+   SEP (graph_rep g)
  POST [ tuchar ]
    PROP()
    RETURN ( Vint (Int.repr (Z.of_N (N_of_ascii ch))) )
-   SEP (full_gc g t_info roots outlier ti sh gv).
+   SEP (graph_rep g).
 
 
 Definition args_make_Coq_Init_Datatypes_String_String_spec : ident * funspec :=
 DECLARE _get_args
-        (args_spec_String).
+        (args_spec_String2).
 
 Definition make_Coq_Strings_String_string_EmptyString_spec : ident * funspec :=
     DECLARE _make_Coq_Strings_String_string_EmptyString
@@ -205,7 +247,7 @@ Definition append_spec : ident * funspec :=
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ ascii_to_char_spec;
-                      tag_spec_string;
+                      tag_spec_string2;
                       bump_allocptr_spec;
                       args_make_Coq_Init_Datatypes_String_String_spec;
                       make_Coq_Strings_String_string_EmptyString_spec;
