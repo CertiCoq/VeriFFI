@@ -22,8 +22,35 @@ sep_apply modus_ponens_wand.
 cancel.
 Qed.
 
+
+Definition MAX_SPACE_SIZE := two_p 57.  (* At the moment, this is smaller than
+    the MAX_SPACE_SIZE defined in the runtime system, which is 2^58.  2^57 is the largest we can
+    tolerate for the correctness proof of the bytestring "pack" operation, because
+    an OCaml object header has only 54 bits to record the length (in words) of the
+    record.  That means, 2^54 words = 2^57 bytes (with 8 bytes per word).  The
+    longest _unpacked_ string one can tolerate, essentially a list of characters, would
+    be (with 2 words = 16 bytes per character) 2^57 * 2*8 = 2^61 bytes.
+
+    Thus, the maximum heap we can tolerate (if we want to guarantee packing bytestrings)
+    is 2^58 words.  
+
+    Since the maximum heap size is twice the MAX_SPACE_SIZE, as it is the sum of
+    a powers-of-two geometric series, that means the max space size we can tolerate
+    is 2^57 words.
+
+    If we modify the runtime system to lower MAX_SPACE_SIZE to 2^57, then we can't
+    run CertiCoq to exploit memories larger than 2 exabytes.  This limitation seems
+    tolerable.  *)
+
 Definition MAX_WORDS_IN_GRAPH := MAX_SPACE_SIZE * 2.  (* because each space is twice as big as previous,
        sum of geometric series *)
+
+Definition MAX_LEN := MAX_WORDS_IN_GRAPH/3.
+    (* because each char in string is represented by a "String" constructor of 3 words
+       (including header).  You might (erroneously) think that each one also needs
+       an "Ascii" constructor of 9 words (including header), but in fact they can all
+       share the same character *)
+
 
 Lemma representable_string_max_length:
  (* PROVABLE! but not easy.  Rely on the fact that every node in the graph
@@ -31,12 +58,8 @@ Lemma representable_string_max_length:
    bounded. *)
   forall (s: string) (g: graph) (p: rep_type),
    is_in_graph g s p ->
-   graph_rep g |-- !! (Z.of_nat (String.length s) < MAX_WORDS_IN_GRAPH/3).
-    (* because each char in string is represented by a "String" constructor of 3 words
-       (including header).  You might (erroneously) think that each one also needs
-       an "Ascii" constructor of 9 words (including header), but in fact they can all
-       share the same character *)
-Admitted. 
+   graph_rep g |-- !! (Z.of_nat (String.length s) < MAX_LEN).
+Admitted.
 
 (* copied from examples/uint63nat/Verif_prog_general.v *)
 Lemma spaces_g0 g t_info roots outlier :
@@ -76,11 +99,10 @@ forward.
 forward.
 forward.
 set (tinfo := AP_ti pp) in *.
-Exists (space_sh (heap_head (ti_heap tinfo))).
 unfold full_gc, before_gc_thread_info_rep.
 limited_change_compspecs CompSpecs.
 simpl ti_args. simpl ti_heap_p. simpl ti_frames.
-rewrite prop_true_andp by (split; auto).
+(*rewrite prop_true_andp by (simpl; split; auto).*)
 set (hh := heap_head (ti_heap tinfo)).
 set (hh' := heap_head _).
 simpl.
@@ -131,6 +153,15 @@ change (@data_at_ env_graph_gc.CompSpecs (space_sh nursery) (tarray int_or_ptr_t
       (offset_val (WORD_SIZE * used_space nursery) (space_start nursery)))
  with (@data_at_ CompSpecs (space_sh nursery) (tarray int_or_ptr_type n)
       (offset_val (WORD_SIZE * used_space nursery) (space_start nursery))).
+assert (Hsh: nth_sh (AP_g pp) 0 = space_sh nursery). {
+  destruct H as [_ [? _  ] ].
+  destruct H as [? _ ].
+  red in H. 
+  rewrite H3 in H.
+  destruct H2 as [_ [? _  ] ].
+  unfold nth_sh. rewrite H2. rewrite H5. auto.
+ }
+rewrite Hsh.
 pull_left (data_at_ (space_sh nursery) (tarray int_or_ptr_type n)
       (offset_val (WORD_SIZE * used_space nursery) (space_start nursery))).
 rewrite !sepcon_assoc.
@@ -174,6 +205,7 @@ unfold AP_newg.
 destruct H.
 destruct H as [? [? [? ? ] ] ].
 destruct H5.
+rewrite <- Hsh.
 rewrite add_node_spatial; simpl; auto.
 apply graph_has_gen_O.
 admit.
@@ -304,6 +336,46 @@ Proof.
  lia.
 Qed.
 
+Lemma data_at_int_or_ptr_int:
+ forall {CS: compspecs} sh i p,
+  data_at sh int_or_ptr_type (Vptrofs i) p
+  = data_at sh size_t (Vptrofs i) p.
+Proof.
+ intros.
+ unfold data_at, field_at.
+ simpl. f_equal.
+ f_equal.
+ unfold field_compatible.
+ f_equal.
+ f_equal.
+ f_equal.
+ f_equal.
+ unfold align_compatible.
+ destruct p; auto.
+ apply prop_ext; split; intro;
+  eapply align_compatible_rec_by_value_inv in H;
+   try reflexivity;
+  try (eapply align_compatible_rec_by_value; eauto).
+  reflexivity.
+  reflexivity.
+Qed.
+Lemma bytestring_contents_lemma1:
+  forall g g' bytes, map (field2val g) 
+       (make_fields' (map (fun i : int64 => Some (inl (Int64.unsigned i))) (bytes_to_words bytes))
+             g' 0) = 
+    map Vlong (bytes_to_words bytes).
+Admitted.
+Lemma bytestring_array_conversion:
+ forall {CS: compspecs} sh (x: list byte) pad_length bytes p,
+  field_compatible (tarray int_or_ptr_type ((Zlength x + pad_length) / 8)) [] p ->
+  pad_length = 8 - (Zlength x) mod 8 ->
+  Zlength bytes = Zlength x + pad_length -> 
+ data_at sh (tarray tuchar (Zlength x + pad_length)) (map Vubyte bytes) p
+ |-- data_at sh (tarray int_or_ptr_type ((Zlength x + pad_length) / 8))
+        (map Vlong (bytes_to_words bytes)) p.
+Admitted.
+
+
 Lemma body_pack:
   semax_body Vprog Gprog f_pack pack_spec.
 Proof.
@@ -384,9 +456,8 @@ Proof.
    forward.
    deadvars!.
   set (len := Z.of_nat (String.length x)) in *.
-  assert (LEN: 0 <= len < Int64.max_unsigned / 4) by 
-     (revert H2; really_simplify (MAX_WORDS_IN_GRAPH / 3);
-        really_simplify (Int64.max_unsigned / 4);  lia). clear H2.
+  assert (LEN: 0 <= len < MAX_LEN) by (clear - H2; lia). clear H2.
+  revert LEN; really_simplify MAX_LEN; intro.
   set (pad_length := 8 - len mod 8).
   assert (PAD: 0 < pad_length <= 8) by (clear; pose proof (Z.mod_pos_bound len 8); lia).
   set (n := (len + pad_length) / 8 + 1).
@@ -472,7 +543,14 @@ entailer!!.
  pose (pp := Build_alloc_prepackage g' t_info' n HEADROOM).
  forward_call (gv,roots',sh,ti,outlier,pp).
  simpl. cancel.
- Intros sh'. rename H8 into Hsh'.
+ simpl.  
+ set (sh' := nth_sh g' 0).
+ assert (Hsh' : writable_share sh'). {
+   subst sh'.
+   clear.
+   unfold nth_sh. unfold generation_sh.
+   destruct (nth_gen g' 0); auto.
+ }
  set (t_info3 := bump_alloc pp).
  change (ti_fp t_info') with (ti_fp t_info3).
  
@@ -499,7 +577,9 @@ entailer!!.
    really_simplify Ptrofs.modulus.
    set (tot := total_space _) in *. set (use := used_space _) in *.
    clearbody tot. clearbody use. clearbody n. clear - H7 H9 H10 HEADROOM.
-   split; try lia.
+   revert H9.
+   really_simplify GCGraph.MAX_SPACE_SIZE.
+   split; try lia.   
  }
  sep_apply memory_block_data_at__tarray_tuchar.
  simpl. rewrite Z.max_r by lia. auto. 
@@ -543,7 +623,7 @@ entailer!!.
  simpl AP_ti.
  fold new0. fold new1.
  freeze FR1 := - (data_at_ sh' (tarray tuchar (len + pad_length)) new1) 
-    (graph_rep (AP_g pp)).
+    (graph_rep g').
  assert (FC1: field_compatible (tarray tuchar (len + pad_length)) nil new1). {   
    destruct new0; generalize FC; intros [HH _]; try contradiction HH.
    subst new1.
@@ -599,7 +679,7 @@ entailer!!.
    rewrite arr_field_address0; try lia; auto.
    destruct FC1 as [HH _]. simpl. apply isptr_offset_val_zero; auto. 
  --
-   simpl app. apply derives_refl.
+   simpl. cancel.
 * 
   Intros i v.
   set (s := substring (Z.to_nat i) (Z.to_nat (len-i)) x) in *.
@@ -830,29 +910,23 @@ entailer!!.
  change (Tpointer _ _) with int_or_ptr_type.
  pose (rawf := map (fun i => Some (inl (Int64.unsigned i))) (bytes_to_words bytes) : list raw_field).
  assert (RAWF_LEN: 0 < Zlength rawf < two_p (WORD_SIZE * 8 - 10)). {
- unfold rawf. rewrite Zlength_map, bytes_len.
- clear - LEN PAD. subst n.
- really_simplify (two_p (WORD_SIZE * 8 - 10)).
- rewrite <- Z.add_sub_assoc, Z.sub_diag, Z.add_0_r.
- subst pad_length.
-Search Z.div Z.modulo.
- pose proof (Z_div_mod_eq_full len 8).
- replace (len + (8 - len mod 8)) with (8 * (len/8) + (8*1)) by lia.
- rewrite <- Z.mul_add_distr_l.
- rewrite Z.mul_comm, Z.div_mul by lia.
- clearbody len. clear - LEN.
- revert LEN; really_simplify (Int64.max_unsigned / 4); intro.
- Search (_ <= _ / _).
- assert (0 <= len / 8) by (apply Z_div_nonneg_nonneg; lia).
- split. lia.
- change 18014398509481984 with (18014398509481982 * 8 / 8 + 2).
- assert (len / 8 <= 18014398509481982 * 8 / 8); [ | lia].
- apply Z.div_le_mono; try lia.
- simpl Z.mul. 
- admit.  (* FALSE!  
-    The problem here is that there are not enough bits in the header reserved
-   for the length, and it's conceivably possible to make a Coq.String.string
-   that's longer than this length.  *)
+   unfold rawf. rewrite Zlength_map, bytes_len.
+   clear - LEN PAD. subst n.
+   really_simplify (two_p (WORD_SIZE * 8 - 10)).
+   rewrite <- Z.add_sub_assoc, Z.sub_diag, Z.add_0_r.
+   subst pad_length.
+   pose proof (Z_div_mod_eq_full len 8).
+   replace (len + (8 - len mod 8)) with (8 * (len/8) + (8*1)) by lia.
+   rewrite <- Z.mul_add_distr_l.
+   rewrite Z.mul_comm, Z.div_mul by lia.
+   clearbody len. clear - LEN.
+   assert (0 <= len / 8) by (apply Z_div_nonneg_nonneg; lia).
+   split. lia.
+   match goal with |- _ < ?A => 
+     change A with ((A-2) * 8 / 8 + 2)%Z;
+     assert (len / 8 <= (A-2)*8/8); [ | lia]
+   end.
+   apply Z.div_le_mono; try lia.
  }
  assert (JJ: NO_SCAN_TAG <= 252 -> ~In None rawf). {
    clear - H7. subst rawf. intros ? ?. list_solve.
@@ -873,16 +947,107 @@ Search Z.div Z.modulo.
               (header_new (AP_rvb pp ap))
               (fields_new (AP_newg pp ap) (AP_rvb pp ap) (new_copied_v (AP_g pp) 0)) -*
         full_gc (AP_newg pp ap) t_info3 roots' outlier ti sh gv). {
-  unfold WAND. apply allp_left with ap. cancel.
+  unfold WAND. apply allp_left with ap. simpl. fold sh'. cancel.
  }
  sep_apply H11. clear WAND H11.
  simpl AP_g.
+ assert (VOFF: vertex_offset g' (new_copied_v g' 0) = used_space (heap_head (ti_heap t_info')) + 1). {
+   clear - H4.
+   destruct H4 as [? [? [? ? ] ] ] .
+   destruct H0 as [? [? [? ? ] ] ].
+   unfold vertex_offset.
+   simpl.
+   destruct H0.
+   clear - H0.
+   unfold nth_gen.
+  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ] ] ].
+  rewrite H1. rewrite H in H0.
+  pose proof (g_gen_not_nil (graph_model.glabel g')).
+  destruct (g_gen (graph_model.glabel g')) eqn:?H; try contradiction.
+ inv H0.
+  destruct H6 as [_ [_ ? ] ].
+  simpl.
+  rewrite H0. f_equal.
+ }
+ assert (SSTART: space_start (heap_head (ti_heap t_info')) = gen_start g' 0). {
+  clear - H4. destruct H4. clear H. destruct H0 as [ [? _]  _].
+  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ] ] ].
+  rewrite H1.
+  unfold gen_start.
+  rewrite if_true by (apply graph_has_gen_O).
+  unfold nth_gen.
+  pose proof (g_gen_not_nil (graph_model.glabel g')).
+  destruct (g_gen (graph_model.glabel g')) eqn:?H; try contradiction.
+  simpl.
+  destruct H.
+  rewrite H3 in *.
+  rewrite H0 in *. 
+  inv H.
+  inv H4.
+  destruct H7. auto.
+ }
  assert (data_at sh' (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + 252))] new0
         * field_at sh' (tarray tuchar (len + pad_length)) []  (map Vubyte bytes) new1
     |-- vertex_at (nth_sh g' 0) (vertex_address (AP_newg pp ap) (new_copied_v g' 0))
               (header_new (AP_rvb pp ap))
-              (fields_new (AP_newg pp ap) (AP_rvb pp ap) (new_copied_v g' 0))).
-  admit.
+              (fields_new (AP_newg pp ap) (AP_rvb pp ap) (new_copied_v g' 0))). {
+   subst ap. simpl. unfold AP_newg. simpl.
+   rewrite add_node_vertex_address_new by apply graph_has_gen_O.
+   unfold vertex_address, header_new, fields_new, add_node, make_fields,
+       update_vlabel, raw_fields; simpl.
+   rewrite if_true by reflexivity. simpl.
+   unfold vertex_at. simpl.
+   apply sepcon_derives.
+   - fold sh'.
+    erewrite data_at_singleton_array_eq by reflexivity.
+    set (i := ((n - 1) * two_power_pos 10 + 252)).
+    replace (252 + 2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * Zlength rawf))))))))))
+     with i
+    by (unfold rawf,i; rewrite Zlength_map, bytes_len;
+        really_simplify (two_power_pos 10); lia).
+    unfold Z2val.
+    replace (Vlong (Int64.repr i)) with (Vptrofs (Ptrofs.repr i))
+     by (rewrite Vptrofs_unfold_true, ptrofs_to_int64_repr by reflexivity; auto).
+    rewrite VOFF, <- SSTART.
+   rewrite data_at_int_or_ptr_int.
+   change size_t with tulong.
+   unfold Z2val.
+   rewrite offset_offset_val.
+    rewrite Z.mul_add_distr_l.
+     rewrite <- Z.add_assoc.
+     change (_*1 + _) with 0.
+     rewrite Z.add_0_r.
+   apply derives_refl.
+ - fold (data_at sh' (tarray tuchar (len + pad_length)) (map Vubyte bytes) new1).
+   fold sh'.
+   rewrite VOFF, <- SSTART.
+   replace (offset_val (WORD_SIZE * (used_space (heap_head (ti_heap t_info')) + 1))
+         (space_start (heap_head (ti_heap t_info')))) with new1. 2:{
+     unfold new1, new0.
+     unfold field_address0; rewrite if_true by auto with field_compatible.
+     unfold alloc_at.
+     simpl. rewrite offset_offset_val.
+     f_equal.
+     rewrite Z.mul_add_distr_l; f_equal.
+   }
+   rewrite Zlength_map, make_fields'_eq_Zlength.
+   unfold rawf at 1.
+   rewrite Zlength_map, bytes_len.
+  unfold n. rewrite Z.add_simpl_r.
+  unfold rawf.
+  rewrite bytestring_contents_lemma1.
+  limited_change_compspecs CompSpecs.
+  replace len with (Zlength (bytes_of_string x))
+    by (rewrite Zlength_bytes_of_string; lia).
+  apply bytestring_array_conversion; rewrite ?Zlength_bytes_of_string; auto.
+  clearbody new0.
+  clear - FC H7. 
+  subst new1. fold len. replace (_ / 8) with (n-1) by lia. clearbody n.
+  rewrite (field_compatible_Tarray_split int_or_ptr_type 1) in FC by lia.
+  destruct FC; auto.
+  unfold bytes. rewrite !Zlength_app, Zlength_bytes_of_string, Zlength_Zrepeat by lia.
+  change (Zlength [_]) with 1. lia.
+ }
  sep_apply H11; clear H11.
  match goal with |- context [SEPx (?a :: _) ] => 
      assert (Hx: graph_rep g' * a |-- graph_rep g' * a) by apply derives_refl;

@@ -155,11 +155,10 @@ Definition bump_allocptr_spec: ident * funspec :=
   PARAMS (ti; Vptrofs (Ptrofs.repr (AP_n pp))) GLOBALS (gv)
   SEP (full_gc (AP_g pp) (AP_ti pp) roots outlier ti sh gv)
  POST [ tptr int_or_ptr_type ]
- EX sh': share,
-  PROP( writable_share sh' )
+  PROP( )
   RETURN ( alloc_at (AP_ti pp))
   SEP (graph_rep (AP_g pp);
-       @data_at_ env_graph_gc.CompSpecs sh'
+       @data_at_ env_graph_gc.CompSpecs (nth_sh (AP_g pp) 0)
         (tarray int_or_ptr_type (AP_n pp)) (alloc_at (AP_ti pp));
        ALL pk: alloc_package pp,
        (graph_rep (AP_g pp)*
