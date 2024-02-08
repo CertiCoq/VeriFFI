@@ -248,13 +248,13 @@ Qed.
 #[export] Hint Rewrite add_node_vertex_address add_node_vertex_address_old add_node_make_header_old : graph_add. 
 
 
-Lemma add_node_field2val_make_fields_old:  forall (g : LGraph) (to : nat) lb es x,
+Lemma add_node_field2val_make_fields_old:  forall (tag: Z) (g : LGraph) (to : nat) lb es x,
     add_node_compatible g (new_copied_v g to) es -> graph_has_v g x -> graph_has_gen g to -> no_dangling_dst g -> 
-    map (field2val (add_node g to lb es))
+    map (field2val tag (add_node g to lb es))
         (make_fields (add_node g to lb es) x) =
-    map (field2val g) (make_fields g x).
+    map (field2val tag g) (make_fields g x).
 Proof.
-  intros g to lb es x E H H0 D. unfold make_fields. pose proof (graph_has_v_not_eq _ to _ H) as H1.
+  intros tag g to lb es x E H H0 D. unfold make_fields. pose proof (graph_has_v_not_eq _ to _ H) as H1.
   rewrite add_node_vlabel_old by assumption. apply map_ext_in.
   intros [[? | ?] | ?] ?; simpl; try reflexivity. 
   rewrite <- add_node_dst; eauto. 
@@ -286,9 +286,12 @@ Lemma add_node_make_fields_vals_old: forall (g : LGraph) (to: nat) lb e x,
     add_node_compatible g (new_copied_v g to) e -> graph_has_v g x -> graph_has_gen g to ->  no_dangling_dst g ->  copied_vertex_existence g ->
     make_fields_vals (add_node g to lb e) x = make_fields_vals g x.
 Proof.
-  intros g to lb e x E H H0 D C. pose proof (add_node_field2val_make_fields_old g to lb e x E H H0 (* H0 H1 *)).
-  unfold make_fields_vals. pose proof (graph_has_v_not_eq g to x H).
-  rewrite add_node_vlabel_old by assumption. rewrite H1; eauto.
+  intros g to lb e x E H H0 D C.
+ pose proof (add_node_field2val_make_fields_old (raw_tag (vlabel g x)) g to lb e x E H H0 D (* H0 H1 *)).
+  unfold make_fields_vals.
+  pose proof (graph_has_v_not_eq g to x H).
+  rewrite add_node_vlabel_old by assumption. 
+  rewrite H1; eauto.
   destruct (raw_mark (vlabel g x)) eqn:? ; [f_equal | reflexivity].
   apply add_node_vertex_address_old; try assumption. 
   unfold no_dangling_dst in D. 
@@ -349,7 +352,7 @@ Lemma add_node_generation_rep_eq: forall g to lb e,
     let h := if raw_mark lb then 0 else raw_tag lb + Z.shiftl (raw_color lb) 8 + Z.shiftl (Zlength (raw_fields lb)) 10 in
     let g' := add_node g to lb e in
     let fds := 
-        let original_fields_val := map (field2val g') (make_fields g' v) in
+        let original_fields_val := map (field2val (raw_tag lb) g') (make_fields g' v) in
         if raw_mark lb
         then vertex_address g' (copied_vertex lb) :: tl original_fields_val
         else original_fields_val in
@@ -394,7 +397,7 @@ Definition header_new lb :=
 if raw_mark lb then 0 else raw_tag lb + Z.shiftl (raw_color lb) 8 + Z.shiftl (Zlength (raw_fields lb)) 10. 
 
 Definition fields_new g' lb v :=
-  let original_fields_val := map (field2val g') (make_fields g' v) in
+  let original_fields_val := map (field2val (raw_tag lb) g') (make_fields g' v) in
     if raw_mark lb
     then vertex_address g' (copied_vertex lb) :: tl original_fields_val
     else original_fields_val. 

@@ -357,8 +357,10 @@ Proof.
   reflexivity.
 Qed.
 
+Definition BYTESTRING_TAG : Z := 252.
+
 Lemma bytestring_contents_lemma1:
-  forall g g' bytes k, map (field2val g) 
+  forall g g' bytes k, map (field2val BYTESTRING_TAG g) 
        (make_fields' (map (fun i : int64 => Some (inl (Int64.unsigned i))) (bytes_to_words bytes))
              g' k) = 
     map Vlong (bytes_to_words bytes).
@@ -376,13 +378,9 @@ f_equal; auto.
 rewrite Int64.unsigned_repr 
  by (unfold decode_int, rev_if_be; destruct Archi.big_endian; simpl ; rep_lia).
 set (a := decode_int _).
-unfold odd_Z2val.
-f_equal. f_equal.
-(* FAIL!   The problem is that add_node uses fields_new when it should 
-  use something tuned for no-scan nodes. *)
-admit.
-Admitted.
-
+rewrite if_false by (unfold BYTESTRING_TAG; rep_lia).
+auto.
+Qed.
 
 Lemma Vlong_inj
      : forall x y : int64, Vlong x = Vlong y -> x = y.

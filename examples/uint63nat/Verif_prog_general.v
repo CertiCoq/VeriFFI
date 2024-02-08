@@ -1011,16 +1011,16 @@ Proof.
     unfold fds. simpl. unfold make_fields. simpl. autorewrite with graph_add. 
     unfold update_vlabel. if_tac; try congruence. simpl.
     
-    assert (map (field2val (add_node gr 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es))
+    assert (map (field2val (Z.of_nat t) (add_node gr 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es))
     (make_fields' (map rep_field ps) (new_copied_v gr 0) 0) = map (rep_type_val gr) ps) as ->.
     { subst es. 
     rewrite make_fields'_eq. rewrite map_map.
     simpl.
 
   assert (forall g x, 
-    rep_type_val g (field_t_rep_type g x) = field2val g x
+    rep_type_val g (field_t_rep_type g x) = field2val (Z.of_nat t) g x
   ).
-  { intros. destruct x; eauto. simpl. destruct s; eauto.    }
+  { intros. destruct x; eauto. simpl. destruct s; eauto. rewrite if_true by rep_lia. auto.   }
   remember ( add_node gr 0
   (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3)
   (get_fields gr 0 ps 0)) as g'.
@@ -1033,8 +1033,8 @@ Proof.
 
   apply map_ext_in.
   intros ? In_seq. destruct a. 
-  simpl. destruct r; eauto. 
-  simpl. subst. simpl. 
+  simpl. destruct r; simpl; eauto; rewrite ?if_true by rep_lia; auto. 
+  subst. simpl.
   erewrite add_node_dst_new. 
   3 : { rewrite get_fields_eq.
     apply filter_option_In_iff.
