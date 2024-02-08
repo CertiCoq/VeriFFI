@@ -87,6 +87,12 @@ Proof.
     split3; eauto; congruence.
 Qed.
 
+Local Hint Resolve AP_unmarked : core.
+Local Hint Resolve AP_edge_compat : core.
+Local Hint Resolve AP_incl_outlier : core.
+Local Hint Resolve graph_has_gen_O: core.
+Local Hint Resolve AP_compat : core.
+
 Lemma body_bump_allocptr:
   semax_body Vprog Gprog f_bump_allocptr bump_allocptr_spec.
 Proof.
@@ -102,7 +108,6 @@ set (tinfo := AP_ti pp) in *.
 unfold full_gc, before_gc_thread_info_rep.
 limited_change_compspecs CompSpecs.
 simpl ti_args. simpl ti_heap_p. simpl ti_frames.
-(*rewrite prop_true_andp by (simpl; split; auto).*)
 set (hh := heap_head (ti_heap tinfo)).
 set (hh' := heap_head _).
 simpl.
@@ -112,7 +117,7 @@ change (space_start (heap_head (ti_heap tinfo))) with (space_start hh).
 change (ti_fp (bump_alloc _)) with (ti_fp tinfo).
 change (used_space (heap_head (ti_heap tinfo))) with (used_space hh).
 set (FRAMES := frames_rep _ _). clearbody FRAMES.
-set (OUTLIER := outlier_rep outlier); clearbody OUTLIER.
+set (OUTLIER := outlier_rep (AP_outlier pp)); clearbody OUTLIER.
 change 8 with WORD_SIZE.
 rewrite <- Z.mul_add_distr_l.
 unfold heap_rest_rep.
@@ -169,6 +174,8 @@ apply sepcon_derives.
 rewrite H5. auto.
 apply allp_right; intro ap.
 apply -> wand_sepcon_adjoint.
+
+
 rewrite andp_comm, prop_true_andp.
 -
 limited_change_compspecs CompSpecs.
@@ -207,11 +214,62 @@ destruct H as [? [? [? ? ] ] ].
 destruct H5.
 rewrite <- Hsh.
 rewrite add_node_spatial; simpl; auto.
-apply graph_has_gen_O.
-admit.
-admit.
+* red; intros.
+destruct H10 as [H10a [H10b H10c] ].
+apply H10c in H11.
+specialize (H11 H12).
+destruct H11.
+auto.
 -
-admit.
+unfold AP_newg, bump_alloc.
+red in H; decompose [and] H; clear H.
+split3; [ | | split3]; simpl; auto.
+destruct H6 as [? [ ? [? ?] ] ].
+split; [ | split3]; auto.
++
+apply add_node_graph_unmarked; auto.
++
+apply add_node_no_backward_edge; auto.
++
+apply add_node_no_dangling_dst; auto.
++
+admit. (* should be OK *)
++
+destruct H9 as [? [? [? ? ] ] ].
+split; [ | split3].
+* 
+admit. (* Fix the lemma add_node_graph_thread_compatible
+         so that it does not mention thread_info *)
+*
+fold tinfo.
+red in H9|-*; rewrite <- H9.
+destruct H11 as [ _  ? ].
+red in H11.
+clear - H11.
+induction roots.
+reflexivity.
+simpl.
+specialize (IHroots (Forall_filter_sum_right_cons_e _ _ _ H11)).
+f_equal; auto.
+destruct a; simpl; auto.
+inv H11.
+apply add_node_vertex_address_old; auto.
+*
+destruct H11; split; auto.
+red in H14|-*.
+eapply Forall_impl; try apply H14.
+intros.
+apply add_node_graph_has_v_impl; auto.
+*
+apply add_node_outlier_compatible; auto.
++
+apply add_node_safe_to_copy0; auto.
++
+apply sound_gc_graph; auto.
++
+admit.  (* plausible *)
+
+all: fail.
 Admitted.
 
 
@@ -1255,8 +1313,8 @@ entailer!!.
    lia.
   }
  assert (HEADROOM: 0 <= n <= headroom t_info'). lia.
- pose (pp := Build_alloc_prepackage g' t_info' n HEADROOM).
- forward_call (gv,roots',sh,ti,outlier,pp).
+ pose (pp := Build_alloc_prepackage g' t_info' outlier n HEADROOM).
+ forward_call (gv,roots',sh,ti,pp).
  simpl. cancel.
  simpl.  
  set (sh' := nth_sh g' 0).
@@ -1654,7 +1712,21 @@ entailer!!.
  assert (ANC: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) 0) []). {
    red; intros. inversion H11.
  }
- pose (ap := Build_alloc_package pp rvb nil APN ANC).
+ assert (RMF: raw_mark rvb = false) by reflexivity.
+ assert (EC: edge_compatible (AP_g pp) 0 rvb []). {
+   hnf; intros. simpl; clear. split; try contradiction.
+   subst rawf.
+   set (j:=O). unfold j at 1. clearbody j.
+   revert j; induction (bytes_to_words bytes); intros. contradiction.
+   apply IHl in H. auto.
+ }
+ assert (OUT: incl (List_ext.filter_sum_right (List_ext.filter_option (raw_fields rvb)))
+     (AP_outlier pp)). {
+   simpl. subst rawf. clear.
+   intros ? ?. exfalso.
+   induction (bytes_to_words bytes); simpl in H; auto.
+ }
+ pose (ap := Build_alloc_package pp rvb nil RMF APN ANC EC OUT).
  assert (WAND |-- 
          graph_rep (AP_g pp)
           * vertex_at (nth_sh (AP_g pp) 0)

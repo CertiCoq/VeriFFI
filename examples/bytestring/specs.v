@@ -85,6 +85,7 @@ SEP (graph_rep g).
 Record alloc_prepackage : Type := {
    AP_g: graph;
    AP_ti: GCGraph.thread_info;
+   AP_outlier: outlier_t; 
    AP_n: Z;
    AP_enough: 0 <= AP_n <= headroom AP_ti
  }.
@@ -93,8 +94,12 @@ Record alloc_prepackage : Type := {
 Record alloc_package (pp: alloc_prepackage) : Type := {
    AP_rvb: raw_vertex_block;
    AP_fields: list (EType * (VType * VType));
+   AP_unmarked: raw_mark AP_rvb = false;
    AP_len: AP_n pp = (1 + Zlength (raw_fields AP_rvb))%Z;
    AP_compat: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) O) AP_fields;
+   AP_edge_compat: edge_compatible (AP_g pp) 0 AP_rvb AP_fields;
+   AP_incl_outlier: incl (List_ext.filter_sum_right (List_ext.filter_option 
+                              (raw_fields AP_rvb))) (AP_outlier pp);
    AP_newg := add_node (AP_g pp) O AP_rvb AP_fields
 }.
 
@@ -148,12 +153,12 @@ Definition alloc_at (tinfo: GCGraph.thread_info) : val :=
 Definition bump_allocptr_spec: ident * funspec :=
  DECLARE _bump_allocptr
  WITH gv: globals, roots: roots_t, 
-      sh: share, ti: val, outlier: outlier_t,
+      sh: share, ti: val,
       pp: alloc_prepackage
  PRE [ thread_info, size_t ]
   PROP( writable_share sh )
   PARAMS (ti; Vptrofs (Ptrofs.repr (AP_n pp))) GLOBALS (gv)
-  SEP (full_gc (AP_g pp) (AP_ti pp) roots outlier ti sh gv)
+  SEP (full_gc (AP_g pp) (AP_ti pp) roots (AP_outlier pp) ti sh gv)
  POST [ tptr int_or_ptr_type ]
   PROP( )
   RETURN ( alloc_at (AP_ti pp))
@@ -165,7 +170,7 @@ Definition bump_allocptr_spec: ident * funspec :=
         vertex_at (nth_sh (AP_g pp) O) (vertex_address (AP_newg _ pk) (new_copied_v (AP_g pp) O)) 
               (header_new (AP_rvb _ pk)) 
               (fields_new (AP_newg _ pk) (AP_rvb _ pk) (new_copied_v (AP_g pp) O))) -*
-       full_gc (AP_newg _ pk) (bump_alloc pp) roots outlier ti sh gv ).
+       full_gc (AP_newg _ pk) (bump_alloc pp) roots (AP_outlier pp)  ti sh gv ).
 
 Definition args_spec_String : funspec := 
   WITH gv : globals, g : graph, p : rep_type,
