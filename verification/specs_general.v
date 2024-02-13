@@ -1142,3 +1142,189 @@ Lemma semax_cssub:
   @semax CS' Espec Delta P c R.
 Admitted.
 
+
+Fixpoint get_fields g to (xs : list rep_type) (n: nat) :=
+    let v := new_copied_v g to in 
+    match xs with 
+    | nil => nil 
+    | cons x xs => match x with 
+                  | repNode v_x => ((v, n), (v, v_x) ) :: get_fields g to xs (1 + n)
+                  | _ => get_fields g to xs (1 + n)
+                  end
+    end.
+
+
+Lemma get_fields_eq g to xs (n : nat):   
+  let v := new_copied_v g to in 
+    get_fields g to xs n = 
+            List_ext.filter_option (map (fun x => match (snd x) with | repNode v_x => Some ((v, (fst x)), (v, v_x) )  
+                                           | _ => None
+                                           end)
+                           (combine  (nat_seq n (Datatypes.length xs)) xs)).
+Proof. 
+    intros. 
+    revert n. 
+    induction xs; intros; eauto.
+    simpl. rewrite IHxs. 
+    destruct a; eauto. 
+ Qed.
+
+Lemma nodup_getfields g ps n: 
+NoDup (map fst (get_fields g 0 ps n)).
+Proof.
+  rewrite get_fields_eq. revert n. 
+  induction ps; intros. 
+  - simpl. constructor.
+  - simpl. destruct a; eauto. 
+    + simpl. constructor; eauto. 
+      intros H.
+      apply in_map_iff in H. 
+      destruct H as ((v0 & m)  & A1).
+      destruct A1. 
+      apply List_ext.filter_option_In_iff in H0. 
+      apply in_map_iff in H0. 
+      destruct H0 as (bla & B1).
+      simpl in *. subst. destruct bla. simpl in *. destruct B1. destruct r; try congruence. 
+      injection H. intros. subst. 
+      apply in_combine_l in H0. 
+      apply nat_seq_In_iff in H0.  lia. 
+Qed.
+
+Lemma add_node_compatible_new g ps t_info roots outlier:
+let v := new_copied_v g 0 in
+let es :=  get_fields g 0 ps 0 : list (VType * nat * (VType * VType)) in
+Forall (fun p => match p with
+| repNode v' => graph_has_v g v' /\ v <> v'
+| _ => True
+end) ps -> 
+gc_condition_prop g t_info roots outlier 
+ -> add_node_compatible g v es. 
+Proof. 
+  intros. 
+  subst es. rewrite get_fields_eq.
+  unfold add_node_compatible. intros e scr trg H_In.
+  apply List_ext.filter_option_In_iff in H_In.
+  apply in_map_iff in H_In.
+  destruct H_In as ((n&p)&(p_eq&H_In)). 
+  pose (H_In' := in_combine_r _ _ _ _ H_In).
+  simpl in *. 
+ 
+  destruct p; try congruence. 
+  rewrite Forall_forall in H. 
+    specialize (H _ H_In').
+  inversion p_eq. simpl. split3; eauto.
+  subst. 
+  split3; eauto. 
+  -  intuition.
+  - lia. 
+  - split. 
+    + assert (HH := nodup_getfields g ps 0). rewrite get_fields_eq in HH. eauto.
+
+    + intuition. 
+Qed.
+
+Lemma add_node_rootpairs_compatible:
+  forall rp roots g nr es,
+    roots_graph_compatible roots g ->
+    rootpairs_compatible g rp roots ->
+    rootpairs_compatible (add_node g 0 nr es) rp roots.
+Proof.
+ intros.
+    red in H0|-*. rewrite <- H0. clear H0.
+    induction roots; simpl; f_equal; auto.
+    destruct a; simpl; auto.
+    apply add_node_vertex_address_old; auto.
+    inv H; auto.
+    apply graph_has_gen_O.
+    apply IHroots; clear IHroots; auto.
+    destruct a; auto. destruct v; auto. inv H; auto.
+Qed.
+
+
+Lemma add_node_copy_compatible:
+ forall g (v := new_copied_v g 0 : VType) t flds R1 R2 R3 es ,
+ copy_compatible g ->
+ copy_compatible (add_node g 0 (newRaw v t flds R1 R2 R3) es).
+Proof.
+intros.
+hnf; intros.
+hnf in H.
+apply add_node_graph_has_v in H0; [ | apply graph_has_gen_O].
+destruct H0.
+-
+assert (v0 <> new_copied_v g 0). {
+ apply graph_has_v_not_eq; auto.
+}
+rewrite add_node_vlabel_old in *; auto.
+split.
+apply add_node_graph_has_v;  [apply graph_has_gen_O | ].
+destruct (H _ H0 H1).
+auto.
+apply H; auto.
+-
+subst.
+rewrite add_node_vlabel in *; auto.
+split.
+apply add_node_graph_has_v;  [apply graph_has_gen_O | ].
+right.
+simpl.
+reflexivity.
+inv H1.
+Qed.
+
+
+    Lemma add_node_gc_condition_prop_general g ps t t_info roots outlier R1 R2 R3 t_size (H: graph_has_gen g 0) :
+  let v := new_copied_v g 0 in
+  let es :=  get_fields g 0 ps 0 : list (VType * nat * (VType * VType)) in
+  let g' := add_node g 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es in
+  let t_info' := add_node_ti 0 t_info (1 + Zlength (map rep_field ps)) t_size in
+  Forall (fun p => match p with
+  | repNode v' => graph_has_v g v' /\ v <> v'
+  | repOut v' => In v' outlier
+  | _ => True
+  end) ps
+  ->
+gc_condition_prop g t_info roots outlier -> gc_condition_prop g' t_info' roots outlier.
+Proof.
+  intros. unfold gc_condition_prop in *. unfold g'.
+  assert ( add_node_compatible g (new_copied_v g 0) es).
+  {  eapply add_node_compatible_new; eauto. 
+      rewrite !Forall_forall in *. intros. specialize (H0 _ H2). destruct x; eauto. 
+  }
+  destruct H1 as (gcc & sup & safetocopy & soundgcgraph & copycompatible).
+ red in gcc. destruct gcc as (unmarked & nobackward & nodangling & tisizespec).
+
+(*
+
+unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & (rp_compatible & copycompatible)))))))))).
+*)
+    assert (edge_compatible g 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es).
+    { unfold edge_compatible. intros. simpl. clear.  unfold es. generalize (0)%nat at 2 4.  induction ps; intros n; simpl; eauto.
+    - reflexivity.
+    - destruct a; simpl.
+      + rewrite Nat.add_1_r.  apply IHps.
+      + rewrite Nat.add_1_r.  apply IHps.
+      + rewrite Nat.add_1_r. intuition eauto. right.  apply IHps; eauto.
+        rewrite IHps. eauto. }
+
+  split3; [ | | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_heap_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+  split; [ | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_heap_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+
+  + eapply add_node_ti_size_spec; eauto.  rewrite spaces_size.   rep_lia.
+  + split; [ | split3];  eauto using add_node_no_backward_edge, add_node_outlier_compatible, add_node_roots_graph_compatible, sound_gc_graph, add_node_safe_to_copy0, add_node_no_dangling_dst, add_node_graph_unmarked, add_node_graph_heap_compatible, add_node_ti_size_spec, add_node_roots_compatible.
+    * apply add_node_graph_heap_compatible; eauto; try apply sup.
+      unfold raw_fields. simpl. lia.
+    * apply add_node_rootpairs_compatible; auto; try apply sup.
+    * apply add_node_roots_compatible; auto; try apply sup.
+    *  apply add_node_outlier_compatible; eauto; try apply sup.
+    simpl.
+    unfold incl. intros. apply List_ext.filter_sum_right_In_iff in H3. 
+    apply List_ext.filter_option_In_iff in H3. apply in_map_iff in H3. 
+    destruct H3 as (p & A1 & A2). destruct p; simpl in *; try congruence. 
+    rewrite Forall_forall in H0. injection A1. intros. subst.  exact (H0 _ A2). 
+   + apply add_node_copy_compatible; try apply sup; eauto.   
+Qed.
+
+
+
+

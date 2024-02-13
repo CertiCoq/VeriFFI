@@ -43,7 +43,11 @@ Definition MAX_SPACE_SIZE := two_p 57.  (* At the moment, this is smaller than
     tolerable.  *)
 
 Definition MAX_WORDS_IN_GRAPH := MAX_SPACE_SIZE * 2.  (* because each space is twice as big as previous,
-       sum of geometric series *)
+       sum of geometric series.
+     WARNING:  If we permit "outlier" data structures to be part of the graph, then
+     it is invalid to assume that the graph size is bounded.  If outliers are only
+     used for abstract types, not traversable as constructors, then it's OK.
+ *)
 
 Definition MAX_LEN := MAX_WORDS_IN_GRAPH/3.
     (* because each char in string is represented by a "String" constructor of 3 words
@@ -54,8 +58,8 @@ Definition MAX_LEN := MAX_WORDS_IN_GRAPH/3.
 
 Lemma representable_string_max_length:
  (* PROVABLE! but not easy.  Rely on the fact that every node in the graph
-   must exist in some generation, and the total of all generation sizes is  
-   bounded. *)
+   must exist in some generation (if it's really true that the graph cannot extend into
+   outliers), and the total of all generation sizes is bounded. *)
   forall (s: string) (g: graph) (p: rep_type),
    is_in_graph g s p ->
    graph_rep g |-- !! (Z.of_nat (String.length s) < MAX_LEN).
@@ -92,6 +96,47 @@ Local Hint Resolve AP_edge_compat : core.
 Local Hint Resolve AP_incl_outlier : core.
 Local Hint Resolve graph_has_gen_O: core.
 Local Hint Resolve AP_compat : core.
+Local Hint Resolve AP_copied: core.
+Local Hint Resolve AP_mark: core.
+Local Hint Resolve AP_color: core.
+
+
+Lemma heap_congr: forall h1 h2 : heap, spaces h1 = spaces h2 -> h1=h2.
+Proof.
+intros.
+destruct h1, h2. simpl in *. subst spaces0. f_equal. proof_irr; auto.
+Qed.
+
+Lemma add_node_space_alloc_in_nursery:
+ forall (h: heap) (n: Z) ENUF ENUF', 
+upd_Znth 0 (spaces h) (add_node_space 0 (nth 0 (spaces h) null_space) n ENUF) = 
+allocate_in_nursery n (heap_head h) ENUF' :: tl (spaces h).
+Proof.
+intros.
+destruct h; simpl.
+destruct spaces.
+inversion spaces_size.
+rewrite upd_Znth0.
+simpl.
+f_equal. 
+unfold add_node_space, allocate_in_nursery.
+f_equal.
+apply proof_irr.
+Qed.
+
+Lemma raw_vertex_block_congr:
+  forall a b : raw_vertex_block,
+  raw_mark a = raw_mark b ->
+  copied_vertex a = copied_vertex b ->
+  raw_fields a = raw_fields b ->
+  raw_color a = raw_color b ->
+  raw_tag a = raw_tag b ->
+  a=b.
+Proof.
+intros.
+destruct a,b; simpl in *; subst.
+f_equal; apply proof_irr.
+Qed.
 
 Lemma body_bump_allocptr:
   semax_body Vprog Gprog f_bump_allocptr bump_allocptr_spec.
@@ -221,7 +266,42 @@ specialize (H11 H12).
 destruct H11.
 auto.
 -
+
+assert (ENUF: 0 <= n <=
+  total_space (nth 0 (spaces (ti_heap (AP_ti pp))) null_space)
+    - used_space (nth 0 (spaces (ti_heap (AP_ti pp))) null_space))
+  by (fold tinfo; rewrite H3; simpl; rewrite <- H5;  apply (AP_enough pp)).
 unfold AP_newg, bump_alloc.
+replace {|
+        spaces :=
+          allocate_in_nursery (AP_n pp) (heap_head (ti_heap (AP_ti pp))) (AP_enough pp)
+          :: tl (spaces (ti_heap (AP_ti pp)));
+        spaces_size :=
+          allocate_in_full_gc_aux (AP_n pp) (heap_head (ti_heap (AP_ti pp))) 
+            (AP_enough pp) (ti_heap (AP_ti pp))
+      |} with (add_node_heap 0 (ti_heap (AP_ti pp)) n ENUF)
+    by (apply heap_congr; apply add_node_space_alloc_in_nursery).
+(*
+pose proof add_node_gc_condition_prop_general.
+Search (_ -> rep_type).
+Search (EType * (VType * VType))%type rep_type.
+evar (ps: list rep_type).
+assert (ENUF': 0 <= 1 + Zlength (map rep_field ps) <=
+  total_space (nth_space (ti_heap tinfo) 0) - used_space (nth_space (ti_heap tinfo) 0))
+ by admit.
+match goal with |- gc_condition_prop _ ?hh _ _ => 
+  replace hh with (add_node_ti 0 tinfo (1 + Zlength (map rep_field ps)) ENUF')
+end.
+2:{
+unfold add_node_ti.
+f_equal.
+unfold n.
+unfold add_node_heap.
+unfold AP_n.
+apply add_node_gc_condition_prop_general.
+eapply H6.
+*)
+
 red in H; decompose [and] H; clear H.
 split3; [ | | split3]; simpl; auto.
 destruct H6 as [? [ ? [? ?] ] ].
@@ -233,13 +313,16 @@ apply add_node_no_backward_edge; auto.
 +
 apply add_node_no_dangling_dst; auto.
 +
-admit. (* should be OK *)
+apply add_node_ti_size_spec; auto.
+unfold tinfo in *; clear - H3; rewrite H3; list_solve.
 +
 destruct H9 as [? [? [? ? ] ] ].
 split; [ | split3].
-* 
-admit. (* Fix the lemma add_node_graph_thread_compatible
-         so that it does not mention thread_info *)
+*
+
+apply add_node_graph_heap_compatible; auto.
+rewrite Z.add_comm. symmetry. apply AP_len.
+apply H6.
 *
 fold tinfo.
 red in H9|-*; rewrite <- H9.
@@ -267,11 +350,12 @@ apply add_node_safe_to_copy0; auto.
 +
 apply sound_gc_graph; auto.
 +
-admit.  (* plausible *)
-
-all: fail.
-Admitted.
-
+replace (AP_rvb pp ap)
+ with (newRaw (new_copied_v (AP_g pp) 0) (raw_tag (AP_rvb pp ap)) (raw_fields (AP_rvb pp ap)) 
+  (raw_tag_range _) (raw_fields_range _) (tag_no_scan _))
+ by (apply raw_vertex_block_congr; simpl; auto).
+apply add_node_copy_compatible; auto.
+Qed.
 
 Definition bytes_of_string (s: string) : list Integers.Byte.int :=
   map (Integers.Byte.repr oo Z.of_N oo Strings.Byte.to_N) (list_byte_of_string s).
@@ -1312,7 +1396,7 @@ entailer!!.
    assert (0 <= (len + pad_length) / 8) by (apply Z.div_pos; lia).
    lia.
   }
- assert (HEADROOM: 0 <= n <= headroom t_info'). lia.
+ assert (HEADROOM: 0 <= n <= headroom t_info') by lia.
  pose (pp := Build_alloc_prepackage g' t_info' outlier n HEADROOM).
  forward_call (gv,roots',sh,ti,pp).
  simpl. cancel.
@@ -1704,8 +1788,10 @@ entailer!!.
  assert (JJ: NO_SCAN_TAG <= 252 -> ~In None rawf). {
    clear - H7. subst rawf. intros ? ?. list_solve.
  }
- pose (rvb := Build_raw_vertex_block false (O,O(*wrong *)) rawf 0 252 ltac:(lia) ltac:(lia)
-                RAWF_LEN JJ).
+ assert (Htag_range: 0 <= 252 < 256) by (clear; lia).
+ assert (Hcolor_range: 0 <= 0 < 4) by (clear; lia).
+ pose (rvb := Build_raw_vertex_block false (new_copied_v (AP_g pp) 0) rawf 0 252 
+         Htag_range Hcolor_range RAWF_LEN JJ).
  assert (APN: AP_n pp = 1 + Zlength (raw_fields rvb)). {
    simpl. unfold rawf. rewrite Zlength_map, bytes_len. lia.
  }
@@ -1726,7 +1812,7 @@ entailer!!.
    intros ? ?. exfalso.
    induction (bytes_to_words bytes); simpl in H; auto.
  }
- pose (ap := Build_alloc_package pp rvb nil RMF APN ANC EC OUT).
+ pose (ap := Build_alloc_package pp rvb nil RMF APN ANC EC OUT eq_refl eq_refl eq_refl).
  assert (WAND |-- 
          graph_rep (AP_g pp)
           * vertex_at (nth_sh (AP_g pp) 0)
@@ -1852,6 +1938,7 @@ entailer!!.
  entailer!!. 
  2: unfold frame_rep_; limited_change_compspecs CompSpecs; entailer!!.
  simpl.
+ unfold AP_newg in H11|-*. simpl AP_rvb in H11|-*. simpl AP_fields in H11|-*. clear ap.
  clearbody rvb. (* temporary *)
  clear H10 JJ. destruct xs.
  clear new0 new1 FC FC1.

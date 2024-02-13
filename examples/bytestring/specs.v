@@ -100,6 +100,11 @@ Record alloc_package (pp: alloc_prepackage) : Type := {
    AP_edge_compat: edge_compatible (AP_g pp) 0 AP_rvb AP_fields;
    AP_incl_outlier: incl (List_ext.filter_sum_right (List_ext.filter_option 
                               (raw_fields AP_rvb))) (AP_outlier pp);
+(*   AP_noscan := tag_no_scan AP_rvb;*)
+(*       NO_SCAN_TAG <= raw_tag AP_rvb -> ~In None (raw_fields AP_rvb);*)
+   AP_copied:  copied_vertex AP_rvb = new_copied_v (AP_g pp) 0;
+   AP_mark: raw_mark AP_rvb = false;
+   AP_color: raw_color AP_rvb = 0;
    AP_newg := add_node (AP_g pp) O AP_rvb AP_fields
 }.
 

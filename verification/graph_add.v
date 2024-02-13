@@ -815,11 +815,11 @@ Proof.
     - subst. rewrite add_node_vlabel. eauto.
 Qed.
 
-Lemma add_node_graph_thread_compatible g (t_info: thread_info) to lb es (off : Z)
-    (H: 0 <= off <= total_space (nth_space (ti_heap t_info) to) - used_space (nth_space (ti_heap t_info) to)): 
+Lemma add_node_graph_heap_compatible g (h: heap) to lb es (off : Z)
+    (H: 0 <= off <= total_space (nth_space h to) - used_space (nth_space h to)): 
    Zlength (raw_fields lb) + 1 = off -> graph_has_gen g to -> no_dangling_dst g -> 
-    graph_heap_compatible g (ti_heap t_info) -> 
-   graph_heap_compatible (add_node g to lb es) (ti_heap (add_node_ti to t_info off H)). 
+    graph_heap_compatible g h -> 
+   graph_heap_compatible (add_node g to lb es) (add_node_heap to h off H).
 Proof.
   unfold graph_heap_compatible. intros L HH ND (A1&A2&A3). 
   assert (Datatypes.length (copy_v_mod_gen_info_list (g_gen (glabel g)) to) = Datatypes.length (g_gen (glabel g))) as LU.
@@ -836,16 +836,16 @@ Proof.
     erewrite !combine_nth_lt in B2; try rep_lia.   
     specialize (A1 (nth l (combine
             (combine (nat_inc_list (Datatypes.length (g_gen (glabel g)))) (g_gen (glabel g)))
-            (spaces (ti_heap t_info))) (n, g_n, s_n)) ).
+            (spaces h)) (n, g_n, s_n)) ).
     assert (In
          (nth l
             (combine
                (combine (nat_inc_list (Datatypes.length (g_gen (glabel g))))
-                  (g_gen (glabel g))) (spaces (ti_heap t_info))) 
+                  (g_gen (glabel g))) (spaces h)) 
             (n, g_n, s_n))
          (combine
             (combine (nat_inc_list (Datatypes.length (g_gen (glabel g)))) (g_gen (glabel g)))
-            (spaces (ti_heap t_info)))) as C. 
+            (spaces h))) as C. 
     { eapply nth_In.  rewrite !combine_length in *. rewrite !nat_inc_list_length in *.  simpl in *. rep_lia. }
     specialize (A1 C). clear C.
     rewrite !combine_nth_lt in A1; try rep_lia.
@@ -922,7 +922,7 @@ Proof.
   - rewrite !Forall_forall in *.
     intros v B. eapply A2. rewrite <- !map_skipn in *. 
     rewrite !in_map_iff in *. destruct B as (sp&B1&B2). exists sp. split; eauto.
-    destruct t_info; simpl in *. destruct ti_heap; simpl in *.
+    destruct h; simpl in *.
     rewrite !In_Znth_iff in *.
     destruct B2 as (i&B2&B3).
     exists i. split. 
