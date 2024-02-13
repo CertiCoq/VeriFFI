@@ -45,15 +45,6 @@ Defined.
 Require Import CertiGraph.lib.List_ext.
 Require Import CertiGraph.graph.graph_model.
 
-(** If outliers/roots are compatible, the roots never contain the next new node.  *)
-Lemma new_node_roots g outlier roots:
-  roots_compatible g outlier roots -> ~ In (inr (new_copied_v g 0)) roots.
-Proof.
-  intros (RC1&RC2) A.
-  rewrite filter_sum_right_In_iff in A.
-  apply (computable_theorems.Forall_forall1 _ _ RC2) in A. -
-  apply graph_has_v_not_eq with (to := 0%nat) in A. congruence.
-Qed.
 
 (** Properties of the nursery generation according to the heap:
  space_start is a pointer, its share is writable, and it is compatible with the first generation of the graph. *)

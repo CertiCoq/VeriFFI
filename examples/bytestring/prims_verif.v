@@ -91,15 +91,10 @@ Proof.
     split3; eauto; congruence.
 Qed.
 
-Local Hint Resolve AP_unmarked : core.
 Local Hint Resolve AP_edge_compat : core.
 Local Hint Resolve AP_incl_outlier : core.
 Local Hint Resolve graph_has_gen_O: core.
 Local Hint Resolve AP_compat : core.
-Local Hint Resolve AP_copied: core.
-Local Hint Resolve AP_mark: core.
-Local Hint Resolve AP_color: core.
-
 
 Lemma heap_congr: forall h1 h2 : heap, spaces h1 = spaces h2 -> h1=h2.
 Proof.
@@ -265,6 +260,8 @@ apply H10c in H11.
 specialize (H11 H12).
 destruct H11.
 auto.
+*
+apply AP_compat.
 -
 
 assert (ENUF: 0 <= n <=
@@ -281,27 +278,6 @@ replace {|
             (AP_enough pp) (ti_heap (AP_ti pp))
       |} with (add_node_heap 0 (ti_heap (AP_ti pp)) n ENUF)
     by (apply heap_congr; apply add_node_space_alloc_in_nursery).
-(*
-pose proof add_node_gc_condition_prop_general.
-Search (_ -> rep_type).
-Search (EType * (VType * VType))%type rep_type.
-evar (ps: list rep_type).
-assert (ENUF': 0 <= 1 + Zlength (map rep_field ps) <=
-  total_space (nth_space (ti_heap tinfo) 0) - used_space (nth_space (ti_heap tinfo) 0))
- by admit.
-match goal with |- gc_condition_prop _ ?hh _ _ => 
-  replace hh with (add_node_ti 0 tinfo (1 + Zlength (map rep_field ps)) ENUF')
-end.
-2:{
-unfold add_node_ti.
-f_equal.
-unfold n.
-unfold add_node_heap.
-unfold AP_n.
-apply add_node_gc_condition_prop_general.
-eapply H6.
-*)
-
 red in H; decompose [and] H; clear H.
 split3; [ | | split3]; simpl; auto.
 destruct H6 as [? [ ? [? ?] ] ].
@@ -309,9 +285,9 @@ split; [ | split3]; auto.
 +
 apply add_node_graph_unmarked; auto.
 +
-apply add_node_no_backward_edge; auto.
+apply add_node_no_backward_edge; auto; try apply AP_edge_compat; apply AP_compat.
 +
-apply add_node_no_dangling_dst; auto.
+apply add_node_no_dangling_dst; auto; try apply AP_edge_compat; apply AP_compat.
 +
 apply add_node_ti_size_spec; auto.
 unfold tinfo in *; clear - H3; rewrite H3; list_solve.
@@ -348,7 +324,7 @@ apply add_node_outlier_compatible; auto.
 +
 apply add_node_safe_to_copy0; auto.
 +
-apply sound_gc_graph; auto.
+apply sound_gc_graph; auto; try apply AP_edge_compat; apply AP_compat.
 +
 replace (AP_rvb pp ap)
  with (newRaw (new_copied_v (AP_g pp) 0) (raw_tag (AP_rvb pp ap)) (raw_fields (AP_rvb pp ap)) 
@@ -1789,30 +1765,26 @@ entailer!!.
    clear - H7. subst rawf. intros ? ?. list_solve.
  }
  assert (Htag_range: 0 <= 252 < 256) by (clear; lia).
- assert (Hcolor_range: 0 <= 0 < 4) by (clear; lia).
- pose (rvb := Build_raw_vertex_block false (new_copied_v (AP_g pp) 0) rawf 0 252 
-         Htag_range Hcolor_range RAWF_LEN JJ).
- assert (APN: AP_n pp = 1 + Zlength (raw_fields rvb)). {
+ assert (APN: AP_n pp = 1 + Zlength rawf). {
    simpl. unfold rawf. rewrite Zlength_map, bytes_len. lia.
  }
  assert (ANC: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) 0) []). {
    red; intros. inversion H11.
  }
- assert (RMF: raw_mark rvb = false) by reflexivity.
- assert (EC: edge_compatible (AP_g pp) 0 rvb []). {
+ assert (EC: edge_compatible (AP_g pp) 0 rawf nil). {
    hnf; intros. simpl; clear. split; try contradiction.
    subst rawf.
    set (j:=O). unfold j at 1. clearbody j.
    revert j; induction (bytes_to_words bytes); intros. contradiction.
    apply IHl in H. auto.
  }
- assert (OUT: incl (List_ext.filter_sum_right (List_ext.filter_option (raw_fields rvb)))
+ assert (OUT: incl (List_ext.filter_sum_right (List_ext.filter_option rawf))
      (AP_outlier pp)). {
    simpl. subst rawf. clear.
    intros ? ?. exfalso.
    induction (bytes_to_words bytes); simpl in H; auto.
  }
- pose (ap := Build_alloc_package pp rvb nil RMF APN ANC EC OUT eq_refl eq_refl eq_refl).
+ pose (ap := Build_alloc_package pp rawf 252 Htag_range RAWF_LEN JJ nil APN ANC EC OUT).
  assert (WAND |-- 
          graph_rep (AP_g pp)
           * vertex_at (nth_sh (AP_g pp) 0)
@@ -1938,19 +1910,33 @@ entailer!!.
  entailer!!. 
  2: unfold frame_rep_; limited_change_compspecs CompSpecs; entailer!!.
  simpl.
- unfold AP_newg in H11|-*. simpl AP_rvb in H11|-*. simpl AP_fields in H11|-*. clear ap.
- clearbody rvb. (* temporary *)
- clear H10 JJ. destruct xs.
- clear new0 new1 FC FC1.
+ unfold AP_newg in H11|-*. simpl AP_rvb in H11|-*. simpl AP_fields in H11|-*.
+(* set (rvb := AP_rvb pp ap) in *. clearbody ap. clearbody rvb. (* temporary *)
+ clear H10 JJ EC. destruct xs. *)
+ clear new0 new1 FC FC1 H10.
  split3.
- ++
-  admit.
- ++ admit.
+ ++ destruct xs. unfold FM.bytestring. unfold FM.pack.
+    unfold Bytestring_Proofs.InGraph_bytestring.
+    admit.  (* SEEMS WRONG *)
+ ++ eapply gc_graph_iso_trans. apply H5.
+    destruct H4 as [ [? [? [? ?] ] ] [ [? [? [ [? ?] ?] ] ] [? [ [? [? [? ?] ] ] ? ] ] ] ].
+    apply add_node_iso; simpl; auto.
+    clear H11 SSTART VOFF ap OUT EC ANC APN Htag_range JJ RAWF_LEN rawf bytes_len bytes H9 H8.
+    clear t_info3 Hsh' sh' pp HEADROOM H7 H6.
+    clear dependent g.
+    apply new_node_roots with outlier.
+    split; auto.
  ++ unfold alloc_at, vertex_address. rewrite offset_offset_val.
     f_equal.
     ** change 8 with (WORD_SIZE * 1). rewrite <- Z.mul_add_distr_l. f_equal.
-       admit.
-    ** admit.
+       rewrite <- VOFF.
+       unfold vertex_offset. f_equal.
+       symmetry; apply add_node_previous_vertices_size.
+       red; simpl; clear; lia. 
+    ** rewrite add_node_gen_start by auto. simpl.
+       unfold gen_start. rewrite if_true by auto.
+       destruct (spaces_g0 _ _ _ _ H4) as [_ [_ [? _ ] ] ].
+       symmetry; auto.
 
 Unshelve.
 

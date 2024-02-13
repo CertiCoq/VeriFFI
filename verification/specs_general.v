@@ -1298,7 +1298,7 @@ Proof.
 
 unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompatible & (outliercompatible & (rootscompatible & (soundgcgraph & (rp_compatible & copycompatible)))))))))).
 *)
-    assert (edge_compatible g 0 (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3) es).
+    assert (edge_compatible g 0 (raw_fields (newRaw v (Z.of_nat t) (map rep_field ps) R1 R2 R3)) es).
     { unfold edge_compatible. intros. simpl. clear.  unfold es. generalize (0)%nat at 2 4.  induction ps; intros n; simpl; eauto.
     - reflexivity.
     - destruct a; simpl.
@@ -1325,6 +1325,13 @@ unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompat
    + apply add_node_copy_compatible; try apply sup; eauto.   
 Qed.
 
-
-
+(** If outliers/roots are compatible, the roots never contain the next new node.  *)
+Lemma new_node_roots g outlier roots:
+  roots_compatible g outlier roots -> ~ In (inr (new_copied_v g 0)) roots.
+Proof.
+  intros (RC1&RC2) A.
+  rewrite List_ext.filter_sum_right_In_iff in A.
+  apply (computable_theorems.Forall_forall1 _ _ RC2) in A. -
+  apply graph_has_v_not_eq with (to := 0%nat) in A. congruence.
+Qed.
 

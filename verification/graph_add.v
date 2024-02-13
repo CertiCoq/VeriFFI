@@ -534,14 +534,15 @@ Qed.
 #[export] Hint Resolve add_node_gen_has_index_impl add_node_gen_has_index_old add_node_gen_has_index add_node_graph_has_v_impl add_node_graph_has_v add_node_graph_has_v_old : graph_add. 
 
 
-Definition edge_compatible g to lb (es: list (EType * (VType * VType))) :=
-forall e, In e (filter_sum_right (make_fields' (raw_fields lb) (new_copied_v g to) 0)) <-> 
-  In e (map fst es). 
+Definition edge_compatible (g : LGraph) (to : nat) (rawf: list raw_field) (es : list (EType * (VType * VType))) :=
+forall e : EType,
+In e (List_ext.filter_sum_right (make_fields' rawf (new_copied_v g to) 0)) <->
+In e (map fst es).
 
 Lemma add_node_get_edges_or e g to lb es: 
   graph_has_gen g to ->
   graph_has_v (add_node g to lb es) (fst e) ->
-  edge_compatible g to lb es ->
+  edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
   In e (get_edges (add_node g to lb es) (fst e)) -> 
   In e (map fst es) \/ ~ In e (map fst es) /\ graph_has_v g (fst e) /\ In e (get_edges g (fst e)).
@@ -567,7 +568,7 @@ Qed.
 
 Lemma add_node_graph_has_e g to lb es e : 
     graph_has_gen g to ->
-   edge_compatible g to lb es ->
+   edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
   graph_has_e (add_node g to lb es) e -> In e (map fst es) \/ (~ In e (map fst es) /\ graph_has_e g e).
 Proof.
@@ -578,7 +579,7 @@ Qed.
 
 
 Lemma add_node_no_dangling_dst g to lb es: 
-    edge_compatible g to lb es ->
+    edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
   graph_has_gen g to -> add_node_compatible g (new_copied_v g to) es -> no_dangling_dst g -> no_dangling_dst (add_node g to lb es). 
 Proof. 
@@ -612,7 +613,7 @@ Proof.
 Qed.
 
 Lemma add_node_no_backward_edge g to lb es: 
-  graph_has_gen g to ->  edge_compatible g to lb es ->
+  graph_has_gen g to ->  edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
  add_node_compatible g (new_copied_v g to) es  ->  no_backward_edge g -> no_backward_edge (add_node g to lb es). 
 Proof.
@@ -983,7 +984,7 @@ Qed.
 
 Lemma add_node_graph_has_e_full g to lb es e : 
   graph_has_gen g to ->
-   edge_compatible g to lb es ->
+   edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
   graph_has_e (add_node g to lb es) e <-> In e (map fst es) \/ ( graph_has_e g e).
 Proof.
@@ -1007,7 +1008,7 @@ Qed.
 
 Lemma add_node_edge_valid g to lb es : 
     graph_has_gen g to ->
-   edge_compatible g to lb es ->
+   edge_compatible g to (raw_fields lb) es ->
   add_node_compatible g (new_copied_v g to) es -> 
   edge_valid g -> edge_valid (add_node g to lb es). 
 Proof. 
@@ -1031,7 +1032,9 @@ Proof.
 Qed.
 
 Lemma sound_gc_graph g to lb es: 
-  graph_has_gen g to ->  edge_compatible g to lb es -> add_node_compatible g (new_copied_v g to) es -> sound_gc_graph g -> sound_gc_graph (add_node g to lb es).
+  graph_has_gen g to ->  edge_compatible g to (raw_fields lb) es -> 
+   add_node_compatible g (new_copied_v g to) es -> sound_gc_graph g -> 
+   sound_gc_graph (add_node g to lb es).
 Proof.
   unfold sound_gc_graph. intros A EC C (H1&H2&H3&H4).
   split; [ | split3].

@@ -91,22 +91,28 @@ Record alloc_prepackage : Type := {
  }.
    
 
+Lemma AP_raw_color_range: 0 <= 0 < 4.
+Proof. lia. Qed.
+
+
 Record alloc_package (pp: alloc_prepackage) : Type := {
-   AP_rvb: raw_vertex_block;
+   AP_raw_fields: list raw_field;
+   AP_tag: Z;
+   AP_tag_range: 0 <= AP_tag < 256;
+   AP_raw_fields_range: 0 < Zlength AP_raw_fields < two_p (WORD_SIZE * 8 - 10);
+   AP_tag_no_scan: NO_SCAN_TAG <= AP_tag -> ~In None AP_raw_fields;
    AP_fields: list (EType * (VType * VType));
-   AP_unmarked: raw_mark AP_rvb = false;
-   AP_len: AP_n pp = (1 + Zlength (raw_fields AP_rvb))%Z;
-   AP_compat: add_node_compatible (AP_g pp) (new_copied_v (AP_g pp) O) AP_fields;
-   AP_edge_compat: edge_compatible (AP_g pp) 0 AP_rvb AP_fields;
+   AP_len: AP_n pp = (1 + Zlength AP_raw_fields)%Z;
+   AP_vertex := new_copied_v (AP_g pp) O;
+   AP_rvb := Build_raw_vertex_block false AP_vertex AP_raw_fields
+       0 AP_tag AP_tag_range AP_raw_color_range AP_raw_fields_range AP_tag_no_scan;
+   AP_compat: add_node_compatible (AP_g pp) AP_vertex AP_fields;
+   AP_edge_compat: edge_compatible (AP_g pp) 0 AP_raw_fields AP_fields;
    AP_incl_outlier: incl (List_ext.filter_sum_right (List_ext.filter_option 
-                              (raw_fields AP_rvb))) (AP_outlier pp);
-(*   AP_noscan := tag_no_scan AP_rvb;*)
-(*       NO_SCAN_TAG <= raw_tag AP_rvb -> ~In None (raw_fields AP_rvb);*)
-   AP_copied:  copied_vertex AP_rvb = new_copied_v (AP_g pp) 0;
-   AP_mark: raw_mark AP_rvb = false;
-   AP_color: raw_color AP_rvb = 0;
-   AP_newg := add_node (AP_g pp) O AP_rvb AP_fields
+                              (raw_fields AP_rvb))) (AP_outlier pp)
 }.
+
+Definition AP_newg pp ap := add_node (AP_g pp) O (AP_rvb pp ap) (AP_fields pp ap).
 
 Lemma allocate_in_nursery_pf {n: Z} {nursery : space}
    (H: 0 <= n <= nursery.(total_space)-nursery.(used_space)) :
