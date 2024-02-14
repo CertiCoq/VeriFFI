@@ -145,13 +145,24 @@ rewrite Zlength_cons in *.
 auto.
 Qed.
 
+Lemma enough_lemma: forall n tinfo, 
+  0 <= n <= headroom tinfo ->
+  0 <= n <=
+    total_space (nth 0 (spaces (ti_heap tinfo)) null_space)
+       - used_space (nth 0 (spaces (ti_heap tinfo)) null_space).
+Proof.
+unfold headroom.
+intros.
+Search heap_head.
+destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ? ] ] ].
+rewrite H0. rewrite H1 in H. simpl. auto.
+Qed.
+
 Definition bump_alloc (pp: alloc_prepackage) : GCGraph.thread_info :=
   let tinfo := AP_ti pp in
-  let nursery := heap_head (ti_heap tinfo) in
+  let nursery := heap_head (ti_heap tinfo)in
    {| ti_heap_p := tinfo.(ti_heap_p);
-      ti_heap := {| spaces := allocate_in_nursery (AP_n pp) nursery (AP_enough pp) ::
-                                      tl (spaces (ti_heap tinfo));
-                                  spaces_size := allocate_in_full_gc_aux _ nursery (AP_enough pp) _ |};
+      ti_heap := add_node_heap 0 (ti_heap tinfo) (AP_n pp) (enough_lemma _ _ (AP_enough pp)) ;
       ti_args := tinfo.(ti_args);
       arg_size := tinfo.(arg_size);
       ti_frames := tinfo.(ti_frames);

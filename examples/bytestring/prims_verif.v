@@ -174,10 +174,15 @@ change (iter_sepcon.iter_sepcon (?A :: ?B) ?F) with
 unfold allocate_in_nursery.
 set (EN := AP_enough pp). clearbody EN.
 unfold space_rest_rep at 2.
+simpl ti_heap.
 simpl space_start.
-rewrite if_false
-  by (intro Hx; rewrite Hx in H0; contradiction H0).
-simpl used_space. simpl total_space. simpl space_sh.
+rewrite add_node_heap_start0.
+simpl ti_heap.
+rewrite add_node_heap_used_space0.
+rewrite add_node_heap_total0.
+fold tinfo.
+rewrite H5.
+set (DA := data_at _ env_graph_gc.thread_info_type _ _). clearbody DA.
 change (iter_sepcon.iter_sepcon (?A :: ?B) ?F) with
   (sepcon (F A) (iter_sepcon.iter_sepcon B F)).
 rewrite H3 at 2.
@@ -188,16 +193,11 @@ rewrite if_false
   by (intro Hx; rewrite H5,Hx in H0; contradiction H0).
 set (K := _ - _).
 set (n := AP_n pp).
-saturate_local. clear H6.
+saturate_local. rename H6 into FC'.
 fold tinfo in HEADROOM; rewrite H5 in HEADROOM.
 rewrite (split2_data_at__Tarray_app n K) by lia.
 rewrite <- !sepcon_assoc.
 limited_change_compspecs CompSpecs.
-cancel.
-change (@data_at_ env_graph_gc.CompSpecs (space_sh nursery) (tarray int_or_ptr_type n)
-      (offset_val (WORD_SIZE * used_space nursery) (space_start nursery)))
- with (@data_at_ CompSpecs (space_sh nursery) (tarray int_or_ptr_type n)
-      (offset_val (WORD_SIZE * used_space nursery) (space_start nursery))).
 assert (Hsh: nth_sh (AP_g pp) 0 = space_sh nursery). {
   destruct H as [_ [? _  ] ].
   destruct H as [? _ ].
@@ -207,18 +207,11 @@ assert (Hsh: nth_sh (AP_g pp) 0 = space_sh nursery). {
   unfold nth_sh. rewrite H2. rewrite H5. auto.
  }
 rewrite Hsh.
-pull_left (data_at_ (space_sh nursery) (tarray int_or_ptr_type n)
-      (offset_val (WORD_SIZE * used_space nursery) (space_start nursery))).
-rewrite !sepcon_assoc.
-apply sepcon_derives.
-rewrite H5. auto.
+cancel.
 apply allp_right; intro ap.
 apply -> wand_sepcon_adjoint.
-
-
 rewrite andp_comm, prop_true_andp.
 -
-limited_change_compspecs CompSpecs.
 subst nursery.
 set (nursery := heap_head (ti_heap tinfo)) in *.
 set (TT1 := ti_token_rep _ _).
@@ -227,38 +220,45 @@ assert (TT2 = TT1) as ->. {
  subst TT2; subst TT1.
  unfold ti_token_rep; simpl.
  f_equal.
+ rewrite add_node_space_alloc_in_nursery with (ENUF' := HEADROOM).
  rewrite H3.
- simpl. f_equal.
+ simpl.
+ f_equal.
 }
 clearbody TT1.
-rewrite Vptrofs_unfold_true by reflexivity.
-set (DA := data_at _ _ _ _). clearbody DA.
+cancel.
+rewrite add_node_space_alloc_in_nursery with (ENUF' := EN).
+simpl iter_sepcon.iter_sepcon.
+rewrite if_false
+ by (fold tinfo; fold nursery; intro Hx; rewrite Hx in H0; contradiction).
+simpl tl.
+limited_change_compspecs CompSpecs.
+cancel.
+set (HS := heap_struct_rep _ _ _). clearbody HS.
+fold tinfo.
+fold nursery.
+rewrite H3. simpl tl.
+fold space_rest_rep.
+fold n.
 rewrite Z.sub_add_distr.
 fold K.
-rewrite H3.
-simpl tl.
-cancel.
-rewrite !sepcon_assoc.
-apply sepcon_derives.
-+
-apply derives_refl'; f_equal.
 unfold field_address0.
 rewrite if_true by auto with field_compatible.
 simpl. change 8%Z with WORD_SIZE.
-rewrite offset_offset_val. f_equal. lia.
-+
+rewrite offset_offset_val.
+rewrite <- Z.mul_add_distr_l.
+cancel.
 unfold AP_newg.
-
 destruct H.
 destruct H as [? [? [? ? ] ] ].
 destruct H5.
 rewrite <- Hsh.
 rewrite add_node_spatial; simpl; auto.
 * red; intros.
-destruct H10 as [H10a [H10b H10c] ].
-apply H10c in H11.
-specialize (H11 H12).
-destruct H11.
+destruct H9 as [H10a [H10b H10c] ].
+apply H10c in H10.
+specialize (H10 H11).
+destruct H10.
 auto.
 *
 apply AP_compat.
@@ -269,15 +269,6 @@ assert (ENUF: 0 <= n <=
     - used_space (nth 0 (spaces (ti_heap (AP_ti pp))) null_space))
   by (fold tinfo; rewrite H3; simpl; rewrite <- H5;  apply (AP_enough pp)).
 unfold AP_newg, bump_alloc.
-replace {|
-        spaces :=
-          allocate_in_nursery (AP_n pp) (heap_head (ti_heap (AP_ti pp))) (AP_enough pp)
-          :: tl (spaces (ti_heap (AP_ti pp)));
-        spaces_size :=
-          allocate_in_full_gc_aux (AP_n pp) (heap_head (ti_heap (AP_ti pp))) 
-            (AP_enough pp) (ti_heap (AP_ti pp))
-      |} with (add_node_heap 0 (ti_heap (AP_ti pp)) n ENUF)
-    by (apply heap_congr; apply add_node_space_alloc_in_nursery).
 red in H; decompose [and] H; clear H.
 split3; [ | | split3]; simpl; auto.
 destruct H6 as [? [ ? [? ?] ] ].
@@ -292,31 +283,30 @@ apply add_node_no_dangling_dst; auto; try apply AP_edge_compat; apply AP_compat.
 apply add_node_ti_size_spec; auto.
 unfold tinfo in *; clear - H3; rewrite H3; list_solve.
 +
-destruct H9 as [? [? [? ? ] ] ].
+destruct H8 as [? [? [? ? ] ] ].
 split; [ | split3].
 *
-
 apply add_node_graph_heap_compatible; auto.
 rewrite Z.add_comm. symmetry. apply AP_len.
 apply H6.
 *
 fold tinfo.
-red in H9|-*; rewrite <- H9.
-destruct H11 as [ _  ? ].
-red in H11.
-clear - H11.
+red in H8|-*. rewrite <- H8.
+destruct H10 as [ _  ? ].
+red in H10.
+clear - H10.
 induction roots.
 reflexivity.
 simpl.
-specialize (IHroots (Forall_filter_sum_right_cons_e _ _ _ H11)).
+specialize (IHroots (Forall_filter_sum_right_cons_e _ _ _ H10)).
 f_equal; auto.
 destruct a; simpl; auto.
-inv H11.
+inv H10.
 apply add_node_vertex_address_old; auto.
 *
-destruct H11; split; auto.
-red in H14|-*.
-eapply Forall_impl; try apply H14.
+destruct H10; split; auto.
+red in H13|-*.
+eapply Forall_impl; try apply H13.
 intros.
 apply add_node_graph_has_v_impl; auto.
 *
@@ -332,8 +322,6 @@ replace (AP_rvb pp ap)
  by (apply raw_vertex_block_congr; simpl; auto).
 apply add_node_copy_compatible; auto.
 Qed.
-
-Import Bytestring_Proofs.
 
 Lemma Zlength_bytes_of_string:
   forall s, Zlength (bytes_of_string s) = Z.of_nat (String.length s).
@@ -464,8 +452,6 @@ Proof.
   reflexivity.
   reflexivity.
 Qed.
-
-Definition BYTESTRING_TAG : Z := 252.
 
 Lemma bytestring_contents_lemma1:
   forall g g' bytes k, map (field2val BYTESTRING_TAG g) 
@@ -1751,10 +1737,10 @@ entailer!!.
    end.
    apply Z.div_le_mono; try lia.
  }
- assert (JJ: NO_SCAN_TAG <= 252 -> ~In None rawf). {
+ assert (JJ: NO_SCAN_TAG <= BYTESTRING_TAG -> ~In None rawf). {
    clear - H7. subst rawf. intros ? ?. list_solve.
  }
- assert (Htag_range: 0 <= 252 < 256) by (clear; lia).
+ assert (Htag_range: 0 <= BYTESTRING_TAG < 256) by (unfold BYTESTRING_TAG; clear; lia).
  assert (APN: AP_n pp = 1 + Zlength rawf). {
    simpl. unfold rawf. rewrite Zlength_map, bytes_len. lia.
  }
@@ -1774,7 +1760,7 @@ entailer!!.
    intros ? ?. exfalso.
    induction (bytes_to_words bytes); simpl in H; auto.
  }
- pose (ap := Build_alloc_package pp rawf 252 Htag_range RAWF_LEN JJ nil APN ANC EC OUT).
+ pose (ap := Build_alloc_package pp rawf BYTESTRING_TAG Htag_range RAWF_LEN JJ nil APN ANC EC OUT).
  assert (WAND |-- 
          graph_rep (AP_g pp)
           * vertex_at (nth_sh (AP_g pp) 0)
@@ -1821,7 +1807,7 @@ entailer!!.
   inv H4.
   destruct H7. auto.
  }
- assert (data_at sh' (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + 252))] new0
+ assert (data_at sh' (tarray int_or_ptr_type 1) [Vlong (Int64.repr ((n - 1) * two_p 10 + BYTESTRING_TAG))] new0
         * field_at sh' (tarray tuchar (len + pad_length)) []  (map Vubyte bytes) new1
     |-- vertex_at (nth_sh g' 0) (vertex_address (AP_newg pp ap) (new_copied_v g' 0))
               (header_new (AP_rvb pp ap))
@@ -1835,8 +1821,8 @@ entailer!!.
    apply sepcon_derives.
    - fold sh'.
     erewrite data_at_singleton_array_eq by reflexivity.
-    set (i := ((n - 1) * two_power_pos 10 + 252)).
-    replace (252 + 2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * Zlength rawf))))))))))
+    set (i := ((n - 1) * two_power_pos 10 + BYTESTRING_TAG)).
+    replace (BYTESTRING_TAG + 2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * (2 * Zlength rawf))))))))))
      with i
     by (unfold rawf,i; rewrite Zlength_map, bytes_len;
         really_simplify (two_power_pos 10); lia).
@@ -1910,9 +1896,6 @@ entailer!!.
  ++ eapply gc_graph_iso_trans. apply H5.
     destruct H4 as [ [? [? [? ?] ] ] [ [? [? [ [? ?] ?] ] ] [? [ [? [? [? ?] ] ] ? ] ] ] ].
     apply add_node_iso; simpl; auto.
-    clear H11 SSTART VOFF ap OUT EC ANC APN Htag_range JJ RAWF_LEN rawf bytes_len bytes H9 H8.
-    clear t_info3 Hsh' sh' pp HEADROOM H7 H6.
-    clear dependent g.
     apply new_node_roots with outlier.
     split; auto.
  ++ unfold alloc_at, vertex_address. rewrite offset_offset_val.

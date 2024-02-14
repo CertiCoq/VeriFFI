@@ -16,6 +16,32 @@ Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.bytestring.prog.
 
+Import GCGraph sublist Integers.
+
+Fixpoint bytes_to_words (bl: list Byte.int) : list Int64.int :=
+ match bl with
+ | b0 :: b1 :: b2 :: b3 :: b4 ::b5 :: b6 :: b7 :: b' =>
+     Int64.repr (Memdata.decode_int (b0::b1::b2::b3::b4::b5::b6::b7::nil)) 
+     :: bytes_to_words b'
+ | _ => nil
+ end.
+
+
+Definition bytes_of_string (s: string) : list Byte.int :=
+  map (compose Byte.repr (compose Z.of_N Strings.Byte.to_N))
+    (list_byte_of_string s).
+
+  Definition packed_string (x: string) (rawf: list raw_field) :=
+   let len := Z.of_nat (String.length x) in
+   let pad_length := (8 - len mod 8)%Z in
+   let bytes := (bytes_of_string x ++
+          Zrepeat Byte.zero (pad_length - 1) ++ 
+            (Byte.repr (pad_length - 1) :: nil))%list in
+    rawf = map (fun i : Int64.int => Some (inl (Int64.unsigned i))) (bytes_to_words bytes).
+
+
+Definition BYTESTRING_TAG : Z := 252.
+
 Module FM.
   Definition bytestring : Type := string.
 
@@ -71,19 +97,11 @@ Module Bytestring_Proofs.
   #[local] Existing Instance Isomorphism_M.
   #[local] Existing Instance Isomorphism_stream.
 
-  Import sublist.
-
+(*
   Definition padding (len: Z) : list Ascii.ascii := 
      let n := (7 - len)%Z in
       Zrepeat Ascii.zero n
       ++ (Ascii.ascii_of_N (Z.to_N n) :: nil).
-(* 
-  Definition padding (len: Z) : list Byte.byte := 
-     let n := (7 - len)%Z in
-      Zrepeat Byte.x00 n
-      ++ (match Byte.to_N n with Some b => b | _ => Byte.x00 end
-          :: nil).
-*)
 
   Fixpoint encodebytes (s: list Ascii.ascii) : Z :=
    match s with
@@ -108,31 +126,7 @@ Module Bytestring_Proofs.
   Definition bytestring_raw_fields (s: FM.bytestring) : list GCGraph.raw_field :=
     map (fun z => Some (inl z)) 
     (chars_raw_fields (list_ascii_of_string s)).
-
-Import GCGraph.
-
-Fixpoint bytes_to_words (bl: list Integers.Byte.int) : list Integers.Int64.int :=
- match bl with
- | b0 :: b1 :: b2 :: b3 :: b4 ::b5 :: b6 :: b7 :: b' =>
-     Integers.Int64.repr (Memdata.decode_int (b0::b1::b2::b3::b4::b5::b6::b7::nil)) 
-     :: bytes_to_words b'
- | _ => nil
- end.
-
-
-Definition bytes_of_string (s: string) : list Integers.Byte.int :=
-  map (compose Integers.Byte.repr (compose Z.of_N Strings.Byte.to_N))
-    (list_byte_of_string s).
-
-  Definition packed_string (x: string) (rawf: list raw_field) :=
-   let len := Z.of_nat (String.length x) in
-   let pad_length := (8 - len mod 8)%Z in
-   let bytes := (bytes_of_string x ++
-          Zrepeat Integers.Byte.zero (pad_length - 1) ++ 
-            (Integers.Byte.repr (pad_length - 1) :: nil))%list in
-    rawf = map (fun i : Integers.Int64.int => Some (inl (Integers.Int64.unsigned i))) (bytes_to_words bytes).
-
-
+*)
 
   Definition GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
    Build_GraphPredicate FM.bytestring (fun g s p => 
@@ -140,7 +134,7 @@ Definition bytes_of_string (s: string) : list Integers.Byte.int :=
     | repNode v => graph_has_v g v /\
                   match (graph_model.vlabel g v) with
                   | Build_raw_vertex_block false _ raws _ tag _ _ _ _ => 
-                         tag=252%Z /\ packed_string s raws
+                         tag=BYTESTRING_TAG /\ packed_string s raws
                   | _ => False
                   end
     | _ => False
