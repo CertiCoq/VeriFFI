@@ -109,11 +109,58 @@ Module Bytestring_Proofs.
     map (fun z => Some (inl z)) 
     (chars_raw_fields (list_ascii_of_string s)).
 
-  #[local] Instance InGraph_bytestring : InGraph FM.bytestring := InGraph_string.
+Import GCGraph.
 
-  #[local] Instance GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
-          GraphPredicate_string.
-   (* TODO: might be a good idea to permit outliers *)
+Fixpoint bytes_to_words (bl: list Integers.Byte.int) : list Integers.Int64.int :=
+ match bl with
+ | b0 :: b1 :: b2 :: b3 :: b4 ::b5 :: b6 :: b7 :: b' =>
+     Integers.Int64.repr (Memdata.decode_int (b0::b1::b2::b3::b4::b5::b6::b7::nil)) 
+     :: bytes_to_words b'
+ | _ => nil
+ end.
+
+
+Definition bytes_of_string (s: string) : list Integers.Byte.int :=
+  map (compose Integers.Byte.repr (compose Z.of_N Strings.Byte.to_N))
+    (list_byte_of_string s).
+
+  Definition packed_string (x: string) (rawf: list raw_field) :=
+   let len := Z.of_nat (String.length x) in
+   let pad_length := (8 - len mod 8)%Z in
+   let bytes := (bytes_of_string x ++
+          Zrepeat Integers.Byte.zero (pad_length - 1) ++ 
+            (Integers.Byte.repr (pad_length - 1) :: nil))%list in
+    rawf = map (fun i : Integers.Int64.int => Some (inl (Integers.Int64.unsigned i))) (bytes_to_words bytes).
+
+
+
+  Definition GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
+   Build_GraphPredicate FM.bytestring (fun g s p => 
+    match p with
+    | repNode v => graph_has_v g v /\
+                  match (graph_model.vlabel g v) with
+                  | Build_raw_vertex_block false _ raws _ tag _ _ _ _ => 
+                         tag=252%Z /\ packed_string s raws
+                  | _ => False
+                  end
+    | _ => False
+    end).
+
+  #[local] Instance InGraph_bytestring : InGraph FM.bytestring.
+   apply (Build_InGraph _ GraphPredicate_bytestring).
+   intros. destruct H as [H _]. auto.
+   intros. destruct p; try contradiction. destruct H1.
+           destruct (@graph_model.vlabel VType EType V_EqDec
+         GCGraph.E_EqDec raw_vertex_block nat graph_info g v)
+            eqn:?H; try contradiction.
+          destruct raw_mark; try contradiction.
+          destruct H2; subst.
+          split.
+          rewrite <- add_node_graph_has_v by auto. 
+          left; auto.
+          rewrite add_node_vlabel_old by (apply graph_has_v_not_eq; auto).
+          rewrite H3. split; auto.
+   Defined.
 
   #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
     refine {| graph_predicate g x p := _ |}.
@@ -152,7 +199,7 @@ Module Bytestring_Proofs.
 
   Definition pack_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ string (@transparent _ InGraph_bytestring) (fun _ =>
+        @ARG _ string (@transparent _ InGraph_string) (fun _ =>
           @RES _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _))
      ; prim_fn := C.pack
      ; model_fn := fun '(x; tt) => FM.pack x
@@ -163,7 +210,7 @@ Module Bytestring_Proofs.
   Definition unpack_desc : fn_desc :=
     {| type_desc :=
         @ARG _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _) (fun _ =>
-          @RES _ string (@transparent _ InGraph_bytestring))
+          @RES _ string (@transparent _ InGraph_string))
      ; prim_fn := C.unpack
      ; model_fn := fun '(x; tt) => FM.unpack x
      ; f_arity := 1

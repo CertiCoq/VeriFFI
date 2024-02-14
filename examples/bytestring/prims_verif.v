@@ -333,8 +333,7 @@ replace (AP_rvb pp ap)
 apply add_node_copy_compatible; auto.
 Qed.
 
-Definition bytes_of_string (s: string) : list Integers.Byte.int :=
-  map (Integers.Byte.repr oo Z.of_N oo Strings.Byte.to_N) (list_byte_of_string s).
+Import Bytestring_Proofs.
 
 Lemma Zlength_bytes_of_string:
   forall s, Zlength (bytes_of_string s) = Z.of_nat (String.length s).
@@ -416,15 +415,6 @@ auto.
 apply IHr.
 congruence.
 Qed.
-
-
-Fixpoint bytes_to_words (bl: list byte) : list Int64.int :=
- match bl with
- | b0 :: b1 :: b2 :: b3 :: b4 ::b5 :: b6 :: b7 :: b' =>
-     Int64.repr (decode_int [b0;b1;b2;b3;b4;b5;b6;b7]) 
-     :: bytes_to_words b'
- | _ => nil
- end.
 
 Local Lemma bytes_to_words_length': forall n: nat,
   forall bl, Zlength bl < Z.of_nat n ->
@@ -1210,7 +1200,7 @@ lia.
 Qed.
 
 Lemma body_pack:
-  semax_body Vprog Gprog f_pack pack_spec.
+  semax_body Vprog Gprog f_pack specs.pack_spec.
 Proof.
  start_function'.
  forward.
@@ -1911,13 +1901,12 @@ entailer!!.
  2: unfold frame_rep_; limited_change_compspecs CompSpecs; entailer!!.
  simpl.
  unfold AP_newg in H11|-*. simpl AP_rvb in H11|-*. simpl AP_fields in H11|-*.
-(* set (rvb := AP_rvb pp ap) in *. clearbody ap. clearbody rvb. (* temporary *)
- clear H10 JJ EC. destruct xs. *)
  clear new0 new1 FC FC1 H10.
  split3.
- ++ destruct xs. unfold FM.bytestring. unfold FM.pack.
-    unfold Bytestring_Proofs.InGraph_bytestring.
-    admit.  (* SEEMS WRONG *)
+ ++ destruct xs. 
+    split. rewrite <- add_node_graph_has_v by auto. right. reflexivity.
+    rewrite add_node_vlabel. split; auto.
+    reflexivity.
  ++ eapply gc_graph_iso_trans. apply H5.
     destruct H4 as [ [? [? [? ?] ] ] [ [? [? [ [? ?] ?] ] ] [? [ [? [? [? ?] ] ] ? ] ] ] ].
     apply add_node_iso; simpl; auto.
@@ -1937,8 +1926,4 @@ entailer!!.
        unfold gen_start. rewrite if_true by auto.
        destruct (spaces_g0 _ _ _ _ H4) as [_ [_ [? _ ] ] ].
        symmetry; auto.
-
-Unshelve.
-
-all: fail.
-Abort.
+Qed.
