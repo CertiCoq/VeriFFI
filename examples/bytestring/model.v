@@ -154,6 +154,7 @@ Module Bytestring_Proofs.
           left; auto.
           rewrite add_node_vlabel_old by (apply graph_has_v_not_eq; auto).
           rewrite H3. split; auto.
+   InGraph.prove_outlier_compat.
    Defined.
 
   #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
@@ -170,7 +171,7 @@ Module Bytestring_Proofs.
   #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream :=
          {| graph_predicate g x p := 
              match p with
-             | repOut _ => True  (* This is probably a bit too weak... *)
+             | repOut q => True  (* This is probably a bit too weak... *)
              | _ => False end |}.
   #[local] Instance InGraph_stream : InGraph FM.stream.
     econstructor.
@@ -178,7 +179,11 @@ Module Bytestring_Proofs.
     * intros. contradiction H.
     * intros.  destruct p; try contradiction.
       hnf; auto.
-    Qed.
+    * intros. simpl in H0.
+       admit.  (* To solve this, it may be necessary to add "outliers"
+                 as an argument to graph_predicate, and then change the "True"
+                 just above ("probably a bit too week") to "In q outliers" *)
+   Admitted.
 
   Definition append_desc : fn_desc :=
     {| type_desc :=

@@ -35,6 +35,10 @@ Class InGraph (A : Type) : Type :=
             (e : list (EType * (VType * VType))) (n : A) (p : rep_type),
       add_node_compatible g (new_copied_v g to) e ->
       graph_has_gen g to -> graph_predicate g n p -> graph_predicate (add_node g to lb e) n p
+  ; outlier_compat: forall (g: graph) (x: A) (p: GC_Pointer) outliers,
+    outlier_compatible g outliers ->
+    graph_predicate g x (repOut p) ->
+    In p outliers
   }.
 
 Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> A -> rep_type -> Prop :=
@@ -49,18 +53,18 @@ Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> A -> rep_type -> 
 
 #[export] Instance InGraph_Prop : InGraph Prop.
 Proof.
-  refine (@Build_InGraph _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition.
+  refine (@Build_InGraph _ _ _ _ _).
+  intros; simpl in *. intuition. induction p; intuition. intuition.
 Defined.
 #[export] Instance InGraph_Set : InGraph Set.
 Proof.
-  refine (@Build_InGraph _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition.
+  refine (@Build_InGraph _ _ _ _ _).
+  intros; simpl in *. intuition. induction p; intuition. intuition.
 Defined.
 #[export] Instance InGraph_Type : InGraph Type.
 Proof.
-  refine (@Build_InGraph _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition.
+  refine (@Build_InGraph _ _ _ _ _).
+  intros; simpl in *. intuition. induction p; intuition. intuition.
 Defined.
 
 #[export] Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).

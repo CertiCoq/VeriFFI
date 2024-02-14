@@ -91,12 +91,29 @@ Ltac prove_monotone :=
     try (eauto || (eapply graph_cRep_add_node; eauto))
   end); auto.
 
+Ltac prove_outlier_compatible1 := 
+ solve [
+ let g := fresh "g" in let x := fresh "x" in let J := fresh "J" in
+ intros g x ?p ?outliers _ J;
+ exfalso;
+ induction x;
+ repeat match goal with 
+        | H: graph_predicate _ _ (repOut _) |- _ => destruct H 
+        | H: _ /\ _ |- _ => destruct H
+        | H: exists _, _ |- _ => destruct H end;
+ eauto]. 
+
+Ltac prove_outlier_compat := 
+  try prove_outlier_compatible1;
+  try solve [intuition];
+  match goal with |- ?A => fail 100 "Failed in prove_outlier_compat with goal:" A end.
+
 Ltac in_graph_gen_tac :=
   intros;
   repeat (match goal with
           | [R : InGraph _ |- _] => destruct R
           end);
-  econstructor; [prove_has_v | prove_monotone].
+  econstructor; [prove_has_v | prove_monotone | prove_outlier_compat].
 
 Require Import MetaCoq.Template.All.
 

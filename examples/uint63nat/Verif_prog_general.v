@@ -383,16 +383,6 @@ Proof.
   simpl. f_equal. simpl. apply IHxs.
 Qed.
 
-
-Lemma InGraph_outlier_compatible {A} `{GP: GraphPredicate A}:
-  forall (g: graph) (x: A) (p: GC_Pointer) outliers,
-    outlier_compatible g outliers ->
-    graph_predicate g x (repOut p) ->
-    In p outliers.
-  (* If this is not provable, we could add any other premises implied by
-      gc_condition_prop *)
-Admitted.
-
 Lemma ctor_in_graphs_has:
   forall (descr : ctor_desc) (gr : graph) outliers
     (ps : list rep_type) (args_my : args (ctor_reified descr)),
@@ -414,7 +404,7 @@ Proof.
     destruct H0. constructor. 
     + destruct r0.
       * auto.
-      * red in H0. eapply InGraph_outlier_compatible in H0; try eassumption.
+      * red in H0. eapply outlier_compat in H0; try eassumption.
       * split.
        -- eapply (@has_v A _); eauto.
        -- intros B. eapply graph_has_v_not_eq. 2: rewrite B; reflexivity. eapply (@has_v A _); eauto.  
