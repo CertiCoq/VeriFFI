@@ -22,17 +22,17 @@ Import spatial_gcgraph.
 
 (** Generation of the in_graphs predicate, given the constructor or function arguments. *)
 Fixpoint in_graphs {ann: Type -> Type} (ing: forall T, ann T -> InGraph T)
-         (g : graph) (c : reified ann) (xs : args c) (ps : list rep_type) : Prop :=
+         (g : graph) outliers (c : reified ann) (xs : args c) (ps : list rep_type) : Prop :=
   match c as l return (args l -> Prop) with
   | TYPEPARAM f =>
       fun H => let (X_, xs') := H in
                let (R_, xs') := xs' in
-        in_graphs ing g (f X_ R_) xs' ps
+        in_graphs ing g outliers (f X_ R_) xs' ps
   | ARG X_ R_ f =>
       fun H  => let (x, xs') := H in
       match ps with
       | [] => False
-      | p :: ps' => @is_in_graph X_ (ing X_ R_) g x p /\ @in_graphs _ ing g (f x) xs' ps'
+      | p :: ps' => @is_in_graph X_ (ing X_ R_) g outliers x p /\ @in_graphs _ ing g outliers (f x) xs' ps'
       end
   | RES x _ => fun _ => ps = nil
   end xs.
@@ -53,8 +53,8 @@ Fixpoint get_size (c : reified ctor_ann) (xs : args c) : nat :=
 Definition get_tulongs (c : reified ctor_ann) (xs : args c) : list type :=
   repeat tulong (get_size c xs).
 
-Lemma ctor_in_graphs_size (g : graph) (c : reified ctor_ann) (xs : args c) (ps : list rep_type) :
-  ctor_in_graphs g c xs ps -> get_size c xs = length ps.
+Lemma ctor_in_graphs_size (g : graph) outliers (c : reified ctor_ann) (xs : args c) (ps : list rep_type) :
+  ctor_in_graphs g outliers c xs ps -> get_size c xs = length ps.
 Proof.
    unfold ctor_in_graphs.
   revert ps.
@@ -86,7 +86,7 @@ Definition fn_desc_to_funspec_aux
        outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
    PRE [[ cons thread_info (repeat int_or_ptr_type arity) ]]
        PROP (writable_share sh ;
-              prim_in_graphs g c xs ps)
+              prim_in_graphs g outlier c xs ps)
        (PARAMSx (ti :: map (rep_type_val g) ps)
         (GLOBALSx [gv]
          (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
@@ -94,7 +94,7 @@ Definition fn_desc_to_funspec_aux
        EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
                 @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
-                  (model_fn xs) p' ;
+                  outlier (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots')
           RETURN  (rep_type_val g' p')
           SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
@@ -135,7 +135,7 @@ Definition alloc_make_spec_general
          ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
     PRE  [[ thread_info :: repeat int_or_ptr_type n ]]
        PROP (n = get_size (ctor_reified c) xs ;
-             ctor_in_graphs g _ xs ps ;
+             ctor_in_graphs g outlier _ xs ps ;
              (Z.of_nat n) < headroom t_info ;
              writable_share sh)
        (PARAMSx (ti :: map (fun p => rep_type_val g p) ps)
@@ -144,7 +144,7 @@ Definition alloc_make_spec_general
     POST [ int_or_ptr_type ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
-              @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' (ctor_reflected c xs) p' ;
+              @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' outlier (ctor_reflected c xs) p' ;
               headroom t_info' = headroom t_info - Z.of_nat (S n);
               gc_graph_iso g roots g' roots;
               ti_frames t_info = ti_frames t_info'
@@ -242,8 +242,8 @@ make_cs_preserve env_graph_gc.CompSpecs filteredCompSpecs.
 Defined.
 
 Lemma is_pointer_or_integer_rep_type_val:
-  forall {A} `{InG: InGraph A} g (n: A) p, 
-   is_in_graph g n p ->
+  forall {A} `{InG: InGraph A} g outlier (n: A) p, 
+   is_in_graph g outlier n p ->
    graph_rep g |-- !! is_pointer_or_integer (rep_type_val g p).
 Proof.
 intros.
@@ -778,23 +778,14 @@ Definition GC_SAVE1_tycontext :=
 
 (* delete this from examples/*/*.v *)
 Lemma gc_preserved {A: Type} `{InG: InGraph A}:
-  forall (g1 :graph) (roots1: list root_t)
+  forall outlier (g1 :graph) (roots1: list root_t)
          (g2: graph) (roots2: list root_t),
     gc_graph_iso g1 roots1 g2 roots2 ->
     graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
     forall (a: A) (n: Z),
       0 <= n < Zlength roots1 ->
-    @graph_predicate _ (@in_graph_pred _ InG) g1 a (rep_type_of_root_t (Znth n roots1)) ->
-    @graph_predicate _ (@in_graph_pred _ InG) g2 a (rep_type_of_root_t (Znth n roots2)).
-Admitted.
-
-(* delete this from examples/*/*.v *)
-Lemma InGraph_outlier_compatible {A} `{GP: GraphPredicate A}:
-  forall (g: graph) (x: A) (p: GC_Pointer) outliers,
-    outlier_compatible g outliers ->
-    graph_predicate g x (repOut p) ->
-    In p outliers.
-  (* If this is not provable, we could add any other premises implied by gc_condition_prop *)
+    @graph_predicate _ (@in_graph_pred _ InG) g1 outlier a (rep_type_of_root_t (Znth n roots1)) ->
+    @graph_predicate _ (@in_graph_pred _ InG) g2 outlier a (rep_type_of_root_t (Znth n roots2)).
 Admitted.
 
 Lemma semax_GC_SAVE1:
@@ -812,7 +803,7 @@ Lemma semax_GC_SAVE1:
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
   (Hn: 0 <= n <= Int64.max_signed)
-  (H2 : @is_in_graph _ IG0 g m0 v0) 
+  (H2 : @is_in_graph _ IG0 g outlier m0 v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 @semax filteredCompSpecs _ GC_SAVE1_tycontext (*(func_tycontext f_uint63_to_nat Vprog Gprog nil)*)
@@ -829,7 +820,7 @@ Lemma semax_GC_SAVE1:
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
-      PROP (headroom t_info' >= n; is_in_graph g' m0 v0';
+      PROP (headroom t_info' >= n; is_in_graph g' outlier m0 v0';
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
@@ -917,7 +908,7 @@ abbreviate_semax.
        ++ clear t_info' frames'' STARTptr STARTeq startb starti.
           unfold root_t_of_rep_type.
           destruct v0; auto.
-          pose proof (InGraph_outlier_compatible _ _ _ _ H14 H2).
+          pose proof (outlier_compat _ _ _ _ H14 H2).
           red in H7|-*. simpl.
           change (?A :: ?B) with ([A]++B).
           apply incl_app; auto.
@@ -955,9 +946,9 @@ abbreviate_semax.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
    assert (exists v0', exists roots3',
-        v0x = rep_type_val g3 v0' /\ is_in_graph g3 m0 v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
+        v0x = rep_type_val g3 v0' /\ is_in_graph g3 outlier m0 v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
        rewrite <- H14 in H3. simpl frames2rootpairs in H3.
-    pose proof @gc_preserved _ IG0 _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
+    pose proof @gc_preserved _ IG0 outlier _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
     m0 0 ltac:(clear; Zlength_solve).
     rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H10.
     specialize (H10 H2).
