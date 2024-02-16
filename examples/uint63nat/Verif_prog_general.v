@@ -353,17 +353,17 @@ Qed.
 
 
 Definition X_in_graph_cons (descr : ctor_desc) (t: nat) : Prop :=
-  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
+  forall (gr : graph) (outlier: outlier_t) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
   graph_has_gen gr 0 ->
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr outlier (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reified descr) args_my in 
     @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) outlier (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition calc t n := Z.of_nat t + Z.shiftl (Z.of_nat n) 10.
@@ -387,7 +387,7 @@ Lemma ctor_in_graphs_has:
   forall (descr : ctor_desc) (gr : graph) outliers
     (ps : list rep_type) (args_my : args (ctor_reified descr)),
     outlier_compatible gr outliers->
-    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr outliers (ctor_reified descr) args_my ps ->
     Forall
       (fun p : rep_type =>
          match p with
@@ -413,17 +413,17 @@ Proof.
 Qed.
 
 Definition X_in_graph_cons' (descr : ctor_desc) (t: nat) : Prop :=
-  forall (gr : graph) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
+  forall (gr : graph) (outlier: outlier_t) (ps : list rep_type)  (args_my : args (ctor_reified descr)),
   graph_has_gen gr 0 ->
   forall (R1 : 0 <= Z.of_nat t < 256)
     (R2 : 0 < Zlength (map rep_field ps) < two_power_pos 54)
     (R3 : NO_SCAN_TAG <= Z.of_nat t -> ~ In None (map rep_field ps)),
-    ctor_in_graphs gr (ctor_reified descr) args_my ps ->
+    ctor_in_graphs gr outlier (ctor_reified descr) args_my ps ->
     add_node_compatible gr (new_copied_v gr 0) (get_fields gr 0 ps 0) -> 
     let r := result (ctor_reified descr) args_my in 
     @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r))  (add_node gr 0
     (newRaw (new_copied_v gr 0) (Z.of_nat t) (map rep_field ps) R1 R2 R3)
-    (get_fields gr 0 ps 0)) (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
+    (get_fields gr 0 ps 0)) outlier (ctor_reflected descr args_my)  (repNode (new_copied_v gr 0))
 .
 
 Definition field_t_rep_type (g : LGraph) x := 
@@ -469,7 +469,7 @@ Proof.
     pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh)))) .
 
     pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
-    assert (ps_size := ctor_in_graphs_size _ _ _ _ args_in_graph).
+    assert (ps_size := ctor_in_graphs_size _ _ _ _ _ args_in_graph).
     rewrite ps_size.   erewrite <- map_length.
 
     (* With Arguments of n_arguments *)

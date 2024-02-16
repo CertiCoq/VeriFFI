@@ -187,7 +187,7 @@ Qed.
 Ltac concretize_PARAMS :=
 unfold ctor_in_graphs, prim_in_graphs in *;
 lazymatch goal with
-| xs: args _, H0: in_graphs _ _ _ ?xs' ?ps  |- _ =>
+| xs: args _, H0: in_graphs _ _ _ _ ?xs' ?ps  |- _ =>
    constr_eq xs xs';
    repeat (simpl in xs;
    lazymatch type of xs with
@@ -200,8 +200,8 @@ lazymatch goal with
                 [solve [contradiction] | ]
    end);
    repeat lazymatch goal with
-   |  H: in_graphs _ _ _ _ (_ :: _) |- _ => destruct H
-   |  H: in_graphs _ _ _ _ ps |- _ => hnf in H; subst ps
+   |  H: in_graphs _ _ _ _ _ (_ :: _) |- _ => destruct H
+   |  H: in_graphs _ _ _ _ _ ps |- _ => hnf in H; subst ps
    end
    | _ => idtac
 end;

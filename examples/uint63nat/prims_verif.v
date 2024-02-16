@@ -38,7 +38,7 @@ Proof.
  rewrite Int.signed_repr 
    by (unfold encode_Z, max_signed in H; rep_lia).
  forward_loop ( EX m : nat, EX p': rep_type,
-        PROP ( (m <= n)%nat; is_in_graph g (n - m)%nat p';        
+        PROP ( (m <= n)%nat; is_in_graph g outlier (n - m)%nat p';        
               nat_has_tag_prop (n - m)%nat (nat_get_desc (n-m)%nat))
         LOCAL (temp _i (Vlong (Int64.repr (Z.of_nat m))); 
                temp _temp (rep_type_val g p');
@@ -69,7 +69,7 @@ Proof.
       sep_apply modus_ponens_wand.
       unfold full_gc.
       Intros.
-      sep_apply (is_pointer_or_integer_rep_type_val g nm' q H6).
+      sep_apply (is_pointer_or_integer_rep_type_val g outlier nm' q H6).
       entailer!!.
     }
     Exists (n-nm')%nat q.
@@ -104,11 +104,11 @@ Lemma body_uint63_to_nat_no_gc_spec :
 Proof. 
   start_function.
   forward. unfold full_gc. Intros. 
-  forward_call (gv, g).
+  forward_call (gv, g, outlier).
   rewrite decode_encode_Z by auto.
   forward_while 
   (EX v : rep_type, EX m : nat, EX g' : graph, EX (t_info' : GCGraph.thread_info),
-  PROP (is_in_graph g' m v; (m <= n)%nat; 2 * Z.of_nat (n - m) < headroom t_info'; 
+  PROP (is_in_graph g' outlier m v; (m <= n)%nat; 2 * Z.of_nat (n - m) < headroom t_info'; 
   gc_graph_iso g roots g' roots)
    LOCAL (temp _temp (rep_type_val g' v);
    temp _i (Vlong (Int64.repr (Z.of_nat (n - m))));
@@ -159,14 +159,14 @@ Defined.
 
 
 Lemma gc_preserved_nat: 
-  forall (g1 :graph) (roots1: list root_t)
+  forall outlier (g1 :graph) (roots1: list root_t)
          (g2: graph) (roots2: list root_t),
     gc_graph_iso g1 roots1 g2 roots2 ->
     graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
     forall (a: nat) (n: Z),
       0 <= n < Zlength roots1 ->
-    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g1 a (rep_type_of_root_t (Znth n roots1)) ->
-    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g2 a (rep_type_of_root_t (Znth n roots2)).
+    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g1 outlier a (rep_type_of_root_t (Znth n roots1)) ->
+    @graph_predicate _ (@in_graph_pred _ InGraph_nat) g2 outlier a (rep_type_of_root_t (Znth n roots2)).
 Proof.
 apply @gc_preserved.  (* Kathrin: replace this proof with a real one *)
 Qed.
@@ -185,7 +185,7 @@ Lemma test_semax_GC_SAVE1:
   (roots : roots_t)
   (ival: val)
   (Hn: 0 <= n <= Int64.max_signed)
-  (H2 : is_in_graph g m v0) 
+  (H2 : is_in_graph g outlier m v0) 
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
@@ -202,7 +202,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
-      PROP (headroom t_info' >= n; is_in_graph g' m v0';
+      PROP (headroom t_info' >= n; is_in_graph g' outlier m v0';
       gc_condition_prop g' t_info' roots' outlier; 
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
@@ -234,7 +234,7 @@ Proof.
 start_function.
 change (Tpointer _ _) with int_or_ptr_type.
 forward. unfold full_gc. Intros.
-forward_call (gv, g). 
+forward_call (gv, g, outlier). 
 Intros v.
 rewrite decode_encode_Z by auto.
 forward.
@@ -252,7 +252,7 @@ sep_apply (full_gc_fold gv g t_info roots outlier ti sh).
 forward_while 
 (EX v : rep_type, EX m : nat, EX g' : graph, 
  EX (t_info' : GCGraph.thread_info), EX (roots': roots_t),
- PROP (is_in_graph g' m v; (m <= n)%nat;
+ PROP (is_in_graph g' outlier m v; (m <= n)%nat;
       gc_condition_prop g' t_info' roots' outlier;
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))

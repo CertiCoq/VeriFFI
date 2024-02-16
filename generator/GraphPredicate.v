@@ -475,6 +475,7 @@ Definition make_prop
          (args : list arg_variant)
          : TemplateMonad named_term :=
   let t_g := tVar "g" in
+  let t_outlier := tVar "outlier" in 
   let t_p := tVar "p" in
 
   let make_prop_base : TemplateMonad named_term :=
@@ -509,7 +510,7 @@ Definition make_prop
         tmEval all call >>= tmPrint ;;
         tmEval all t_arg >>= tmPrint ;;
         tmEval all t_p >>= tmPrint ;;
-        ret [tApp call [ t_g ; t_arg; t_p ]]
+        ret [tApp call [ t_g ; t_outlier; t_arg; t_p ]]
       | _ => ret nil
     end
   in
@@ -602,6 +603,7 @@ Definition matchmaker
              (tVar "x")
              branches).
 
+Import GCGraph.
 (* Make a single record to use in a [tFix].
    For mutually inductive types, we want to build them all once,
    and define all the [GraphPredicate] instances with that. *)
@@ -616,16 +618,18 @@ Definition make_fix_single
   prop <- matchmaker all_single_rep_tys quantifiers ind mut one tau (process_ctors (ind_ctors one)) ;;
   let ty :=
       tProd (mkBindAnn (nNamed "g") Relevant) <% graph %>
+       (tProd (mkBindAnn (nNamed "outlier") Relevant) <% outlier_t %>
         (tProd (mkBindAnn (nNamed "x") Relevant) tau
-          (tProd (mkBindAnn (nNamed "p") Relevant) <% rep_type %> <% Prop %>)) in
+          (tProd (mkBindAnn (nNamed "p") Relevant) <% rep_type %> <% Prop %>))) in
   let body :=
       tLambda (mkBindAnn (nNamed "g") Relevant) <% graph %>
+       (tLambda (mkBindAnn (nNamed "outlier") Relevant) <% outlier_t %>
         (tLambda (mkBindAnn (nNamed "x") Relevant) tau
-          (tLambda (mkBindAnn (nNamed "p") Relevant) <% rep_type %> prop)) in
+          (tLambda (mkBindAnn (nNamed "p") Relevant) <% rep_type %> prop))) in
   ret {| dname := mkBindAnn this_name Relevant
        ; dtype := build_quantifiers tProd quantifiers ty
        ; dbody := build_quantifiers tLambda quantifiers body
-       ; rarg := 1 + length quantifiers |}.
+       ; rarg := 2 + length quantifiers |}.
 
 Definition singles_tys (kn : kername)
                        (mut : mutual_inductive_body)
@@ -689,12 +693,14 @@ Definition add_instances_aux (kn : kername)
        (*    but with free variables! *)
        let tau := strip_quantifiers quantified in
        let fn_ty := tProd (mkBindAnn (nNamed "g") Relevant)
-                          <% graph %>
+                        <% graph %>
+                      (tProd (mkBindAnn (nNamed "outlier") Relevant)
+                         <% outlier_t %>
                           (tProd (mkBindAnn (nNamed "x") Relevant)
                                  hole
                                  (tProd (mkBindAnn (nNamed "p") Relevant)
                                         <% rep_type %>
-                                        <% Prop %>)) in
+                                        <% Prop %>))) in
        let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
        args_let <- monad_map (fun '(an, _) =>
@@ -713,7 +719,7 @@ Definition add_instances_aux (kn : kername)
                                    [tau; fn]) in
        prog <- DB.deBruijn prog_named ;;
        extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
-                                                          (tApp <% GraphPredicate %> [tau])) ;;
+                                         (tApp <% GraphPredicate %> [tau])) ;;
        tmMsg "Extra Quantified:" ;;
        tmEval all extra_quantified >>= tmPrint ;;
        instance_ty <- tmUnquoteTyped Type extra_quantified ;;
@@ -764,12 +770,13 @@ Definition graph_predicate_gen {kind : Type} (Tau : kind) : TemplateMonad unit :
   missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
-(* Playground: *)
-(* MetaCoq Run (graph_predicate_gen unit). *)
-(* MetaCoq Run (graph_predicate_gen nat). *)
-(* MetaCoq Run (graph_predicate_gen option). *)
-(* MetaCoq Run (graph_predicate_gen list). *)
-(* MetaCoq Run (graph_predicate_gen prod). *)
+(* Playground: 
+ MetaCoq Run (graph_predicate_gen unit).
+ MetaCoq Run (graph_predicate_gen nat).
+ MetaCoq Run (graph_predicate_gen option). 
+ MetaCoq Run (graph_predicate_gen list). 
+ MetaCoq Run (graph_predicate_gen prod). 
+*)
 
 (*
 

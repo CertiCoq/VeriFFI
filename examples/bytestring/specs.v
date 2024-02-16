@@ -55,7 +55,7 @@ x : string, roots : roots_t, sh : share,
 ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
 PRE  [[  [int_or_ptr_type]  ]]
 PROP (
-  @is_in_graph string _ g x p;
+  @is_in_graph string _ g outlier x p;
   writable_share sh  )
 (PARAMSx (  [rep_type_val g p] )
 (GLOBALSx [gv]
@@ -72,9 +72,9 @@ SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition tag_spec_string2 : ident * funspec := 
 DECLARE _get_Coq_Strings_String_string_tag
-WITH g : graph, p : rep_type, x : string
+WITH g : graph, outlier: outlier_t, p : rep_type, x : string
 PRE  [int_or_ptr_type]
-  PROP (@is_in_graph string _ g x p )
+  PROP (@is_in_graph string _ g outlier x p )
   PARAMS (rep_type_val g p)
   SEP (graph_rep g)
 POST [ tuint ]
@@ -201,7 +201,7 @@ Definition args_spec_String : funspec :=
   PRE  [[  [int_or_ptr_type] ]]
   PROP (
       writable_share sh;
-          is_in_graph g (String (fst chs) (snd chs)) p  
+          is_in_graph g outlier (String (fst chs) (snd chs)) p  
       )
   (PARAMSx ( [rep_type_val g p])
   (GLOBALSx [gv]
@@ -209,22 +209,22 @@ Definition args_spec_String : funspec :=
   POST [ tptr int_or_ptr_type (* tarray int_or_ptr_type 1 *)  ]
   EX  (p0 : rep_type) (p1: rep_type) (sh' : share),
   PROP (  writable_share sh';
-          is_in_graph g (fst chs) p0; is_in_graph g (snd chs) p1
+          is_in_graph g outlier (fst chs) p0; is_in_graph g outlier (snd chs) p1
       )
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
       data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh gv). 
   
 Definition args_spec_String2 : funspec := 
-  WITH g : graph, p : rep_type, chs: ascii*string
+  WITH g : graph, outlier: outlier_t, p : rep_type, chs: ascii*string
   PRE [int_or_ptr_type]
-   PROP (is_in_graph g (String (fst chs) (snd chs)) p)
+   PROP (is_in_graph g outlier (String (fst chs) (snd chs)) p)
    PARAMS (rep_type_val g p)
    SEP (graph_rep g)
   POST [ tptr int_or_ptr_type ]
   EX  (p0 : rep_type) (p1: rep_type) (sh' : share),
   PROP (  writable_share sh';
-          is_in_graph g (fst chs) p0; is_in_graph g (snd chs) p1
+          is_in_graph g outlier (fst chs) p0; is_in_graph g outlier (snd chs) p1
       )
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
@@ -233,9 +233,9 @@ Definition args_spec_String2 : funspec :=
 
 Definition ascii_to_char_spec: ident * funspec :=
  DECLARE _ascii_to_char
- WITH g: graph, p: rep_type, ch: ascii
+ WITH g: graph, outlier: outlier_t, p: rep_type, ch: ascii
  PRE [ int_or_ptr_type ]
-   PROP (is_in_graph g ch p)
+   PROP (is_in_graph g outlier ch p)
    PARAMS (rep_type_val g p)
    SEP (graph_rep g)
  POST [ tuchar ]
