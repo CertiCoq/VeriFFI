@@ -25,31 +25,31 @@ Notation " ( x ; p ) " := (existT _ x p).
    We also have some lemmas about this representation as a part of the type class. *)
 (* GraphPredicate is only for internal use, just to make automatic generation easier *)
 Class GraphPredicate (A : Type) :=
-  { graph_predicate : graph -> A -> rep_type -> Prop }.
+  { graph_predicate : graph -> outlier_t -> A -> rep_type -> Prop }.
 Class InGraph (A : Type) : Type :=
   { in_graph_pred : GraphPredicate A
   ; has_v :
-      forall (g : graph) (n : A) (v : VType), graph_predicate g n (repNode v) -> graph_has_v g v
+      forall (g : graph) outliers (n : A) (v : VType), graph_predicate g outliers n (repNode v) -> graph_has_v g v
   ; is_monotone :
-      forall (g : graph) (to : nat) (lb : raw_vertex_block)
+      forall (g : graph) outliers (to : nat) (lb : raw_vertex_block)
             (e : list (EType * (VType * VType))) (n : A) (p : rep_type),
       add_node_compatible g (new_copied_v g to) e ->
-      graph_has_gen g to -> graph_predicate g n p -> graph_predicate (add_node g to lb e) n p
-  ; outlier_compat: forall (g: graph) (x: A) (p: GC_Pointer) outliers,
+      graph_has_gen g to -> graph_predicate g outliers n p -> graph_predicate (add_node g to lb e) outliers n p
+  ; outlier_compat: forall (g: graph) outliers (x: A) (p: GC_Pointer) ,
     outlier_compatible g outliers ->
-    graph_predicate g x (repOut p) ->
+    graph_predicate g outliers x (repOut p) ->
     In p outliers
   }.
 
-Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> A -> rep_type -> Prop :=
+Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> outlier_t -> A -> rep_type -> Prop :=
   @graph_predicate A (@in_graph_pred A IA).
 
 #[export] Instance GraphPredicate_Prop : GraphPredicate Prop :=
-  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
+  {| graph_predicate g outliers x p := graph_cRep g p (enum 0) [] |}.
 #[export] Instance GraphPredicate_Set : GraphPredicate Set :=
-  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
+  {| graph_predicate g outliers x p := graph_cRep g p (enum 0) [] |}.
 #[export] Instance GraphPredicate_Type : GraphPredicate Type :=
-  {| graph_predicate g x p := graph_cRep g p (enum 0) [] |}.
+  {| graph_predicate g outliers x p := graph_cRep g p (enum 0) [] |}.
 
 #[export] Instance InGraph_Prop : InGraph Prop.
 Proof.
@@ -67,9 +67,20 @@ Proof.
   intros; simpl in *. intuition. induction p; intuition. intuition.
 Defined.
 
+Definition GraphPredicate_fun (A B : Type) : GraphPredicate (A -> B) :=
+   Build_GraphPredicate _ (fun g outliers f p =>
+       match p with
+       | repOut q => In q outliers  (* Is this all we need here? *)
+       | _ => False
+       end).
+
 #[export] Definition InGraph_fun {A B : Type} `{InGraph A} `{InGraph B} : InGraph (A -> B).
-(* TODO we will have to define this when we do "call" *)
-Admitted.
+Proof.
+  apply (Build_InGraph _ (GraphPredicate_fun A B)).
+- intros. contradiction H1.
+- intros. destruct p; try contradiction. apply H3.
+- intros. apply H2.
+Defined.
 
 (* This is an unprovable but useful predicate about
    a Coq value being in the heap graph.
@@ -80,7 +91,7 @@ Admitted.
    They should only be available in cases like this. *)
 Theorem GraphPredicate_any : forall {A : Type}, GraphPredicate A.
 Proof.
-  intros. constructor. exact (fun g x p => False).
+  intros. constructor. exact (fun g _ x p => False).
 Defined.
 Theorem InGraph_any : forall {A : Type}, InGraph A.
 Proof.

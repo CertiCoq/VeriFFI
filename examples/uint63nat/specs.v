@@ -23,7 +23,7 @@ Require Export VeriFFI.examples.uint63nat.prims.
 
 Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
     DECLARE _make_Coq_Init_Datatypes_nat_O
-      WITH gv : globals, g : graph
+      WITH gv : globals, g : graph, outlier: outlier_t
       PRE  [ ] 
           PROP ()
           PARAMS ()
@@ -31,7 +31,7 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
           SEP (graph_rep g)
       POST [ (talignas 3%N (tptr tvoid)) ]  
         EX (x : rep_type), 
-        PROP (@is_in_graph nat _ g O x) 
+        PROP (@is_in_graph nat _ g outlier O x) 
         LOCAL (temp ret_temp (rep_type_val g x)) 
         SEP (graph_rep g).
 
@@ -59,7 +59,7 @@ x : nat, roots : roots_t, sh : share,
 ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
 PRE  [[  [int_or_ptr_type]  ]]
 PROP (
-  @is_in_graph nat _ g x p;
+  @is_in_graph nat _ g outlier x p;
   writable_share sh  )
 (PARAMSx (  [rep_type_val g p] )
 (GLOBALSx [gv]
@@ -91,7 +91,7 @@ Definition args_spec_S'  : funspec :=
   PRE  [[  [int_or_ptr_type] ]]
   PROP (
       writable_share sh;
-          is_in_graph g (S x) p  
+          is_in_graph g outlier (S x) p  
       )
   (PARAMSx ( [rep_type_val g p])
   (GLOBALSx [gv]
@@ -99,7 +99,7 @@ Definition args_spec_S'  : funspec :=
   POST [ tptr int_or_ptr_type (* tarray int_or_ptr_type 1 *)  ]
   EX  (p' : rep_type) (sh' : share),
   PROP (  writable_share sh';
-          is_in_graph g x p'
+          is_in_graph g outlier x p'
       )
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p);
@@ -137,7 +137,7 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
       (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ (talignas 3%N (tptr tvoid)) ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
-       PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
+       PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
              gc_graph_iso g roots g' roots';
              frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
@@ -157,7 +157,7 @@ PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
     (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ (talignas 3%N (tptr tvoid)) ]
   EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
-    PROP (@is_in_graph nat (@in_graph nat _) g' n p' ;
+    PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
           gc_graph_iso g roots g' roots)
     RETURN  (rep_type_val g' p')
     SEP (full_gc g' t_info' roots outlier ti sh gv). 
@@ -168,7 +168,7 @@ WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
 PRE  [ (talignas 3%N (tptr tvoid)) ]
     PROP ( encode_Z (Z.of_nat n) <= max_signed; 
-            @is_in_graph nat (@in_graph nat _) g n p ;
+            @is_in_graph nat (@in_graph nat _) g outlier n p ;
             writable_share sh)
     (PARAMSx [ rep_type_val g p]
     (GLOBALSx [gv]
@@ -200,15 +200,15 @@ Definition fun_spec X Y (In_Graph_X : InGraph X) (In_Graph_Y : InGraph Y)
 	 (* function-specific *)
     x: X, p_x : rep_type, p_env : rep_type
 PRE [thread_info, int_or_ptr_type, int_or_ptr_type]
-  PROP (@is_in_graph X In_Graph_X g x p_x; 
-				is_in_graph g env p_env
+  PROP (@is_in_graph X In_Graph_X g outlier x p_x; 
+				is_in_graph g outlier env p_env
 				)
   PARAMS (ti; rep_type_val g p_env; rep_type_val g p_x)
   GLOBALS (gv)
   SEP (full_gc g t_info roots outlier ti sh gv)
 POST [ int_or_ptr_type ]
   EX (g' : graph) (t_info' : GCGraph.thread_info) (res' : rep_type) (roots' : roots_t),
-  PROP (@is_in_graph Y In_Graph_Y g' (f env x) res'; 
+  PROP (@is_in_graph Y In_Graph_Y g' outlier (f env x) res'; 
 		gc_graph_iso g roots g' roots'
 		 )
   RETURN (rep_type_val g' res')
@@ -251,9 +251,9 @@ POST [ int_or_ptr_type ]
         p_x : rep_type,
 		code_p : rep_type
 PRE [ thread_info, int_or_ptr_type, int_or_ptr_type ]
-	PROP (@is_in_graph _ (src_repr c) g (x c) p_x; 	
+	PROP (@is_in_graph _ (src_repr c) g outlier (x c) p_x; 	
 				(* is_in_graph g closure code_p; *) 
-				@is_in_graph _ (env_repr c) g (env c) p_env )
+				@is_in_graph _ (env_repr c) g outlier (env c) p_env )
 	PARAMS (ti; p_c; rep_type_val g p_x) 
 	GLOBALS (gv)
 	SEP (full_gc g t_info roots outlier ti sh gv; 
@@ -261,7 +261,7 @@ PRE [ thread_info, int_or_ptr_type, int_or_ptr_type ]
 ) 
 POST [ int_or_ptr_type ]
 	EX (g' : graph)(t_info' : GCGraph.thread_info) (p: rep_type) (roots': roots_t),
-	PROP ( @is_in_graph _ (trg_repr c) g' (fct c (env c) (x c)) p;
+	PROP ( @is_in_graph _ (trg_repr c) g' outlier (fct c (env c) (x c)) p;
 				gc_graph_iso g roots g' roots' )
 	RETURN (rep_type_val g p)
 	SEP (full_gc g' t_info' roots outlier ti sh gv).

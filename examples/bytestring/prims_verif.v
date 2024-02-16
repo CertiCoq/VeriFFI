@@ -60,8 +60,8 @@ Lemma representable_string_max_length:
  (* PROVABLE! but not easy.  Rely on the fact that every node in the graph
    must exist in some generation (if it's really true that the graph cannot extend into
    outliers), and the total of all generation sizes is bounded. *)
-  forall (s: string) (g: graph) (p: rep_type),
-   is_in_graph g s p ->
+  forall (s: string) (g: graph) outlier (p: rep_type),
+   is_in_graph g outlier s p ->
    graph_rep g |-- !! (Z.of_nat (String.length s) < MAX_LEN).
 Admitted.
 
@@ -1201,7 +1201,7 @@ Proof.
  forward.
  forward.
  change (temp _temp _) with (temp _temp (rep_type_val g p)).
- sep_apply (representable_string_max_length x g p); auto.
+ sep_apply (representable_string_max_length x g outlier p); auto.
  Intros.
  rewrite Int.signed_repr by rep_lia.
  sep_apply_compspecs CompSpecs 
@@ -1211,7 +1211,7 @@ Proof.
  forward_loop
    (EX s:string, EX ps: rep_type,
      PROP (Z.of_nat (String.length s) <= Z.of_nat (String.length x);
-           is_in_graph g s ps)
+           is_in_graph g outlier s ps)
      LOCAL (temp _len (Vlong (Int64.repr 
                (Z.of_nat (String.length x) - Z.of_nat (String.length s))));
             temp _temp (rep_type_val g ps);
@@ -1231,20 +1231,20 @@ Proof.
  - Exists x p. entailer!!. f_equal. f_equal. lia.
  - Intros s ps.
    rewrite graph_rep_full_gc.
-   forward_call (g,ps,s). cancel.
+   forward_call (g,outlier,ps,s). cancel.
    forward_if.
    + (* then *)
    destruct s; try discriminate H5.
    forward.
-   forward_call (g,ps,(a,s)).
+   forward_call (g,outlier,ps,(a,s)).
    Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g p0)). {
-    sep_apply modus_ponens_wand. (* unfold full_gc. Intros.*)
-    sep_apply (is_pointer_or_integer_rep_type_val g a p0). entailer!!.
+    sep_apply modus_ponens_wand. 
+    sep_apply (is_pointer_or_integer_rep_type_val g outlier a p0). entailer!!.
    }
    assert_PROP (is_pointer_or_integer (rep_type_val g p1)). {
-    sep_apply modus_ponens_wand. (*unfold full_gc. Intros. *)
-    sep_apply (is_pointer_or_integer_rep_type_val g s p1). entailer!!.
+    sep_apply modus_ponens_wand.
+    sep_apply (is_pointer_or_integer_rep_type_val g outlier s p1). entailer!!.
    }
    forward.
    sep_apply modus_ponens_wand.
@@ -1458,7 +1458,7 @@ entailer!!.
 
  forward_loop 
   (EX i, EX v: rep_type, 
-   PROP (0 <= i <= len; is_in_graph g' (substring (Z.to_nat i) (Z.to_nat (len-i)) x) v)
+   PROP (0 <= i <= len; is_in_graph g' outlier (substring (Z.to_nat i) (Z.to_nat (len-i)) x) v)
    LOCAL (temp _temp (rep_type_val g' v); 
           temp _ptr (field_address0 (tarray tuchar (len+pad_length)) (SUB i) new1);
           temp _argv new0;
@@ -1492,25 +1492,25 @@ entailer!!.
 * 
   Intros i v.
   set (s := substring (Z.to_nat i) (Z.to_nat (len-i)) x) in *.
-   forward_call (g',v,s). simpl AP_g. cancel.
+   forward_call (g',outlier,v,s). simpl AP_g. cancel.
    forward_if; fold len in H12; fold s in H12.
    -- (* then clause *)
        destruct s as [ | ch r] eqn:?H; try discriminate H12.
        abbreviate_semax. deadvars!.
-   forward_call (g',v,(ch,r)).
+   forward_call (g',outlier,v,(ch,r)).
    Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
-    sep_apply (is_pointer_or_integer_rep_type_val g' ch  p0). entailer!!.
+    sep_apply (is_pointer_or_integer_rep_type_val g' outlier ch  p0). entailer!!.
    }
    assert_PROP (is_pointer_or_integer (rep_type_val g' p1)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
-    sep_apply (is_pointer_or_integer_rep_type_val g' r p1). entailer!!.
+    sep_apply (is_pointer_or_integer_rep_type_val g' outlier r p1). entailer!!.
    }
    forward.
    sep_apply modus_ponens_wand.
    rewrite Znth_0_cons.
-   forward_call (g',p0,ch).
+   forward_call (g',outlier,p0,ch).
    assert_PROP (field_address0 (tarray tuchar (len + pad_length)) (SUB i) new1 = 
                 field_address (tarray tuchar (len+pad_length)) (SUB i) new1
            /\ isptr (field_address0 (tarray tuchar (len + pad_length)) (SUB i) new1)).
@@ -1565,15 +1565,15 @@ entailer!!.
      simpl. lia.
     }
    rewrite <- map_app. rewrite sublist_rejoin by lia.
-   forward_call (g',v,(ch,r)).
+   forward_call (g',outlier,v,(ch,r)).
    Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
-    sep_apply (is_pointer_or_integer_rep_type_val g' ch p0). entailer!!.
+    sep_apply (is_pointer_or_integer_rep_type_val g' outlier ch p0). entailer!!.
    }
    assert_PROP (is_pointer_or_integer (rep_type_val g' p1)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
-    sep_apply (is_pointer_or_integer_rep_type_val g' r p1). entailer!!.
+    sep_apply (is_pointer_or_integer_rep_type_val g' outlier r p1). entailer!!.
    }
    forward.
    sep_apply modus_ponens_wand.

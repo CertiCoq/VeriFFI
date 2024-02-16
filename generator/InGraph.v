@@ -33,7 +33,7 @@ Ltac destruct_conj H :=
   end.
 
 Ltac prove_has_v :=
-  intros g x v;
+  intros g outlier x v;
   destruct x; intros H; simpl in *;
   try contradiction ; try (destruct_conj H; intuition).
 
@@ -58,7 +58,7 @@ Axiom graph_cRep_add_node : forall g to lb e p ts ps,
 Ltac mon n :=
   let i := fresh "_i" in
   match goal with
-  | [|- graph_predicate _ n _] =>
+  | [|- graph_predicate _ _ n _] =>
     let t := type of n in
     epose (i := @is_monotone t _ _ _ _ _ _ _ _ _ _)
   end;
@@ -74,11 +74,32 @@ Ltac loop_over_app C :=
   | _ => idtac
   end.
 
+
 Ltac prove_monotone :=
-  intros g to lb e x p C G; revert p;
+  intros g outliers to lb e x p C G; revert p;
   induction x;
   unshelve (match goal with
-  | [|- forall _ _, graph_predicate _ ?this _] =>
+  | [|- forall _ _, graph_predicate _ _ ?this _] =>
+    let p := fresh "p" in
+    let H := fresh "H" in
+    intros p H; hnf in H;
+    destruct_conj H;
+    repeat match goal with H: @graph_predicate ?A _ g outliers ?x ?p' |- _ =>
+       apply (@is_monotone A ltac:(auto with typeclass_instances) g outliers to lb e x p' C G) in H
+    end;
+    repeat eexists; repeat split; 
+    try eassumption; try (eapply graph_cRep_add_node; eauto);
+    loop_over_app this;
+    try prove_monotone_with_IH
+   end);
+   auto.
+
+(*
+Ltac prove_monotone :=
+  intros g outliers to lb e x p C G; revert p;
+  induction x;
+  unshelve (match goal with
+  | [|- forall _ _, graph_predicate _ _ ?this _] =>
     let p := fresh "p" in
     let H := fresh "H" in
     intros p H;
@@ -90,15 +111,16 @@ Ltac prove_monotone :=
     try prove_monotone_with_IH;
     try (eauto || (eapply graph_cRep_add_node; eauto))
   end); auto.
+*)
 
 Ltac prove_outlier_compatible1 := 
  solve [
  let g := fresh "g" in let x := fresh "x" in let J := fresh "J" in
- intros g x ?p ?outliers _ J;
+ intros g ?outliers x ?p _ J;
  exfalso;
  induction x;
  repeat match goal with 
-        | H: graph_predicate _ _ (repOut _) |- _ => destruct H 
+        | H: graph_predicate _ _ _ (repOut _) |- _ => destruct H 
         | H: _ /\ _ |- _ => destruct H
         | H: exists _, _ |- _ => destruct H end;
  eauto]. 
@@ -108,12 +130,15 @@ Ltac prove_outlier_compat :=
   try solve [intuition];
   match goal with |- ?A => fail 100 "Failed in prove_outlier_compat with goal:" A end.
 
+Ltac show_goal :=
+  match goal with |- ?A => idtac "GOAL:" A end.
+
 Ltac in_graph_gen_tac :=
   intros;
   repeat (match goal with
           | [R : InGraph _ |- _] => destruct R
           end);
-  econstructor; [prove_has_v | prove_monotone | prove_outlier_compat].
+  econstructor; [solve [prove_has_v] | solve [prove_monotone] | solve [prove_outlier_compat]].
 
 Require Import MetaCoq.Template.All.
 
@@ -237,10 +262,14 @@ Definition in_graph_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   monad_iter add_instances (rev missing).
 
 Local Obligation Tactic := in_graph_gen_tac.
+(*
+ Require Import VeriFFI.generator.GraphPredicate. 
+ MetaCoq Run (graph_predicate_gen nat). 
+ MetaCoq Run (in_graph_gen nat).
 
-(* Require Import VeriFFI.generator.GraphPredicate. *)
-(* MetaCoq Run (graph_predicate_gen nat). *)
-(* MetaCoq Run (in_graph_gen nat). *)
+ MetaCoq Run (graph_predicate_gen String.string). 
+ MetaCoq Run (in_graph_gen String.string). 
+*)
 
 (* MetaCoq Run (graph_predicate_gen list). *)
 (* MetaCoq Run (in_graph_gen list). *)

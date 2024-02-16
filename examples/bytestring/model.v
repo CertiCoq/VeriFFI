@@ -129,7 +129,7 @@ Module Bytestring_Proofs.
 *)
 
   Definition GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
-   Build_GraphPredicate FM.bytestring (fun g s p => 
+   Build_GraphPredicate FM.bytestring (fun g _ s p => 
     match p with
     | repNode v => graph_has_v g v /\
                   match (graph_model.vlabel g v) with
@@ -168,10 +168,11 @@ Module Bytestring_Proofs.
     * admit.
     * admit.
     Admitted.
+
   #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream :=
-         {| graph_predicate g x p := 
+         {| graph_predicate g outliers x p := 
              match p with
-             | repOut q => True  (* This is probably a bit too weak... *)
+             | repOut q => In q outliers  (* This is probably a bit too weak... *)
              | _ => False end |}.
   #[local] Instance InGraph_stream : InGraph FM.stream.
     econstructor.
@@ -179,11 +180,8 @@ Module Bytestring_Proofs.
     * intros. contradiction H.
     * intros.  destruct p; try contradiction.
       hnf; auto.
-    * intros. simpl in H0.
-       admit.  (* To solve this, it may be necessary to add "outliers"
-                 as an argument to graph_predicate, and then change the "True"
-                 just above ("probably a bit too week") to "In q outliers" *)
-   Admitted.
+    * auto.
+   Defined.
 
   Definition append_desc : fn_desc :=
     {| type_desc :=
