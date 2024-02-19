@@ -46,7 +46,18 @@ Module UInt63_Proofs.
   Axiom Isomorphism_t : Isomorphism FM.t C.t.
   #[local] Existing Instance Isomorphism_t.
 
-  #[local] Instance InGraph_t : InGraph FM.t. Admitted.
+  #[local] Instance GraphPredicate_t : GraphPredicate FM.t.
+    constructor.
+    intros g outlier [z H] p.
+    apply (match p with repZ i => i= Z.of_nat z | _ => False end).
+  Defined.
+
+  #[local] Instance InGraph_t : InGraph FM.t.
+   apply (Build_InGraph _ GraphPredicate_t).
+   -  intros ? ? [z H] ? ?. hnf in H0. contradiction.
+   - intros; auto.
+   - intros ? ? [z H] ? ? ?. hnf in H1. contradiction.
+  Defined.
 
   Definition from_nat_desc : fn_desc :=
     {| type_desc :=
