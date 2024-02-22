@@ -140,7 +140,7 @@ start_function.
 unfold full_gc, before_gc_thread_info_rep.
 Intros.
 limited_change_compspecs CompSpecs.
-destruct (spaces_g0 _ _ _ _ H) as [? [? ?] ].
+destruct (spaces_g0 _ _ _ _ H) as [? [? ?]].
 forward.
 forward.
 forward.
@@ -167,7 +167,7 @@ unfold alloc_at.
 assert (HEADROOM := AP_enough pp).
 unfold headroom in HEADROOM.
 simpl spaces.
-destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ?] ] ].
+destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ?]]].
 fold tinfo.
 change (iter_sepcon.iter_sepcon (?A :: ?B) ?F) with
   (sepcon (F A) (iter_sepcon.iter_sepcon B F)).
@@ -199,11 +199,11 @@ rewrite (split2_data_at__Tarray_app n K) by lia.
 rewrite <- !sepcon_assoc.
 limited_change_compspecs CompSpecs.
 assert (Hsh: nth_sh (AP_g pp) 0 = space_sh nursery). {
-  destruct H as [_ [? _  ] ].
+  destruct H as [_ [? _  ]].
   destruct H as [? _ ].
   red in H. 
   rewrite H3 in H.
-  destruct H2 as [_ [? _  ] ].
+  destruct H2 as [_ [? _  ]].
   unfold nth_sh. rewrite H2. rewrite H5. auto.
  }
 rewrite Hsh.
@@ -250,12 +250,12 @@ rewrite <- Z.mul_add_distr_l.
 cancel.
 unfold AP_newg.
 destruct H.
-destruct H as [? [? [? ? ] ] ].
+destruct H as [? [? [? ? ]]].
 destruct H5.
 rewrite <- Hsh.
 rewrite add_node_spatial; simpl; auto.
 * red; intros.
-destruct H9 as [H10a [H10b H10c] ].
+destruct H9 as [H10a [H10b H10c]].
 apply H10c in H10.
 specialize (H10 H11).
 destruct H10.
@@ -271,7 +271,7 @@ assert (ENUF: 0 <= n <=
 unfold AP_newg, bump_alloc.
 red in H; decompose [and] H; clear H.
 split3; [ | | split3]; simpl; auto.
-destruct H6 as [? [ ? [? ?] ] ].
+destruct H6 as [? [ ? [? ?]]].
 split; [ | split3]; auto.
 +
 apply add_node_graph_unmarked; auto.
@@ -283,7 +283,7 @@ apply add_node_no_dangling_dst; auto; try apply AP_edge_compat; apply AP_compat.
 apply add_node_ti_size_spec; auto.
 unfold tinfo in *; clear - H3; rewrite H3; list_solve.
 +
-destruct H8 as [? [? [? ? ] ] ].
+destruct H8 as [? [? [? ? ]]].
 split; [ | split3].
 *
 apply add_node_graph_heap_compatible; auto.
@@ -717,23 +717,23 @@ intros.
       unfold res_predicates.address_mapsto. rewrite <- !exp_equiv.
     repeat change (seplog.exp ?A) with (predicates_hered.exp A).
     normalize.normalize.
-    intros bl7 [A7 [B7 _] ] bl6 bl5 bl4 bl3 bl2 bl1 bl0.
+    intros bl7 [A7 [B7 _]] bl6 bl5 bl4 bl3 bl2 bl1 bl0.
     normalize.normalize.
-    destruct H as [A6 [ B6 _] ].
-    destruct H0 as [A5 [ B5 _] ].
-    destruct H1 as [A4 [ B4 _] ].
-    destruct H2 as [A3 [ B3 _] ].
-    destruct H3 as [A2 [ B2 _] ].
-    destruct H4 as [A1 [ B1 _] ].
-    destruct H5 as [A0 [ B0 _] ].
-    destruct bl0 as [ | c0 [|] ]; inv A0; inv B0. 
-    destruct bl1 as [ | c1 [|] ]; inv A1; inv B1.
-    destruct bl2 as [ | c2 [|] ]; inv A2; inv B2. 
-    destruct bl3 as [ | c3 [|] ]; inv A3; inv B3.
-    destruct bl4 as [ | c4 [|] ]; inv A4; inv B4. 
-    destruct bl5 as [ | c5 [|] ]; inv A5; inv B5.
-    destruct bl6 as [ | c6 [|] ]; inv A6; inv B6. 
-    destruct bl7 as [ | c7 [|] ]; inv A7; inv B7.
+    destruct H as [A6 [ B6 _]].
+    destruct H0 as [A5 [ B5 _]].
+    destruct H1 as [A4 [ B4 _]].
+    destruct H2 as [A3 [ B3 _]].
+    destruct H3 as [A2 [ B2 _]].
+    destruct H4 as [A1 [ B1 _]].
+    destruct H5 as [A0 [ B0 _]].
+    destruct bl0 as [ | c0 [|]]; inv A0; inv B0. 
+    destruct bl1 as [ | c1 [|]]; inv A1; inv B1.
+    destruct bl2 as [ | c2 [|]]; inv A2; inv B2. 
+    destruct bl3 as [ | c3 [|]]; inv A3; inv B3.
+    destruct bl4 as [ | c4 [|]]; inv A4; inv B4. 
+    destruct bl5 as [ | c5 [|]]; inv A5; inv B5.
+    destruct bl6 as [ | c6 [|]]; inv A6; inv B6. 
+    destruct bl7 as [ | c7 [|]]; inv A7; inv B7.
     destruct c0; try discriminate H0.
     destruct c1; try discriminate H1.
     destruct c2; try discriminate H2.
@@ -794,23 +794,23 @@ intros.
       apply predicates_hered.pred_ext.
   - repeat change (seplog.exp ?A) with (predicates_hered.exp A).
     normalize.normalize.
-    intros bl7 [A7 [B7 _] ] bl6 bl5 bl4 bl3 bl2 bl1 bl0.
+    intros bl7 [A7 [B7 _]] bl6 bl5 bl4 bl3 bl2 bl1 bl0.
     normalize.normalize.
-    destruct H as [A6 [ B6 _] ].
-    destruct H0 as [A5 [ B5 _] ].
-    destruct H1 as [A4 [ B4 _] ].
-    destruct H2 as [A3 [ B3 _] ].
-    destruct H3 as [A2 [ B2 _] ].
-    destruct H4 as [A1 [ B1 _] ].
-    destruct H5 as [A0 [ B0 _] ].
-    destruct bl0 as [ | c0 [|] ]; inv A0; inv B0. 
-    destruct bl1 as [ | c1 [|] ]; inv A1; inv B1.
-    destruct bl2 as [ | c2 [|] ]; inv A2; inv B2. 
-    destruct bl3 as [ | c3 [|] ]; inv A3; inv B3.
-    destruct bl4 as [ | c4 [|] ]; inv A4; inv B4. 
-    destruct bl5 as [ | c5 [|] ]; inv A5; inv B5.
-    destruct bl6 as [ | c6 [|] ]; inv A6; inv B6. 
-    destruct bl7 as [ | c7 [|] ]; inv A7; inv B7.
+    destruct H as [A6 [ B6 _]].
+    destruct H0 as [A5 [ B5 _]].
+    destruct H1 as [A4 [ B4 _]].
+    destruct H2 as [A3 [ B3 _]].
+    destruct H3 as [A2 [ B2 _]].
+    destruct H4 as [A1 [ B1 _]].
+    destruct H5 as [A0 [ B0 _]].
+    destruct bl0 as [ | c0 [|]]; inv A0; inv B0. 
+    destruct bl1 as [ | c1 [|]]; inv A1; inv B1.
+    destruct bl2 as [ | c2 [|]]; inv A2; inv B2. 
+    destruct bl3 as [ | c3 [|]]; inv A3; inv B3.
+    destruct bl4 as [ | c4 [|]]; inv A4; inv B4. 
+    destruct bl5 as [ | c5 [|]]; inv A5; inv B5.
+    destruct bl6 as [ | c6 [|]]; inv A6; inv B6. 
+    destruct bl7 as [ | c7 [|]]; inv A7; inv B7.
     destruct c0; try discriminate H0.
     destruct c1; try discriminate H1.
     destruct c2; try discriminate H2.
@@ -827,8 +827,8 @@ intros.
  -
   repeat change (seplog.exp ?A) with (predicates_hered.exp A).
   normalize.normalize.
-  intros bl [? [? ?] ]. simpl snd in H1.
-  destruct bl as [|c0 [| c1 [| c2 [| c3 [|c4 [| c5 [| c6 [| c7 [|] ] ] ] ] ] ] ] ]; inv H.
+  intros bl [? [? ?]]. simpl snd in H1.
+  destruct bl as [|c0 [| c1 [| c2 [| c3 [|c4 [| c5 [| c6 [| c7 [|]]]]]]]]]; inv H.
   unfold decode_val, proj_bytes in H0. rewrite AP in H0. clear AP.
   destruct c0; [ discriminate H0 | | ] .
   2: {
@@ -959,7 +959,7 @@ Lemma data_at_long_bytes_forward:
 Proof.
   intros AP sh b0 b1 b2 b3 b4 b5 b6 b7 p. unfold data_at. unfold field_at.
   intro. normalize. clear - H. simpl.
- destruct H as [H0 [_ [SZ [AL _] ] ] ]. red in SZ. simpl sizeof in SZ.
+ destruct H as [H0 [_ [SZ [AL _]]]]. red in SZ. simpl sizeof in SZ.
    destruct p; inversion H0. clear H0.
  assert (8 | Ptrofs.unsigned i)
    by (eapply align_compatible_rec_by_value_inv in AL; [ | reflexivity]; assumption).
@@ -1008,7 +1008,7 @@ Proof.
   intros AP sh b0 b1 b2 b3 b4 b5 b6 b7 p. unfold data_at. unfold field_at.
   intro.
   rewrite !prop_true_andp by auto with field_compatible.
- destruct H as [H0 [_ [SZ [AL _] ] ] ]. red in SZ. simpl sizeof in SZ.
+ destruct H as [H0 [_ [SZ [AL _]]]]. red in SZ. simpl sizeof in SZ.
    destruct p; inversion H0. clear H0.
  assert (8 | Ptrofs.unsigned i)
    by (eapply align_compatible_rec_by_value_inv in AL; [ | reflexivity]; assumption).
@@ -1095,7 +1095,7 @@ change size_t with tulong.
 eapply derives_trans; [ | apply data_at_long_bytes_forward]; auto.
 2:{
 clear - H.
-destruct H as [? [? [? [? ? ] ] ] ]; split3; auto.
+destruct H as [? [? [? [? ? ]]]]; split3; auto.
 split3; auto.
 destruct p; try contradiction; red in H1|-*. simpl sizeof in H1.
 rewrite Z.max_r in H1 by lia. simpl sizeof. lia.
@@ -1129,7 +1129,7 @@ unfold field_address0.
 rewrite if_true.
 2:{
 clear - H H2 H0.
-destruct H as [? [? [? [? ? ] ] ] ]; split3; auto.
+destruct H as [? [? [? [? ? ]]]]; split3; auto.
 split3; auto.
 red in H3|-*. destruct p; auto. simpl in H3|-*. 
 rewrite Z.max_r in * by rep_lia.
@@ -1237,7 +1237,7 @@ Proof.
    destruct s; try discriminate H5.
    forward.
    forward_call (g,outlier,ps,(a,s)).
-   Intros vret; destruct vret as [ [p0 p1] sh']. simpl snd in *; simpl fst in *.
+   Intros vret; destruct vret as [[p0 p1] sh']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g p0)). {
     sep_apply modus_ponens_wand. 
     sep_apply (is_pointer_or_integer_rep_type_val g outlier a p0). entailer!!.
@@ -1439,7 +1439,7 @@ entailer!!.
    unfold field_address0.
    rewrite if_true by auto with field_compatible. simpl. 
    clear - FC LEN PAD H9.
-   destruct FC as [? [? [? [? ?] ] ] ].
+   destruct FC as [? [? [? [? ?]]]].
    split3; auto. split3; auto.
    red in H1|-*. simpl in H1|-*. rewrite Z.max_r by lia. rewrite Z.mul_1_l.
    rewrite Z.max_r in H1 by lia.
@@ -1495,10 +1495,11 @@ entailer!!.
    forward_call (g',outlier,v,s). simpl AP_g. cancel.
    forward_if; fold len in H12; fold s in H12.
    -- (* then clause *)
+      pose proof (string_desc_has_tag_prop s).
        destruct s as [ | ch r] eqn:?H; try discriminate H12.
        abbreviate_semax. deadvars!.
    forward_call (g',outlier,v,(ch,r)).
-   Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
+   Intros vret; destruct vret as [[p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
     sep_apply (is_pointer_or_integer_rep_type_val g' outlier ch  p0). entailer!!.
@@ -1566,7 +1567,7 @@ entailer!!.
     }
    rewrite <- map_app. rewrite sublist_rejoin by lia.
    forward_call (g',outlier,v,(ch,r)).
-   Intros vret; destruct vret as [ [p0 p1] sh'']. simpl snd in *; simpl fst in *.
+   Intros vret; destruct vret as [[p0 p1] sh'']. simpl snd in *; simpl fst in *.
    assert_PROP (is_pointer_or_integer (rep_type_val g' p0)). {
     sep_apply modus_ponens_wand. unfold full_gc. Intros.
     sep_apply (is_pointer_or_integer_rep_type_val g' outlier ch p0). entailer!!.
@@ -1602,6 +1603,7 @@ entailer!!.
      simpl. rewrite offset_offset_val. f_equal. lia.
    ++ apply derives_refl.
  -- (* else clause *)
+  pose proof (string_desc_has_tag_prop s).
   forward.
   destruct s eqn:?H; try (contradiction H12; reflexivity). subst s.
   assert (i=len). { clear - H10 H14. subst len.
@@ -1774,25 +1776,25 @@ entailer!!.
  simpl AP_g.
  assert (VOFF: vertex_offset g' (new_copied_v g' 0) = used_space (heap_head (ti_heap t_info')) + 1). {
    clear - H4.
-   destruct H4 as [? [? [? ? ] ] ] .
-   destruct H0 as [? [? [? ? ] ] ].
+   destruct H4 as [? [? [? ? ]]] .
+   destruct H0 as [? [? [? ? ]]].
    unfold vertex_offset.
    simpl.
    destruct H0.
    clear - H0.
    unfold nth_gen.
-  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ] ] ].
+  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ]]].
   rewrite H1. rewrite H in H0.
   pose proof (g_gen_not_nil (graph_model.glabel g')).
   destruct (g_gen (graph_model.glabel g')) eqn:?H; try contradiction.
  inv H0.
-  destruct H6 as [_ [_ ? ] ].
+  destruct H6 as [_ [_ ? ]].
   simpl.
   rewrite H0. f_equal.
  }
  assert (SSTART: space_start (heap_head (ti_heap t_info')) = gen_start g' 0). {
-  clear - H4. destruct H4. clear H. destruct H0 as [ [? _]  _].
-  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ] ] ].
+  clear - H4. destruct H4. clear H. destruct H0 as [[? _]  _].
+  destruct (heap_head_cons (ti_heap t_info')) as [? [? [? ? ]]].
   rewrite H1.
   unfold gen_start.
   rewrite if_true by (apply graph_has_gen_O).
@@ -1894,7 +1896,7 @@ entailer!!.
     rewrite add_node_vlabel. split; auto.
     reflexivity.
  ++ eapply gc_graph_iso_trans. apply H5.
-    destruct H4 as [ [? [? [? ?] ] ] [ [? [? [ [? ?] ?] ] ] [? [ [? [? [? ?] ] ] ? ] ] ] ].
+    destruct H4 as [[? [? [? ?]]] [[? [? [[? ?] ?]]] [? [[? [? [? ?]]] ? ]]]].
     apply add_node_iso; simpl; auto.
     apply new_node_roots with outlier.
     split; auto.
@@ -1907,6 +1909,6 @@ entailer!!.
        red; simpl; clear; lia. 
     ** rewrite add_node_gen_start by auto. simpl.
        unfold gen_start. rewrite if_true by auto.
-       destruct (spaces_g0 _ _ _ _ H4) as [_ [_ [? _ ] ] ].
+       destruct (spaces_g0 _ _ _ _ H4) as [_ [_ [? _ ]]].
        symmetry; auto.
 Qed.

@@ -53,7 +53,7 @@ DECLARE _get_Coq_Strings_String_string_tag
 WITH gv : globals, g : graph, p : rep_type,
 x : string, roots : roots_t, sh : share,
 ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-PRE  [[  [int_or_ptr_type]  ]]
+PRE  [int_or_ptr_type]
 PROP (
   @is_in_graph string _ g outlier x p;
   writable_share sh  )
@@ -61,12 +61,7 @@ PROP (
 (GLOBALSx [gv]
 (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
 POST [ tuint ]
-(* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
-PROP ( (* don't need this, it's a tautology, see string_desc_has_tag_prop above 
-      let c := string_get_desc x in 
-      string_has_tag_prop x c 
-      *)
-    )
+PROP ( )
 RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
@@ -78,7 +73,7 @@ PRE  [int_or_ptr_type]
   PARAMS (rep_type_val g p)
   SEP (graph_rep g)
 POST [ tuint ]
-  PROP (string_has_tag_prop x (string_get_desc x))
+  PROP ( )
   RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (graph_rep g).
 
@@ -153,7 +148,6 @@ Lemma enough_lemma: forall n tinfo,
 Proof.
 unfold headroom.
 intros.
-Search heap_head.
 destruct (heap_head_cons (ti_heap tinfo)) as [nursery [rest [? ? ] ] ].
 rewrite H0. rewrite H1 in H. simpl. auto.
 Qed.
@@ -198,19 +192,17 @@ Definition args_spec_String : funspec :=
   WITH gv : globals, g : graph, p : rep_type,
   chs: ascii*string, roots : roots_t, sh : share,
   ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-  PRE  [[  [int_or_ptr_type] ]]
-  PROP (
-      writable_share sh;
-          is_in_graph g outlier (String (fst chs) (snd chs)) p  
-      )
-  (PARAMSx ( [rep_type_val g p])
-  (GLOBALSx [gv]
-  (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
-  POST [ tptr int_or_ptr_type (* tarray int_or_ptr_type 1 *)  ]
+  PRE  [int_or_ptr_type]
+  PROP (writable_share sh;
+        is_in_graph g outlier (String (fst chs) (snd chs)) p)
+   PARAMS (rep_type_val g p)
+   GLOBALS (gv)
+   SEP (full_gc g t_info roots outlier ti sh gv)
+  POST [ tptr int_or_ptr_type ]
   EX  (p0 : rep_type) (p1: rep_type) (sh' : share),
-  PROP (  writable_share sh';
-          is_in_graph g outlier (fst chs) p0; is_in_graph g outlier (snd chs) p1
-      )
+  PROP (writable_share sh';
+        is_in_graph g outlier (fst chs) p0; 
+        is_in_graph g outlier (snd chs) p1)
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
       data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh gv). 
@@ -229,7 +221,35 @@ Definition args_spec_String2 : funspec :=
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p);
       data_at sh' (tarray int_or_ptr_type 2) [rep_type_val g p0; rep_type_val g p1] (rep_type_val g p) -* graph_rep g). 
-  
+
+Lemma args_spec_String_sub:
+   funspec_sub args_spec_String2 args_spec_String.
+Proof.
+do_funspec_sub.
+rename g into genv.
+destruct w as [[[[[[[[gv g] p] chs] roots] sh] ti] outlier] t_info].
+Intros.
+simpl in H2, H3.
+Exists (g,outlier,p,chs).
+simpl fst. simpl snd.
+unfold full_gc; Intros.
+rewrite !prop_true_andp by auto.
+Exists (outlier_rep outlier 
+       * before_gc_thread_info_rep sh t_info ti
+       * ti_token_rep (ti_heap t_info) (ti_heap_p t_info)
+       * gc_spec.all_string_constants Ers gv)%logic.
+apply andp_right.
+cancel.
+apply prop_right.
+intros.
+Intros p1 p2 sh'.
+Exists p1 p2 sh'.
+entailer!!.
+apply -> wand_sepcon_adjoint.
+cancel.
+rewrite sepcon_comm.
+apply modus_ponens_wand.
+Qed.
 
 Definition ascii_to_char_spec: ident * funspec :=
  DECLARE _ascii_to_char

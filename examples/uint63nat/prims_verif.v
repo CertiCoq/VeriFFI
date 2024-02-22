@@ -299,7 +299,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
    * split. split; auto. reflexivity. clear - H3.  rewrite Int.signed_repr in H3 by rep_lia. rep_lia.
    * Intros vret.
-     destruct vret as [ [ v2 g5] t_info5].
+     destruct vret as [[ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
      assert_PROP (gc_condition_prop g5 t_info5 roots4 outlier) as GCP'
         by (unfold full_gc; entailer!!). 

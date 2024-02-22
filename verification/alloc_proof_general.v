@@ -187,7 +187,7 @@ parametric only in the tag and the number of arguments n.
 - Returning alloc + 1
 *)
 
-Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 'PRE'  [[ xs ]] P 'POST' [ tz ] Q" :=
+Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 'PRE''  xs P 'POST' [ tz ] Q" :=
      (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7)
            (fun x => match x with (x1,x2,x3,x4,x5,x6,x7) => P%assert end)
            (fun x => match x with (x1,x2,x3,x4,x5,x6,x7) => Q%assert end))
@@ -198,7 +198,7 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
 (* TODO: Do we want a condition on alloc and limit? - I don't think so. *)
 Definition  n_arguments (tag : Z) (n : nat) : funspec :=
         WITH sh_tinfo : share, sh_heap: share,  ti : val, ps : vector val n, b : block, alloc: Z, limit: Z
-  PRE  [[ thread_info :: repeat tulong n ]]
+  PRE'  (thread_info :: repeat tulong n)
        PROP ( writable_share sh_tinfo; writable_share sh_heap; Int.min_signed <= tag <= Int.max_signed)
        (PARAMSx (ti :: to_list ps)
        (GLOBALSx nil

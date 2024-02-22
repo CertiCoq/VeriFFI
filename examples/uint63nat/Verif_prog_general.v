@@ -162,7 +162,7 @@ clear H.
 intro m; specialize (derivesI m).
 intro.
 apply derivesI; clear derivesI.
-destruct H as [? [? [? ? ] ] ]; split3; auto.
+destruct H as [? [? [? ? ]]]; split3; auto.
 split; auto.
 simpl in H1.
 destruct H1; auto.
@@ -266,7 +266,7 @@ parametric only in the tag and the number of arguments n.
 - Returning alloc + 1
 *)
 
-Notation "'WITH' x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 'PRE' [[ xs ]] P 'POST' [ tz ] Q" :=
+Notation "'WITH' x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 'PRE'' xs P 'POST' [ tz ] Q" :=
  (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7)
  (fun x => match x with (x1,x2,x3,x4,x5,x6,x7) => P%assert end)
  (fun x => match x with (x1,x2,x3,x4,x5,x6,x7) => Q%assert end))
@@ -286,7 +286,7 @@ end.
 
 Definition n_arguments (tag : Z) (n : nat) : funspec :=
       WITH sh_tinfo : share, sh_heap: share, ti : val, ps : vector val n, b : block, alloc: Z, limit: Z
-PRE [[ tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvoid)) n ]]
+PRE' (tptr (Tstruct glue._thread_info noattr) :: repeat (talignas 3%N (tptr tvoid)) n)
       PROP ( writable_share sh_tinfo;
       writable_share sh_heap; Int.min_signed <= tag <= Int.max_signed)
       (PARAMSx (ti :: to_list ps)
@@ -549,7 +549,7 @@ Proof.
    Exists (graph_add.add_node_ti 0 tinfo _ t_size).
    assert (add_node_compatible gr (new_copied_v gr 0) es). 
    { eapply add_node_compatible_new.
-     destruct gc_cond as [_ [ [ _ [_  [ _ OUTL] ] ] _] ].
+     destruct gc_cond as [_ [[ _ [_  [ _ OUTL]]] _]].
      eapply Forall_impl; [ | apply (ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph)].
      simpl; intros. destruct a; auto.
      eassumption. } 
@@ -586,7 +586,7 @@ Proof.
           rewrite isptr_eq. simpl. congruence.
 
    -- apply add_node_gc_condition_prop_general; eauto.
-      destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
+      destruct gc_cond as [_ [[ _ [ _ [ _ OUTL ]]] _]].
       apply (ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph).
      * (* Ensuring that the spatial part holds. *)
 
@@ -799,7 +799,7 @@ Proof.
     rewrite !map_length in *; eauto. 
    }
   autorewrite with graph_add; eauto. 
-  - destruct gc_cond as [_ [ [ _ [ _ [ _ OUTL ] ] ] _] ].
+  - destruct gc_cond as [_ [[ _ [ _ [ _ OUTL ]]] _]].
     assert (HHH := ctor_in_graphs_has _ _ _ _ _ OUTL args_in_graph). 
   rewrite Forall_forall in HHH. 
   apply in_combine_r in In_seq. specialize (HHH _ In_seq). simpl in HHH. intuition.  

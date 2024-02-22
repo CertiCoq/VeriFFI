@@ -58,13 +58,13 @@ DECLARE _get_Coq_Init_Datatypes_nat_tag
 WITH gv : globals, g : graph, p : rep_type,
 x : nat, roots : roots_t, sh : share,
 ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-PRE  [[  [int_or_ptr_type]  ]]
+PRE  [int_or_ptr_type]
 PROP (
   @is_in_graph nat _ g outlier x p;
   writable_share sh  )
-(PARAMSx (  [rep_type_val g p] )
-(GLOBALSx [gv]
-(SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
+ PARAMS (rep_type_val g p)
+ GLOBALS (gv)
+ SEP (full_gc g t_info roots outlier ti sh gv)
 POST [ tuint ]
 (* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
 PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
@@ -89,19 +89,16 @@ Definition args_spec_S'  : funspec :=
   WITH gv : globals, g : graph, p : rep_type,
   x: nat, roots : roots_t, sh : share,
   ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-  PRE  [[  [int_or_ptr_type] ]]
-  PROP (
-      writable_share sh;
-          is_in_graph g outlier (S x) p  
-      )
-  (PARAMSx ( [rep_type_val g p])
-  (GLOBALSx [gv]
-  (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
+  PRE [int_or_ptr_type]
+  PROP (writable_share sh;
+        is_in_graph g outlier (S x) p)
+   PARAMS (rep_type_val g p)
+   GLOBALS (gv)
+   SEP (full_gc g t_info roots outlier ti sh gv)
   POST [ tptr int_or_ptr_type (* tarray int_or_ptr_type 1 *)  ]
   EX  (p' : rep_type) (sh' : share),
-  PROP (  writable_share sh';
-          is_in_graph g outlier x p'
-      )
+  PROP (writable_share sh';
+        is_in_graph g outlier x p')
   RETURN  ( rep_type_val g p ) 
   SEP (data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p);
       data_at sh' (tarray int_or_ptr_type 1) [rep_type_val g p'] (rep_type_val g p) -* full_gc g t_info roots outlier ti sh gv). 
@@ -133,9 +130,9 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
       PROP (  writable_share sh; 
             min_signed <= encode_Z (Z.of_nat n) <= max_signed
             )
-      (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
-      (GLOBALSx [gv]
-      (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
+      PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
+      GLOBALS (gv)
+      SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv)
    POST [ (talignas 3%N (tptr tvoid)) ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
@@ -153,9 +150,9 @@ PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
           writable_share sh; 
           min_signed <= encode_Z (Z.of_nat n) <= max_signed
           )
-    (PARAMSx [ti; Vlong (Int64.repr (encode_Z (Z.of_nat n)))]
-    (GLOBALSx [gv]
-    (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
+    PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
+    GLOBALS (gv)
+    SEP (full_gc g t_info roots outlier ti sh gv)
 POST [ (talignas 3%N (tptr tvoid)) ]
   EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
     PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
@@ -171,9 +168,9 @@ PRE  [ (talignas 3%N (tptr tvoid)) ]
     PROP ( encode_Z (Z.of_nat n) <= max_signed; 
             @is_in_graph nat (@in_graph nat _) g outlier n p ;
             writable_share sh)
-    (PARAMSx [ rep_type_val g p]
-    (GLOBALSx [gv]
-    (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
+    PARAMS (rep_type_val g p)
+    GLOBALS (gv)
+    SEP (full_gc g t_info roots outlier ti sh gv)
 POST [ (talignas 3%N (tptr tvoid)) ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
