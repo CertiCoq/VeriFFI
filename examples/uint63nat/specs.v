@@ -3,6 +3,7 @@ Require Import ZArith.
 Require Import Psatz.
 Require Export VeriFFI.verification.specs_general.
 Require Export VeriFFI.generator.Rep.
+Require Import VeriFFI.generator.Discrimination.
 
 #[export] Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
@@ -117,8 +118,8 @@ Definition max_signed: Z := 2^62 - 1.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 
-#[export] Instance Discrimination_nat : Discrimination nat. 
-Admitted.
+Local Obligation Tactic := gen.
+MetaCoq Run (disc_gen nat).
 
 #[export] Instance Rep_conditional  (A : Type) `(InGraph_A : InGraph A) 
 `(Discrimination_A : Discrimination A) : Rep A := 
