@@ -34,7 +34,7 @@ value uint63_to_Z(struct thread_info *tinfo, value t) {
   // loop over bits from left (most significant) to right (least significant)
   // ignore the last bit, hence i > 0, not i >= 0
   for (unsigned int i = sizeof(value) * 8 - 1; i > 0; i--) {
-    _Bool bit = ((size_t)t & (1 << i)) >> i;
+    _Bool bit = ((size_t)t & (1ULL << i)) >> i;
     if (bit) {
       if (temp) {
         temp = alloc_make_Coq_Numbers_BinNums_positive_xI(tinfo, temp);
