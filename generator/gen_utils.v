@@ -330,7 +330,11 @@ Module DB.
             ret (tCoFix mfix' idx)
         | tInt p => ret (tInt p)
         | tFloat p => ret (tFloat p)
-        | tArray lev al x y => ret (tArray lev al x y) (* FIXME !!! *)
+        | tArray u arr default type =>
+             arr' <- monad_map (go ctx) arr ;;
+             default' <- go ctx default ;;
+             type' <- go ctx type ;;
+             ret (tArray u arr' default' type')
         end
     in go ctx t.
 
@@ -410,7 +414,11 @@ Module DB.
             ret (tCoFix mfix' idx)
         | tInt p => ret (tInt p)
         | tFloat p => ret (tFloat p)
-        | tArray lev al x y => ret (tArray lev al x y) (* FIXME !!! *)
+        | tArray u arr default type =>
+             arr' <- monad_map (go ctx) arr ;;
+             default' <- go ctx default ;;
+             type' <- go ctx type ;;
+             ret (tArray u arr' default' type')
         end
     in go ctx t.
 
