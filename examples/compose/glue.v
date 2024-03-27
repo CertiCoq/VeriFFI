@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.12".
+  Definition version := "3.13".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -174,7 +174,7 @@ Definition v_prop_lit := {|
 |}.
 
 Definition f_get_unboxed_ordinal := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
@@ -186,7 +186,7 @@ Definition f_get_unboxed_ordinal := {|
 |}.
 
 Definition f_get_boxed_ordinal := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;

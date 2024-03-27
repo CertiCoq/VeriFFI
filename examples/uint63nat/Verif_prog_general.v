@@ -328,7 +328,7 @@ alloc_start_function.
 change_compspecs CompSpecs.
 repeat_forward custom_tactics.
 f_equal.
-rewrite ptrofs_of_int64_int64_repr by auto.
+simpl.
 now autorewrite with norm.
 Qed.
 

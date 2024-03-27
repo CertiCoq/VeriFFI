@@ -330,6 +330,7 @@ Module DB.
             ret (tCoFix mfix' idx)
         | tInt p => ret (tInt p)
         | tFloat p => ret (tFloat p)
+        | tArray lev al x y => ret (tArray lev al x y) (* FIXME !!! *)
         end
     in go ctx t.
 
@@ -409,6 +410,7 @@ Module DB.
             ret (tCoFix mfix' idx)
         | tInt p => ret (tInt p)
         | tFloat p => ret (tFloat p)
+        | tArray lev al x y => ret (tArray lev al x y) (* FIXME !!! *)
         end
     in go ctx t.
 
