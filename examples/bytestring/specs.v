@@ -60,9 +60,9 @@ PROP (
 (PARAMSx (  [rep_type_val g p] )
 (GLOBALSx [gv]
 (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
-POST [ tuint ]
+POST [ tulong ]
 PROP ( )
-RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition tag_spec_string2 : ident * funspec := 
@@ -72,9 +72,9 @@ PRE  [int_or_ptr_type]
   PROP (@is_in_graph string _ g outlier x p )
   PARAMS (rep_type_val g p)
   SEP (graph_rep g)
-POST [ tuint ]
+POST [ tulong ]
   PROP ( )
-  RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+  RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (graph_rep g).
 
 Record alloc_prepackage : Type := {

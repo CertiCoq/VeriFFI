@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.12".
+  Definition version := "3.13".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -125,8 +125,8 @@ Definition f_uint63_from_nat := {|
   fn_params := ((_n, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((_temp, (talignas 3%N (tptr tvoid))) :: (_i, tulong) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               nil);
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Sset _temp (Etempvar _n (talignas 3%N (tptr tvoid))))
@@ -140,10 +140,10 @@ Definition f_uint63_from_nat := {|
               (Evar _get_Coq_Init_Datatypes_nat_tag (Tfunction
                                                       (Tcons
                                                         (talignas 3%N (tptr tvoid))
-                                                        Tnil) tuint
+                                                        Tnil) tulong
                                                       cc_default))
               ((Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
-            (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tuint)
+            (Sifthenelse (Ebinop Oeq (Etempvar _t'1 tulong)
                            (Econst_int (Int.repr 1) tint) tint)
               Sskip
               Sbreak))
@@ -742,8 +742,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (_get_Coq_Init_Datatypes_nat_tag,
    Gfun(External (EF_external "get_Coq_Init_Datatypes_nat_tag"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tuint cc_default)) ::
+                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
+     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tulong cc_default)) ::
  (_uint63_from_nat, Gfun(Internal f_uint63_from_nat)) ::
  (_uint63_to_nat_no_gc, Gfun(Internal f_uint63_to_nat_no_gc)) ::
  (_uint63_to_nat, Gfun(Internal f_uint63_to_nat)) ::

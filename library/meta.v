@@ -54,17 +54,20 @@ Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> outlier_t -> A ->
 #[export] Instance InGraph_Prop : InGraph Prop.
 Proof.
   refine (@Build_InGraph _ _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition. intuition.
+  intros; simpl in *. intuition. induction p; intuition.
+  intuition auto with *.
 Defined.
 #[export] Instance InGraph_Set : InGraph Set.
 Proof.
   refine (@Build_InGraph _ _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition. intuition.
+  intros; simpl in *. intuition. induction p; intuition.
+  intuition auto with *.
 Defined.
 #[export] Instance InGraph_Type : InGraph Type.
 Proof.
   refine (@Build_InGraph _ _ _ _ _).
-  intros; simpl in *. intuition. induction p; intuition. intuition.
+  intros; simpl in *. intuition. induction p; intuition.
+  intuition auto with *.
 Defined.
 
 Definition GraphPredicate_fun (A B : Type) : GraphPredicate (A -> B) :=
