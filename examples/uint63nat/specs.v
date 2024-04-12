@@ -132,14 +132,14 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
             )
       PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
       GLOBALS (gv)
-      SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv)
+      SEP (full_gc g t_info roots outlier ti sh gv; spec_malloc.mem_mgr gv)
    POST [ (talignas 3%N (tptr tvoid)) ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
              gc_graph_iso g roots g' roots';
              frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
-       SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
+       SEP (full_gc g' t_info' roots' outlier ti sh gv; spec_malloc.mem_mgr gv). 
 
 Definition uint63_to_nat_no_gc_spec :  ident *  funspec := 
 DECLARE _uint63_to_nat_no_gc
@@ -269,6 +269,6 @@ Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
                       ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
                       uint63_to_nat_no_gc_spec;
-                      gc_spec.garbage_collect_spec
+                      spec_gc.garbage_collect_spec
                       (* _call, call_spec *)
                       ] .

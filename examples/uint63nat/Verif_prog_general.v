@@ -499,7 +499,7 @@ Proof.
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._nalloc)
                 (Vlong (Ptrofs.to_int64 (ti_nalloc tinfo))) tinfo_pos
             * @field_at env_graph_gc.CompSpecs sh env_graph_gc.thread_info_type (DOT gc_stack._odata) nullval tinfo_pos
-            * gc_spec.all_string_constants Ers gv
+            * spec_gc.all_string_constants Ers gv
                )%logic.
 
 (* The term "map space_tri (tl (spaces (ti_heap tinfo)))" has type

@@ -1222,7 +1222,7 @@ Proof.
             lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
             lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
             gvars gv; temp _tinfo ti; temp _save0 (rep_type_val g p))
-     SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv;
+     SEP (full_gc g t_info roots outlier ti sh gv; spec_malloc.mem_mgr gv;
           frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1))
    break: 
     (PROP ()
@@ -1230,7 +1230,7 @@ Proof.
             lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
             lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; 
             gvars gv; temp _tinfo ti; temp _save0 (rep_type_val g p))
-     SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv;
+     SEP (full_gc g t_info roots outlier ti sh gv; spec_malloc.mem_mgr gv;
           frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1)).
  - Exists x p. entailer!!. f_equal. f_equal. lia.
  - Intros s ps.

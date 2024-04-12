@@ -2,6 +2,8 @@
 # This BUILD file corresponds, more or less, to docker/Dockerfile
 #RUN comments in this correspond, more or less, to commands in Dockerfile
 
+OPAMJOBS ?= 1
+
 # leave this out because it's linux-specific
 # RUN sudo apt-get update && sudo apt-get install -y libgmp-dev
 
@@ -19,9 +21,9 @@ eval $(opam env --switch=veriffi-coq8.19.1)
 echo "RUN: opam repo add coq-released http://coq.inria.fr/opam/released"
 opam repo add coq-released https://coq.inria.fr/opam/released
 echo "RUN: opam pin add coq 8.19.1"
-opam pin add coq 8.19.1 || exit 1
+opam pin add coq 8.19.1 -y || exit 1
 echo "RUN: opam pin add coqide 8.19.1"
-opam pin add coqide 8.19.1  # all right if this one fails
+opam pin add coqide 8.19.1 -y # all right if this one fails
 
 echo "RUN: git submodule update --init --checkout --recursive"
 git submodule update --init --checkout --recursive  || exit 1
@@ -41,13 +43,16 @@ clang --version || exit 1
 
 # RUN cd ~/certicoq && opam install .
 echo "RUN: cd certicoq; opam install ."
-(cd certicoq; opam install .) || exit 1
+(cd certicoq; opam install . -y) || exit 1
 
 echo "RUN: opam install coq-vst.2.14"
-opam install coq-vst.2.14 || exit 1
+opam install coq-vst.2.14 -y || exit 1
+echo "RUN: opam install coq-vst-lib.2.14"
+opam install coq-vst-lib.2.14 -y || exit 1
 
 echo "RUN: cd CertiGraph; make -j $(OPAMJOBS) certigc"
 (cd CertiGraph; make -j $(OPAMJOBS) certigc) || exit 1
+
 
 # Now build VeriFFI itself
 echo "RUN: make -kj $(OPAMJOBS)"

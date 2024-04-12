@@ -8,7 +8,7 @@ In the second part, we prove several compatibility properties for this augmented
 
 Require Export CertiGraph.CertiGC.gc_correct.
 From VeriFFI.library Require Export base_representation. 
-Import List_ext GCGraph graph_model env_graph_gc gc_spec RelationClasses CertiGraph.msl_ext.iter_sepcon.
+Import List_ext GCGraph graph_model env_graph_gc spec_gc RelationClasses CertiGraph.msl_ext.iter_sepcon.
 
 (** ** 1. Definition of the function for adding a node to CertiCoq Graph with a given label. 
 
