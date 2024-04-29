@@ -63,6 +63,16 @@ Proof.
 Qed.
 
 (** Custom notation with a list for PRE to make the specification better readable. *)
+(*
+Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 , x8 : t8 'PRE''  xs P 'POST' [ tz ] Q" :=
+     (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7*t8)
+           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8) => P%assert end)
+           (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8) => Q%assert end))
+            (at level 200, x1 at level 0, x2 at level 0, x3 at level 0, x4 at level 0,
+             x5 at level 0, x6 at level 0, x7 at level 0, x8 at level 0,
+             P at level 100, Q at level 100) : funspec_scope.
+*)
+
 Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7 : t7 , x8 : t8 , x9 : t9 'PRE''  xs P 'POST' [ tz ] Q" :=
      (NDmk_funspec (xs, tz) cc_default (t1*t2*t3*t4*t5*t6*t7*t8*t9)
            (fun x => match x with (x1,x2,x3,x4,x5,x6,x7,x8,x9) => P%assert end)
@@ -127,16 +137,15 @@ Definition alloc_make_nat_S : funspec :=
         *)
         
 (* move ps to the spec args somehow instead of WITH args *)
-Definition alloc_make_spec_general
-           (c : ctor_desc)
-           (n : nat) : (* ident * *) funspec :=
+
+Definition alloc_make_spec_general (c : ctor_desc) : funspec :=
     WITH gv : globals, g : graph, ps : list rep_type,
          xs : args (ctor_reified c), roots : roots_t, sh : share,
          ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-    PRE'  (thread_info :: repeat int_or_ptr_type n)
-       PROP (n = get_size (ctor_reified c) xs ;
+    PRE'  (thread_info :: repeat int_or_ptr_type (ctor_arity c))
+       PROP (ctor_arity c = get_size (ctor_reified c) xs;
              ctor_in_graphs g outlier _ xs ps ;
-             (Z.of_nat n) < headroom t_info ;
+             (Z.of_nat (ctor_arity c)) < headroom t_info ;
              writable_share sh)
        (PARAMSx (ti :: map (fun p => rep_type_val g p) ps)
        (GLOBALSx [gv]
@@ -145,7 +154,7 @@ Definition alloc_make_spec_general
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
               @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' outlier (ctor_reflected c xs) p' ;
-              headroom t_info' = headroom t_info - Z.of_nat (S n);
+              headroom t_info' = headroom t_info - Z.of_nat (S (ctor_arity c));
               gc_graph_iso g roots g' roots;
               ti_frames t_info = ti_frames t_info'
               )

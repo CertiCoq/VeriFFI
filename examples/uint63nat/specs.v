@@ -41,7 +41,7 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
 
 Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
-          (alloc_make_spec_general (@ctor_desc_of_val _ S _) 1).        
+          (alloc_make_spec_general (@ctor_desc_of_val _ S _)).        
 
 (* KS: Use Discrimination *)          
 Definition nat_get_desc (x : nat) : ctor_desc := 

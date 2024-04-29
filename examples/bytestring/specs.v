@@ -271,15 +271,15 @@ DECLARE _get_args
 
 Definition make_Coq_Strings_String_string_EmptyString_spec : ident * funspec :=
     DECLARE _make_Coq_Strings_String_string_EmptyString
-          (alloc_make_spec_general (@ctor_desc_of_val _ EmptyString _) 0). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ EmptyString _)). 
 
 Definition alloc_make_Coq_Strings_String_string_String_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_String_string_String
-          (alloc_make_spec_general (@ctor_desc_of_val _ String _) 2).     
+          (alloc_make_spec_general (@ctor_desc_of_val _ String _)).     
 
 Definition alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_Ascii_ascii_Ascii
-          (alloc_make_spec_general (@ctor_desc_of_val _ Ascii _) 8). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ Ascii _)). 
 
 
 Definition pack_spec : ident * funspec :=

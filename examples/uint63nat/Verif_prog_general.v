@@ -30,7 +30,7 @@ From VeriFFI Require Import verification.specs_library.
 (* Specfication of alloc - would be generalized otherwise. *)
 Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
-          (alloc_make_spec_general (@ctor_desc_of_val _ S _) 1).
+          (alloc_make_spec_general (@ctor_desc_of_val _ S _)).
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ alloc_make_Coq_Init_Datatypes_nat_S_spec ] .
@@ -434,11 +434,11 @@ Definition field_t_rep_type (g : LGraph) x :=
   end.
 
 
-Definition general_subsumption A `(InGraph A) t n descr :
+Definition general_subsumption A `(InGraph A) t descr :
   X_in_graph_cons descr t ->  
   0 <= Z.of_nat t < 250 ->
-  0 < Z.of_nat n < 2096895 ->
-  funspec_sub (n_arguments (calc t n) n) (alloc_make_spec_general descr n).
+  0 < Z.of_nat (ctor_arity descr) < 2096895 ->
+  funspec_sub (n_arguments (calc t (ctor_arity descr)) (ctor_arity descr)) (alloc_make_spec_general descr).
 Proof.
     do_funspec_sub.
     assert (R1 : 0 <= Z.of_nat t < 256) by rep_lia.
@@ -448,7 +448,7 @@ Proof.
     unfold full_gc.
     Intros.
     unfold fst, snd in H3, H8, H9.
-    subst n args.
+    subst args.
     rename H0 into result_in_graph.
     rename H5 into args_in_graph.
     rename H6 into headroom_size.
@@ -467,10 +467,14 @@ Proof.
     set (hh := heap_head _) in *.
     pose (alloc :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * used_space hh)))).
     pose (limit :=  Ptrofs.signed (Ptrofs.add x' (Ptrofs.repr (WORD_SIZE * total_space hh)))) .
-
-    pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
     assert (ps_size := ctor_in_graphs_size _ _ _ _ _ args_in_graph).
-    rewrite ps_size.   erewrite <- map_length.
+    assert (length (map (fun p : rep_type => rep_type_val gr p) ps) = ctor_arity descr)
+     by(rewrite map_length; congruence).
+    pose (vals := from_list (map (fun p => specs_library.rep_type_val gr p) ps)).
+    set (n := Datatypes.length
+        (map (fun p : rep_type => rep_type_val gr p) ps)) in *.
+    rewrite <- H0 in *. rewrite <- H4 in *.
+    (*rewrite ps_size.   erewrite <- map_length.*)
 
     (* With Arguments of n_arguments *)
     Exists ((((((sh, space_sh hh), tinfo_pos) , vals), b),  alloc), limit).
@@ -520,7 +524,7 @@ Proof.
     split.
 
     2 : { split.
-          - unfold calc. rewrite map_length. rewrite <- ps_size. unfold Z.shiftl. simpl. rep_lia.
+          - unfold calc. (*rewrite H4. rewrite map_length. rewrite <- ps_size.*) unfold Z.shiftl. simpl. rep_lia.
           - unfold vals. now rewrite to_from_vec.  }
 
     intros rho. (*entailer!!.*)
@@ -569,7 +573,7 @@ Proof.
          destruct gc_cond as (GCC & SC & STC & SGC & CC).
          apply add_node_iso; auto; try apply SGC; try apply SC; try apply RGC; try apply GCC.
         apply new_node_roots with (outlier:=outliers). apply SC.
-      ++ simpl. rewrite <- H4. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
+      ++ simpl. rewrite <- H6. autorewrite with graph_add; eauto. unfold alloc; eauto. unfold vertex_address.
           destruct comp_g0 as (comp_start&comp_sh&comp_prev).
           unfold gen_start. simpl. rewrite comp_start. unfold vertex_offset.
           simpl. rewrite comp_prev. if_tac; try contradiction.
@@ -604,10 +608,10 @@ Proof.
        (Ptrofs.add x'
           (Ptrofs.repr (WORD_SIZE * used_space hh)))))
     as FC0. {
-      saturate_local; apply prop_right; clear - H10.
-      unfold field_address0 in H10.
-      if_tac in H10; auto.
-      destruct H10; contradiction.
+      saturate_local; apply prop_right. clear - H12.
+      unfold field_address0 in H12.
+      if_tac in H12; auto.
+      destruct H12; contradiction.
     }
     entailer!!.
    
@@ -824,8 +828,7 @@ Proof.
     - replace (1 + Z.of_nat (Datatypes.length ps) - 1) with (Z.of_nat (Datatypes.length ps)) by lia. 
        unfold field_address0.
        simpl. entailer!.
-       if_tac; [  | destruct H7; contradiction].
-       cancel.
+       if_tac. cancel. destruct H9; contradiction.
 
   + (* Precondition:
      The precondition of the actual general alloc entails the precondition of n_arguments. *)

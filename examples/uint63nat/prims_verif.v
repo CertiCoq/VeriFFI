@@ -129,12 +129,14 @@ Proof.
     assert (n - m <> 0)%nat by lia.
     forward_call (gv, g', [v], (m%nat; tt) , roots, sh, ti, outlier, t_info').
     split; simpl; auto.
+    hnf; simpl; auto. lia.
     Intros v'.  destruct v' as ((v'&g'')&ti').
     unfold fst, snd in *. 
     forward. 
     Exists (v', S m, g'', ti').
     entailer!!.
-    split.
+    split3.
+     + simpl in H8. lia.
      + eapply gc_graph_iso_trans; eassumption.
      + repeat f_equal.  lia.
   -
@@ -297,7 +299,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
   Intros g4 v0' roots4 t_info4.
   pose (m' := existT (fun _ => unit) m tt).
   forward_call (gv, g4, [v0'], m', roots4, sh, ti, outlier, t_info4).
-   * split. split; auto. reflexivity. clear - H3.  rewrite Int.signed_repr in H3 by rep_lia. rep_lia.
+   * split. split; auto. reflexivity. clear - H3.  rewrite Int.signed_repr in H3 by rep_lia. simpl;  rep_lia.
    * Intros vret.
      destruct vret as [[ v2 g5] t_info5].
      simpl snd in *. simpl fst in *.
