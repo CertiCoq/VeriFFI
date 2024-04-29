@@ -52,7 +52,7 @@ Module UInt63_Proofs.
     apply (match p with repZ i => i= Z.of_nat z | _ => False end).
   Defined.
 
-  #[local] Instance InGraph_t : InGraph FM.t.
+  #[local] Instance ForeignInGraph_t : ForeignInGraph FM.t C.t.
    apply (Build_InGraph _ GraphPredicate_t).
    -  intros ? ? [z H] ? ?. hnf in H0. contradiction.
    - intros; auto.
@@ -62,8 +62,8 @@ Module UInt63_Proofs.
   Definition from_nat_desc : fn_desc :=
     {| type_desc :=
         @ARG _ nat transparent (fun _ =>
-          @RES _ FM.t (opaque C.t))
-     ; prim_fn := C.from_nat
+          @RES _ FM.t opaque)
+     ; foreign_fn := C.from_nat
      ; model_fn := fun '(x; tt) => FM.from_nat x
      ; f_arity := 1
      ; c_name := "int63_from_nat"
@@ -71,9 +71,9 @@ Module UInt63_Proofs.
 
   Definition to_nat_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
+        @ARG _ FM.t opaque (fun _ =>
           @RES _ nat transparent)
-     ; prim_fn := C.to_nat
+     ; foreign_fn := C.to_nat
      ; model_fn := fun '(x; tt) => FM.to_nat x
      ; f_arity := 1
      ; c_name := "int63_to_nat"
@@ -81,10 +81,10 @@ Module UInt63_Proofs.
 
   Definition add_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.add
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.add
      ; model_fn := fun '(x; (y; tt)) => FM.add x y
      ; f_arity := 2
      ; c_name := "int63_add"
@@ -92,10 +92,10 @@ Module UInt63_Proofs.
 
   Definition mul_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.mul
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.mul
      ; model_fn := fun '(x; (y; tt)) => FM.mul x y
      ; f_arity := 2
      ; c_name := "int63_mul"
@@ -132,7 +132,7 @@ Module UInt63_Proofs.
     props to_nat_spec.
     props add_spec.
     props from_nat_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.add, FM.from_nat, FM.to_nat.
     (* the rest is just a proof about the functional model *)
     unfold proj1_sig.

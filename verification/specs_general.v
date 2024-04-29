@@ -38,7 +38,7 @@ Fixpoint in_graphs {ann: Type -> Type} (ing: forall T, ann T -> InGraph T)
   end xs.
 
 Definition ctor_in_graphs := in_graphs (@field_in_graph).
-Definition prim_in_graphs := in_graphs (@prim_in_graph).
+Definition foreign_in_graphs := in_graphs (@foreign_in_graph).
 
 (** List of [tulong] depending on the number of arguments
     represented in memory, needed for the parameters. *)
@@ -73,12 +73,12 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
 
 
 Definition get_c_typesig
-           (c : reified prim_ann)
+           (c : reified foreign_ann)
            (arity : nat) : compcert_rmaps.typesig :=
   (cons thread_info (repeat int_or_ptr_type arity), int_or_ptr_type).
 
 Definition fn_desc_to_funspec_aux
-           (c : reified prim_ann)
+           (c : reified foreign_ann)
            (model_fn : meta.reflect c)
            (arity : nat) : funspec :=
   WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
@@ -86,14 +86,14 @@ Definition fn_desc_to_funspec_aux
        outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
    PRE' (cons thread_info (repeat int_or_ptr_type arity))
        PROP (writable_share sh ;
-              prim_in_graphs g outlier c xs ps)
+              foreign_in_graphs g outlier c xs ps)
        (PARAMSx (ti :: map (rep_type_val g) ps)
         (GLOBALSx [gv]
          (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ int_or_ptr_type ]
        EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
-                @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
+                @is_in_graph (projT1 r) (@foreign_in_graph (projT1 r) (projT2 r)) g'
                   outlier (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots')
           RETURN  (rep_type_val g' p')
@@ -185,7 +185,7 @@ Proof.
 Qed.
 
 Ltac concretize_PARAMS :=
-unfold ctor_in_graphs, prim_in_graphs in *;
+unfold ctor_in_graphs, foreign_in_graphs in *;
 lazymatch goal with
 | xs: args _, H0: in_graphs _ _ _ _ ?xs' ?ps  |- _ =>
    constr_eq xs xs';
@@ -206,7 +206,7 @@ lazymatch goal with
    | _ => idtac
 end;
  change (in_graphs (@field_in_graph)) with ctor_in_graphs in *;
- change (in_graphs (@prim_in_graph)) with prim_in_graphs in *.
+ change (in_graphs (@foreign_in_graph)) with foreign_in_graphs in *.
 
 Ltac start_function' := 
   start_function1; 

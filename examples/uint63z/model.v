@@ -48,14 +48,13 @@ Module UInt63_Proofs.
   Axiom Isomorphism_t : Isomorphism FM.t C.t.
   #[local] Existing Instance Isomorphism_t.
 
-
-  #[local] Instance GraphPredicate_t : GraphPredicate FM.t.
+  Definition GraphPredicate_t : GraphPredicate FM.t.
     constructor.
     intros g outlier [z H] p.
     apply (match p with repZ i => i=z | _ => False end).
   Defined.
 
-  #[local] Instance InGraph_t : InGraph FM.t.
+  #[local] Instance ForeignInGraph_t : ForeignInGraph FM.t C.t.
    apply (Build_InGraph _ GraphPredicate_t).
    -  intros ? ? [z H] ? ?. hnf in H0. contradiction.
    - intros; auto.
@@ -65,8 +64,8 @@ Module UInt63_Proofs.
   Definition from_Z_desc : fn_desc :=
     {| type_desc :=
         @ARG _ Z transparent (fun _ =>
-          @RES _ FM.t (opaque C.t))
-     ; prim_fn := C.from_Z
+          @RES _ FM.t opaque)
+     ; foreign_fn := C.from_Z
      ; model_fn := fun '(x; tt) => FM.from_Z x
      ; f_arity := 1
      ; c_name := "int63_from_Z"
@@ -74,9 +73,9 @@ Module UInt63_Proofs.
 
   Definition to_Z_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
+        @ARG _ FM.t opaque (fun _ =>
           @RES _ Z transparent)
-     ; prim_fn := C.to_Z
+     ; foreign_fn := C.to_Z
      ; model_fn := fun '(x; tt) => FM.to_Z x
      ; f_arity := 1
      ; c_name := "int63_to_Z"
@@ -84,10 +83,10 @@ Module UInt63_Proofs.
 
   Definition add_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.add
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.add
      ; model_fn := fun '(x; (y; tt)) => FM.add x y
      ; f_arity := 2
      ; c_name := "int63_add"
@@ -95,10 +94,10 @@ Module UInt63_Proofs.
 
   Definition mul_desc : fn_desc :=
     {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.mul
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.mul
      ; model_fn := fun '(x; (y; tt)) => FM.mul x y
      ; f_arity := 2
      ; c_name := "int63_mul"
@@ -114,7 +113,7 @@ Module UInt63_Proofs.
     props from_Z_spec.
     props add_spec.
     props to_Z_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.to_Z, FM.add, FM.from_Z.
     simpl.
     rewrite Z.mod_small.
@@ -130,7 +129,7 @@ Module UInt63_Proofs.
     props from_Z_spec.
     props to_Z_spec.
     props add_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.add, FM.from_Z, FM.to_Z.
     simpl.
     rewrite <- !(Z.add_mod y z).
@@ -150,7 +149,7 @@ Module UInt63_Proofs.
     props to_Z_spec.
     props add_spec.
     props mul_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (y' := Z.modulo y (Z.pow_pos 2 63)); fold y'.
@@ -170,7 +169,7 @@ Module UInt63_Proofs.
     props to_Z_spec.
     props add_spec.
     props mul_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.mul, FM.add, FM.from_Z, FM.to_Z.
     simpl.
     pose (x' := Z.modulo y (Z.pow_pos 2 63)); fold x'.

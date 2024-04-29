@@ -20,10 +20,10 @@ Module Compose_Proofs.
        @TYPEPARAM _ (fun A R_A =>
          @TYPEPARAM _ (fun B R_B =>
            @TYPEPARAM _ (fun C R_C =>
-             @ARG _ (B -> C) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph B R_B) (@prim_in_graph C R_C))) (fun g =>
-               @ARG _ (A -> B) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph A R_A) (@prim_in_graph B R_B))) (fun f =>
-                 @RES _ (A -> C) (@transparent _ (@InGraph_fun _ _ (@prim_in_graph A R_A) (@prim_in_graph C R_C))))))))
-     ; prim_fn := @C.compose
+             @ARG _ (B -> C) (@transparent _ (@InGraph_fun _ _ (@foreign_in_graph B R_B) (@foreign_in_graph C R_C))) (fun g =>
+               @ARG _ (A -> B) (@transparent _ (@InGraph_fun _ _ (@foreign_in_graph A R_A) (@foreign_in_graph B R_B))) (fun f =>
+                 @RES _ (A -> C) (@transparent _ (@InGraph_fun _ _ (@foreign_in_graph A R_A) (@foreign_in_graph C R_C))))))))
+     ; foreign_fn := @C.compose
      ; model_fn := fun '(A; (_; (B; (_; (C; (_; (g; (f; tt)))))))) => @FM.compose A B C g f
      ; f_arity := 5
      ; c_name := "compose"
