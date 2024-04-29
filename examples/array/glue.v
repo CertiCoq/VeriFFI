@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.12".
+  Definition version := "3.13".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -220,7 +220,7 @@ Definition v_prop_lit := {|
 |}.
 
 Definition f_get_unboxed_ordinal := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
@@ -232,7 +232,7 @@ Definition f_get_unboxed_ordinal := {|
 |}.
 
 Definition f_get_boxed_ordinal := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
@@ -904,12 +904,12 @@ Definition f_alloc_make_VeriFFI_examples_array_prog_C_MI_getI := {|
 |}.
 
 Definition f_get_Coq_Init_Datatypes_option_tag := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
-               (_t'2, tuint) :: (_t'1, tint) :: nil);
+  fn_temps := ((__b, tbool) :: (__t, tulong) :: (_t'3, tulong) ::
+               (_t'2, tulong) :: (_t'1, tint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -924,34 +924,34 @@ Definition f_get_Coq_Init_Datatypes_option_tag := {|
         (Scall (Some _t'2)
           (Evar _get_boxed_ordinal (Tfunction
                                      (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
+                                     tulong cc_default))
           ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'2 tuint)))
-      (Sswitch (Etempvar __t tuint)
+        (Sset __t (Etempvar _t'2 tulong)))
+      (Sswitch (Etempvar __t tulong)
         (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 0) tuint)))
+          (Sreturn (Some (Econst_int (Int.repr 0) tint)))
           LSnil)))
     (Ssequence
       (Ssequence
         (Scall (Some _t'3)
           (Evar _get_unboxed_ordinal (Tfunction
                                        (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
+                                         Tnil) tulong cc_default))
           ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'3 tuint)))
-      (Sswitch (Etempvar __t tuint)
+        (Sset __t (Etempvar _t'3 tulong)))
+      (Sswitch (Etempvar __t tulong)
         (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 1) tuint)))
+          (Sreturn (Some (Econst_int (Int.repr 1) tint)))
           LSnil)))))
 |}.
 
 Definition f_get_Coq_Init_Datatypes_nat_tag := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__b, tbool) :: (__t, tuint) :: (_t'3, tuint) ::
-               (_t'2, tuint) :: (_t'1, tint) :: nil);
+  fn_temps := ((__b, tbool) :: (__t, tulong) :: (_t'3, tulong) ::
+               (_t'2, tulong) :: (_t'1, tint) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -966,61 +966,61 @@ Definition f_get_Coq_Init_Datatypes_nat_tag := {|
         (Scall (Some _t'2)
           (Evar _get_boxed_ordinal (Tfunction
                                      (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                     tuint cc_default))
+                                     tulong cc_default))
           ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'2 tuint)))
-      (Sswitch (Etempvar __t tuint)
+        (Sset __t (Etempvar _t'2 tulong)))
+      (Sswitch (Etempvar __t tulong)
         (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 1) tuint)))
+          (Sreturn (Some (Econst_int (Int.repr 1) tint)))
           LSnil)))
     (Ssequence
       (Ssequence
         (Scall (Some _t'3)
           (Evar _get_unboxed_ordinal (Tfunction
                                        (Tcons (talignas 3%N (tptr tvoid))
-                                         Tnil) tuint cc_default))
+                                         Tnil) tulong cc_default))
           ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __t (Etempvar _t'3 tuint)))
-      (Sswitch (Etempvar __t tuint)
+        (Sset __t (Etempvar _t'3 tulong)))
+      (Sswitch (Etempvar __t tulong)
         (LScons (Some 0)
-          (Sreturn (Some (Econst_int (Int.repr 0) tuint)))
+          (Sreturn (Some (Econst_int (Int.repr 0) tint)))
           LSnil)))))
 |}.
 
 Definition f_get_Coq_Init_Datatypes_unit_tag := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
+  fn_temps := ((__t, tulong) :: (_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
       (Evar _get_unboxed_ordinal (Tfunction
                                    (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                   tuint cc_default))
+                                   tulong cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __t (Etempvar _t'1 tuint)))
-  (Sreturn (Some (Etempvar __t tuint))))
+    (Sset __t (Etempvar _t'1 tulong)))
+  (Sreturn (Some (Etempvar __t tulong))))
 |}.
 
 Definition f_get_VeriFFI_examples_array_prog_C_MI_tag := {|
-  fn_return := tuint;
+  fn_return := tulong;
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__t, tuint) :: (_t'1, tuint) :: nil);
+  fn_temps := ((__t, tulong) :: (_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
     (Scall (Some _t'1)
       (Evar _get_boxed_ordinal (Tfunction
                                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)
-                                 tuint cc_default))
+                                 tulong cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __t (Etempvar _t'1 tuint)))
-  (Sreturn (Some (Etempvar __t tuint))))
+    (Sset __t (Etempvar _t'1 tulong)))
+  (Sreturn (Some (Etempvar __t tulong))))
 |}.
 
 Definition f_print_Coq_Init_Datatypes_option := {|
@@ -1032,8 +1032,8 @@ Definition f_print_Coq_Init_Datatypes_option := {|
                          tvoid cc_default))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -1041,9 +1041,9 @@ Definition f_print_Coq_Init_Datatypes_option := {|
       (Evar _get_Coq_Init_Datatypes_option_tag (Tfunction
                                                  (Tcons
                                                    (talignas 3%N (tptr tvoid))
-                                                   Tnil) tuint cc_default))
+                                                   Tnil) tulong cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
+    (Sset __tag (Ecast (Etempvar _t'1 tulong) tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
       (Ssequence
@@ -1116,8 +1116,8 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((__tag, tuint) :: (__args, (tptr tvoid)) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: (_t'3, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -1125,9 +1125,9 @@ Definition f_print_Coq_Init_Datatypes_nat := {|
       (Evar _get_Coq_Init_Datatypes_nat_tag (Tfunction
                                               (Tcons
                                                 (talignas 3%N (tptr tvoid))
-                                                Tnil) tuint cc_default))
+                                                Tnil) tulong cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
+    (Sset __tag (Ecast (Etempvar _t'1 tulong) tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
       (Ssequence
@@ -1201,7 +1201,7 @@ Definition f_print_Coq_Init_Datatypes_unit := {|
   fn_callconv := cc_default;
   fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__tag, tuint) :: (_t'1, tuint) :: nil);
+  fn_temps := ((__tag, tuint) :: (_t'1, tulong) :: nil);
   fn_body :=
 (Ssequence
   (Ssequence
@@ -1209,9 +1209,9 @@ Definition f_print_Coq_Init_Datatypes_unit := {|
       (Evar _get_Coq_Init_Datatypes_unit_tag (Tfunction
                                                (Tcons
                                                  (talignas 3%N (tptr tvoid))
-                                                 Tnil) tuint cc_default))
+                                                 Tnil) tulong cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
+    (Sset __tag (Ecast (Etempvar _t'1 tulong) tuint)))
   (Scall None
     (Evar _printf (Tfunction (Tcons (tptr tschar) Tnil) tint
                     {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
@@ -1231,8 +1231,8 @@ Definition f_print_VeriFFI_examples_array_prog_C_MI := {|
                (_t'5, (tptr (talignas 3%N (tptr tvoid)))) ::
                (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
                (_t'3, (tptr (talignas 3%N (tptr tvoid)))) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'7, (talignas 3%N (tptr tvoid))) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: (_t'7, (talignas 3%N (tptr tvoid))) ::
                (_t'6, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
@@ -1241,10 +1241,10 @@ Definition f_print_VeriFFI_examples_array_prog_C_MI := {|
       (Evar _get_VeriFFI_examples_array_prog_C_MI_tag (Tfunction
                                                         (Tcons
                                                           (talignas 3%N (tptr tvoid))
-                                                          Tnil) tuint
+                                                          Tnil) tulong
                                                         cc_default))
       ((Etempvar __v (talignas 3%N (tptr tvoid))) :: nil))
-    (Sset __tag (Etempvar _t'1 tuint)))
+    (Sset __tag (Ecast (Etempvar _t'1 tulong) tuint)))
   (Sswitch (Etempvar __tag tuint)
     (LScons (Some 0)
       (Ssequence

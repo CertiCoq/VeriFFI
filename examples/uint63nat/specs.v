@@ -66,7 +66,7 @@ PROP (
  PARAMS (rep_type_val g p)
  GLOBALS (gv)
  SEP (full_gc g t_info roots outlier ti sh gv)
-POST [ tuint ]
+POST [ tulong ]
 (* EX  (xs : args (ctor_reific (nat_get_desc x))), *)
 PROP ( (* 1. x has tag t and is constructed with the constructor description c. 
               a. Tag function relating to x.
@@ -83,7 +83,7 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
       let c := nat_get_desc x in 
       nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
     )
-RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
+RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition args_spec_S'  : funspec := 
@@ -133,14 +133,14 @@ Definition uint63_to_nat_spec :  ident *  funspec :=
             )
       PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
       GLOBALS (gv)
-      SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv)
+      SEP (full_gc g t_info roots outlier ti sh gv; spec_malloc.mem_mgr gv)
    POST [ (talignas 3%N (tptr tvoid)) ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
              gc_graph_iso g roots g' roots';
              frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
-       SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
+       SEP (full_gc g' t_info' roots' outlier ti sh gv; spec_malloc.mem_mgr gv). 
 
 Definition uint63_to_nat_no_gc_spec :  ident *  funspec := 
 DECLARE _uint63_to_nat_no_gc
@@ -165,14 +165,14 @@ Definition uint63_from_nat_spec :  ident *  funspec :=
 DECLARE _uint63_from_nat  
 WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
-PRE  [ (talignas 3%N (tptr tvoid)) ]
+PRE  [ int_or_ptr_type ]
     PROP ( encode_Z (Z.of_nat n) <= max_signed; 
             @is_in_graph nat (@in_graph nat _) g outlier n p ;
             writable_share sh)
     PARAMS (rep_type_val g p)
     GLOBALS (gv)
     SEP (full_gc g t_info roots outlier ti sh gv)
-POST [ (talignas 3%N (tptr tvoid)) ]
+POST [ int_or_ptr_type ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
     SEP (full_gc g t_info roots outlier ti sh gv). 
@@ -270,6 +270,6 @@ Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
                       ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
                       uint63_to_nat_no_gc_spec;
-                      gc_spec.garbage_collect_spec
+                      spec_gc.garbage_collect_spec
                       (* _call, call_spec *)
                       ] .

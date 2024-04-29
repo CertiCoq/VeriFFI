@@ -61,9 +61,9 @@ PROP (
 (PARAMSx (  [rep_type_val g p] )
 (GLOBALSx [gv]
 (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
-POST [ tuint ]
+POST [ tulong ]
 PROP ( )
-RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition tag_spec_string2 : ident * funspec := 
@@ -73,9 +73,9 @@ PRE  [int_or_ptr_type]
   PROP (@is_in_graph string _ g outlier x p )
   PARAMS (rep_type_val g p)
   SEP (graph_rep g)
-POST [ tuint ]
+POST [ tulong ]
   PROP ( )
-  RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+  RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (graph_rep g).
 
 Record alloc_prepackage : Type := {
@@ -238,7 +238,7 @@ rewrite !prop_true_andp by auto.
 Exists (outlier_rep outlier 
        * before_gc_thread_info_rep sh t_info ti
        * ti_token_rep (ti_heap t_info) (ti_heap_p t_info)
-       * gc_spec.all_string_constants Ers gv)%logic.
+       * spec_gc.all_string_constants Ers gv)%logic.
 apply andp_right.
 cancel.
 apply prop_right.
@@ -300,6 +300,6 @@ Definition Gprog := [ ascii_to_char_spec;
                       make_Coq_Strings_String_string_EmptyString_spec;
                       alloc_make_Coq_Strings_String_string_String_spec;
                       alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec;
-                      gc_spec.garbage_collect_spec
+                      spec_gc.garbage_collect_spec
                       (* _call, call_spec *)
                       ] .

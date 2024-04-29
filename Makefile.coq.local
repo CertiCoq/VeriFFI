@@ -1,6 +1,13 @@
 INCLUDE=certicoq/plugin/runtime
 GCDIR=certicoq/plugin/runtime
 
+GLUE_FILES=examples/uint63z/glue.v examples/uint63nat/glue.v examples/compose/glue.v examples/array/glue.v examples/bytestring/glue.v
+PRIMS_FILES=examples/uint63z/prims.v examples/uint63nat/prims.v examples/compose/prims.v examples/array/prims.v examples/bytestring/prims.v 
+GENERATED_VFILES= $(GLUE_FILES) $(PRIMS_FILES)
+glue_files: $(GLUE_FILES)
+prims_files: $(PRIMS_FILES)
+generated_vfiles: $(GENERATED_VFILES)
+
 examples/uint63nat/glue.c examples/uint63nat/glue.h examples/uint63nat/prog.c examples/uint63nat/prog.h : examples/uint63nat/gluegen.v examples/uint63nat/prog.vo
 	$(TIMER) $(COQC) $(COQDEBUG) $(COQFLAGS) $(COQLIBS) $<
 examples/uint63nat/gc_stack.o: $(GCDIR)/gc_stack.c $(GCDIR)/gc_stack.h $(GCDIR)/m.h $(GCDIR)/config.h $(GCDIR)/values.h

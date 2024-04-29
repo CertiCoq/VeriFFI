@@ -89,7 +89,7 @@ Definition fn_desc_to_funspec_aux
               foreign_in_graphs g outlier c xs ps)
        (PARAMSx (ti :: map (rep_type_val g) ps)
         (GLOBALSx [gv]
-         (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
+         (SEPx (full_gc g t_info roots outlier ti sh gv :: spec_malloc.mem_mgr gv :: nil))))
    POST [ int_or_ptr_type ]
        EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
           PROP (let r := result c xs in
@@ -97,7 +97,7 @@ Definition fn_desc_to_funspec_aux
                   outlier (model_fn xs) p' ;
                 gc_graph_iso g roots g' roots')
           RETURN  (rep_type_val g' p')
-          SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
+          SEP (full_gc g' t_info' roots' outlier ti sh gv; spec_malloc.mem_mgr gv).
 
 Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
   (ident_of_string (c_name d),
@@ -618,7 +618,7 @@ Ltac get_gc_mpreds R :=
    lazymatch r1 with
    | full_gc _ _ _ _ _ _ _  => let r' := get_gc_mpreds r in constr:(r1::r')
    | frame_rep_ _ _ _ _ _ => let r' := get_gc_mpreds r in constr:(r1::r')
-   | library.mem_mgr _ => let r' := get_gc_mpreds r in constr:(r1::r')
+   | spec_malloc.mem_mgr _ => let r' := get_gc_mpreds r in constr:(r1::r')
    | is_in_graph _ _ => let r' := get_gc_mpreds r in constr:(r1::r')
    | _ => get_gc_mpreds r
    end
@@ -631,7 +631,7 @@ Ltac get_nongc_mpreds R :=
    lazymatch r1 with
    | full_gc _ _ _ _ _ _ _  => get_nongc_mpreds r
    | frame_rep_ _ _ _ _ _ => get_nongc_mpreds r
-   | library.mem_mgr _ => get_nongc_mpreds r
+   | spec_malloc.mem_mgr _ => get_nongc_mpreds r
    | is_in_graph _ _ => get_nongc_mpreds r
    | _ => let r' := get_nongc_mpreds r in constr:(r1::r')
    end
@@ -758,7 +758,7 @@ match goal with D1 := mk_tycontext _ _ _ _ ?d _ |- _ =>
  check_ground_Delta
 end.
 
-Definition GC_SAVE1_G := [gc_spec.garbage_collect_spec].
+Definition GC_SAVE1_G := [spec_gc.garbage_collect_spec].
 
 Definition GC_SAVE1_tycontext :=
  mk_tycontext  
@@ -815,7 +815,7 @@ Lemma semax_GC_SAVE1:
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
-   library.mem_mgr gv))
+   spec_malloc.mem_mgr gv))
   GC_SAVE1
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
@@ -830,7 +830,7 @@ Lemma semax_GC_SAVE1:
       gvars gv)
       SEP (full_gc g' t_info' roots' outlier ti sh gv;
       frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
-      library.mem_mgr gv))%argsassert).
+      spec_malloc.mem_mgr gv))%argsassert).
 Proof.
 intros.
 assert (H5 := I).

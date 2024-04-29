@@ -6,7 +6,7 @@ Local Open Scope string_scope.
 Local Open Scope clight_scope.
 
 Module Info.
-  Definition version := "3.12".
+  Definition version := "3.13".
   Definition build_number := "".
   Definition build_tag := "".
   Definition build_branch := "".
@@ -130,8 +130,8 @@ Definition f_uint63_from_positive := {|
   fn_temps := ((_t'5, (talignas 3%N (tptr tvoid))) ::
                (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
                (_t'3, (talignas 3%N (tptr tvoid))) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'7, (talignas 3%N (tptr tvoid))) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: (_t'7, (talignas 3%N (tptr tvoid))) ::
                (_t'6, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
@@ -139,9 +139,9 @@ Definition f_uint63_from_positive := {|
     (Evar _get_Coq_Numbers_BinNums_positive_tag (Tfunction
                                                   (Tcons
                                                     (talignas 3%N (tptr tvoid))
-                                                    Tnil) tuint cc_default))
+                                                    Tnil) tulong cc_default))
     ((Etempvar _p (talignas 3%N (tptr tvoid))) :: nil))
-  (Sswitch (Etempvar _t'1 tuint)
+  (Sswitch (Etempvar _t'1 tulong)
     (LScons (Some 0)
       (Ssequence
         (Ssequence
@@ -229,17 +229,17 @@ Definition f_uint63_from_Z := {|
   fn_temps := ((_t'5, (talignas 3%N (tptr tvoid))) ::
                (_t'4, (tptr (talignas 3%N (tptr tvoid)))) ::
                (_t'3, (talignas 3%N (tptr tvoid))) ::
-               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) :: (_t'1, tuint) ::
-               (_t'7, (talignas 3%N (tptr tvoid))) ::
+               (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
+               (_t'1, tulong) :: (_t'7, (talignas 3%N (tptr tvoid))) ::
                (_t'6, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
   (Scall (Some _t'1)
     (Evar _get_Coq_Numbers_BinNums_Z_tag (Tfunction
                                            (Tcons (talignas 3%N (tptr tvoid))
-                                             Tnil) tuint cc_default))
+                                             Tnil) tulong cc_default))
     ((Etempvar _z (talignas 3%N (tptr tvoid))) :: nil))
-  (Sswitch (Etempvar _t'1 tuint)
+  (Sswitch (Etempvar _t'1 tulong)
     (LScons (Some 0)
       (Sreturn (Some (Econst_int (Int.repr 0) tint)))
       (LScons (Some 1)
@@ -775,12 +775,12 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      cc_default)) ::
  (_get_Coq_Numbers_BinNums_positive_tag,
    Gfun(External (EF_external "get_Coq_Numbers_BinNums_positive_tag"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tuint cc_default)) ::
+                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
+     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tulong cc_default)) ::
  (_get_Coq_Numbers_BinNums_Z_tag,
    Gfun(External (EF_external "get_Coq_Numbers_BinNums_Z_tag"
-                   (mksignature (AST.Tlong :: nil) AST.Tint cc_default))
-     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tuint cc_default)) ::
+                   (mksignature (AST.Tlong :: nil) AST.Tlong cc_default))
+     (Tcons (talignas 3%N (tptr tvoid)) Tnil) tulong cc_default)) ::
  (_uint63_from_positive, Gfun(Internal f_uint63_from_positive)) ::
  (_uint63_from_Z, Gfun(Internal f_uint63_from_Z)) ::
  (_uint63_to_Z, Gfun(Internal f_uint63_to_Z)) ::
