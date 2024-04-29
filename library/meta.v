@@ -285,8 +285,8 @@ Record ctor_desc :=
   ; ctor_arity : nat
   }.
 
-Class Desc {T : Type} (ctor_val : T) :=
-  { desc : ctor_desc
+Class CtorDesc {T : Type} (ctor_val : T) :=
+  { ctor_desc_of_val : ctor_desc
   (* Think about an addition like the following: *)
   (* ; proof : ctor_val = curry ctor_real *)
   }.
@@ -295,7 +295,7 @@ Require Import JMeq.
 
 (* pattern match class? *)
 Class Discrimination (A : Type) :=
-  { get_desc : forall (x : A),
+  { get_ctor_desc : forall (x : A),
       { c : ctor_desc &
           { y : args (ctor_reified c) &
               JMeq (ctor_reflected c y) x }  }

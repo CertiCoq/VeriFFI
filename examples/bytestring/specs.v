@@ -33,15 +33,16 @@ MetaCoq Run (desc_gen EmptyString).
 MetaCoq Run (desc_gen String).
 MetaCoq Run (desc_gen Ascii).
 
+(* TODO this is just Discrimination? *)
 Definition string_get_desc (x : string) : ctor_desc := 
 match x with 
-| EmptyString => (@desc _ EmptyString _)
-| String _ _ =>  (@desc _ String _)
+| EmptyString => (@ctor_desc_of_val _ EmptyString _)
+| String _ _ =>  (@ctor_desc_of_val _ String _)
 end.
   
 Inductive string_has_tag_prop : string -> ctor_desc -> Prop := 
-| tagEmpty : string_has_tag_prop EmptyString (@desc _ EmptyString _)
-| tagString c r : string_has_tag_prop (String c r) (@desc _ String _).
+| tagEmpty : string_has_tag_prop EmptyString (@ctor_desc_of_val _ EmptyString _)
+| tagString c r : string_has_tag_prop (String c r) (@ctor_desc_of_val _ String _).
     
 Remark string_desc_has_tag_prop: forall x, string_has_tag_prop x (string_get_desc x).
 Proof.
@@ -270,15 +271,15 @@ DECLARE _get_args
 
 Definition make_Coq_Strings_String_string_EmptyString_spec : ident * funspec :=
     DECLARE _make_Coq_Strings_String_string_EmptyString
-          (alloc_make_spec_general (@desc _ EmptyString _) 0). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ EmptyString _) 0). 
 
 Definition alloc_make_Coq_Strings_String_string_String_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_String_string_String
-          (alloc_make_spec_general (@desc _ String _) 2).     
+          (alloc_make_spec_general (@ctor_desc_of_val _ String _) 2).     
 
 Definition alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_Ascii_ascii_Ascii
-          (alloc_make_spec_general (@desc _ Ascii _) 8). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ Ascii _) 8). 
 
 
 Definition pack_spec : ident * funspec :=

@@ -152,7 +152,7 @@ Polymorphic Definition create_reified
   (* tmEval all c' >>= tmPrint ;; *)
   tmUnquoteTyped (reified ctor_ann) c'.
 
-Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
+Definition ctor_desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
   t <- tmQuote ctor_val ;;
   match t with
   | tConstruct ({| inductive_mind := kn ; inductive_ind := mut_tag |} as ind) ctor_tag _ =>
@@ -179,7 +179,7 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
                   |} in
 
         name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-        @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
+        @tmDefinition name (@CtorDesc T ctor_val) {| ctor_desc_of_val := d |} ;;
         (* Declare the new definition a type class instance *)
         mp <- tmCurrentModPath tt ;;
         tmExistingInstance export (ConstRef (mp, name)) ;;
@@ -189,7 +189,7 @@ Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
   | t' => tmPrint t' ;; tmFail "Not a constructor"
   end.
 
-Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
+Definition ctor_descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
   '(env, tau) <- tmQuoteRec Tau ;;
   match declarations (env) with
   | (kn, InductiveDecl decl) :: _ =>
@@ -217,7 +217,7 @@ Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
                 |} in
 
       name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-      @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
+      @tmDefinition name (@CtorDesc T ctor_val) {| ctor_desc_of_val := d |} ;;
       (* Declare the new definition a type class instance *)
       mp <- tmCurrentModPath tt ;;
       tmExistingInstance export (ConstRef (mp, name)) ;;
@@ -285,4 +285,5 @@ Unset MetaCoq Strict Unquote Universe Mode.
 
 (* MetaCoq Run (desc_gen O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
 (* Print S_desc. *)
+
 

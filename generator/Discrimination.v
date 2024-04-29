@@ -89,10 +89,10 @@ Definition make_desc_list (ind : inductive)
                           (ctors : list constructor_body) : TemplateMonad term :=
   l <- monad_map_i
     (fun i _ =>
-       t <- tmUnquoteTyped Type (tApp <% @Desc %> [hole; tConstruct ind i []]) ;;
-       t_inst <- tmInferInstance' t "No Desc instance for constructor"%bs;;
+       t <- tmUnquoteTyped Type (tApp <% @CtorDesc %> [hole; tConstruct ind i []]) ;;
+       t_inst <- tmInferInstance' t "No CtorDesc instance for constructor"%bs;;
        tmUnquoteTyped ctor_desc
-                      (tApp <% @desc %> [hole; tConstruct ind i []; t_inst])) ctors ;;
+                      (tApp <% @ctor_desc_of_val %> [hole; tConstruct ind i []; t_inst])) ctors ;;
   tmQuote l. 
 
 Definition tmLemmaQuote (id : ident) (A : Type) : TemplateMonad term :=
@@ -214,7 +214,7 @@ Ltac discriminating :=
   auto.
 
 Require Import VeriFFI.generator.InGraph.
-Require Import VeriFFI.generator.Desc.
+Require Import VeriFFI.generator.CtorDesc.
 Ltac gen :=
   match goal with
   | [ |- @Discriminator _ _ ] => discriminating

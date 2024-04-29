@@ -3,14 +3,15 @@ Require Import ZArith.
 Require Import Psatz.
 Require Export VeriFFI.verification.specs_general.
 Require Export VeriFFI.generator.Rep.
+Require Export VeriFFI.generator.CtorDesc.
 Require Import VeriFFI.generator.Discrimination.
 
 #[export] Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
 MetaCoq Run (gen_for bool).
 
-MetaCoq Run (desc_gen S).
-MetaCoq Run (desc_gen O).
+MetaCoq Run (ctor_desc_gen S).
+MetaCoq Run (ctor_desc_gen O).
 
 Require Export VST.floyd.proofauto.
 Require Export CertiGraph.CertiGC.GCGraph.
@@ -40,18 +41,18 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
 
 Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
-          (alloc_make_spec_general (@desc _ S _) 1).        
+          (alloc_make_spec_general (@ctor_desc_of_val _ S _) 1).        
 
-(* KS: Use *)          
+(* KS: Use Discrimination *)          
 Definition nat_get_desc (x : nat) : ctor_desc := 
 match x with 
-| O => (@desc _ O _)
-| S n =>  (@desc _ S _)
+| O => (@ctor_desc_of_val _ O _)
+| S n =>  (@ctor_desc_of_val _ S _)
 end.
   
 Inductive nat_has_tag_prop : nat -> ctor_desc -> Prop := 
-| tagO : nat_has_tag_prop O (@desc _ O _)
-| tagS n : nat_has_tag_prop (S n) (@desc _ S _).
+| tagO : nat_has_tag_prop O (@ctor_desc_of_val _ O _)
+| tagS n : nat_has_tag_prop (S n) (@ctor_desc_of_val _ S _).
             
 Definition tag_spec_S : ident * funspec := 
 DECLARE _get_Coq_Init_Datatypes_nat_tag
