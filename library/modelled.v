@@ -71,15 +71,15 @@ Proof.
 Defined.
 
 Record fn_desc :=
-  { type_desc : reified foreign_ann
-  ; foreign_fn : to_foreign_fn_type type_desc
-  ; model_fn : reflect type_desc
+  { fn_type_reified : reified foreign_ann
+  ; foreign_fn : to_foreign_fn_type fn_type_reified
+  ; model_fn : reflect fn_type_reified
   ; f_arity : nat
   ; c_name : string
   }.
 
-Definition curried_model_fn (d : fn_desc) : to_model_fn_type (type_desc d) :=
-  curry_model_fn (type_desc d) (model_fn d).
+Definition curried_model_fn (d : fn_desc) : to_model_fn_type (fn_type_reified d) :=
+  curry_model_fn (fn_type_reified d) (model_fn d).
 
 (*
 From Equations Require Import Equations Signature.
@@ -119,7 +119,7 @@ Proof.
 Defined.
 
 Definition model_spec (d : fn_desc) : Prop :=
-  model_spec_aux (type_desc d) (foreign_fn d) (curried_model_fn d).
+  model_spec_aux (fn_type_reified d) (foreign_fn d) (curried_model_fn d).
 
 Ltac eq_refl_match :=
   match goal with

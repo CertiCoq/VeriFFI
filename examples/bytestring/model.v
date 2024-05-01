@@ -186,7 +186,7 @@ Module Bytestring_Proofs.
    Defined.
 
   Definition append_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.bytestring opaque (fun _ =>
           @ARG _ FM.bytestring opaque (fun _ =>
             @RES _ FM.bytestring opaque))
@@ -197,7 +197,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition pack_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ string transparent (fun _ =>
           @RES _ FM.bytestring opaque)
      ; foreign_fn := C.pack
@@ -207,7 +207,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition unpack_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.bytestring opaque (fun _ =>
           @RES _ string transparent)
      ; foreign_fn := C.unpack
@@ -217,7 +217,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition pure_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
           @ARG _ _ (@transparent A foreign_in_graph) (fun _ =>
             @RES _ _ (@opaque (FM.M A) (C.M A)
@@ -230,7 +230,7 @@ Module Bytestring_Proofs.
      |}.
 
   (* Definition pure_desc : fn_desc := *)
-  (*   {| type_desc := *)
+  (*   {| fn_type_reified := *)
   (*       @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) => *)
   (*         @ARG _ A (@transparent A (@foreign_in_graph A H_A)) (fun _ => *)
   (*           @RES _ _ (@opaque (FM.M A) (C.M A) *)
@@ -243,7 +243,7 @@ Module Bytestring_Proofs.
   (*    |}. *)
 
   (* Definition pure_desc : fn_desc := *)
-  (*   {| type_desc := *)
+  (*   {| fn_type_reified := *)
   (*       @TYPEPARAM _ (fun (A : Type) (H_A : foreign_ann A) => *)
   (*         @ARG _ _ (@transparent A (@foreign_in_graph _ H_A)) (fun _ => *)
   (*           @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@foreign_in_graph _ H_A)) (Isomorphism_M _)))) *)
@@ -254,7 +254,7 @@ Module Bytestring_Proofs.
   (*    |}. *)
 
   Definition bind_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
           @TYPEPARAM _ (fun (B : Type) `(H_B : foreign_ann B) =>
             @ARG _ _ (@opaque (FM.M A) (C.M A) (@ForeignInGraph_M A A (@foreign_in_graph _ H_A)) (Isomorphism_M _)) (fun m =>
@@ -267,7 +267,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition runM_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
           @ARG _ _ opaque (fun _ =>
             @ARG _ _ opaque (fun _ =>
@@ -280,7 +280,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition print_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ _ opaque (fun n =>
           @RES _ _ (@opaque (FM.M unit) (C.M unit)
                             (@ForeignInGraph_M unit unit InGraph_unit) (Isomorphism_M _)))
@@ -291,7 +291,7 @@ Module Bytestring_Proofs.
      |}.
 
   Definition scan_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ _ transparent (fun n =>
           @RES _ _ (@opaque (FM.M FM.bytestring) (C.M C.bytestring) _
                             (Isomorphism_M Isomorphism_bytestring)))

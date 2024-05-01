@@ -46,7 +46,7 @@ Module Array_Proofs.
   Admitted.
 
   Definition pure_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun A (P_A : foreign_ann A) =>
           @ARG _ A P_A (fun a =>
             @RES _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@foreign_in_graph _ P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
@@ -57,7 +57,7 @@ Module Array_Proofs.
      |}.
 
   Definition bind_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun (A : Type) (P_A : foreign_ann A) =>
           @TYPEPARAM _ (fun (B : Type) (P_B : foreign_ann B) =>
             @ARG _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@foreign_in_graph _ P_A)) (Isomorphism_M _)) (fun m =>
@@ -70,7 +70,7 @@ Module Array_Proofs.
      |}.
 
   Definition runM_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @TYPEPARAM _ (fun (A : Type) (P_A : foreign_ann A) =>
           @ARG _ _ (@transparent nat InGraph_nat) (fun len =>
             @ARG _ _ (@transparent elt InGraph_elt) (fun init =>
@@ -83,7 +83,7 @@ Module Array_Proofs.
      |}.
 
   Definition set_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
           @ARG _ _ (@transparent elt InGraph_elt) (fun a =>
             @RES _ _ (@opaque (FM.M unit) _ (InGraph_M) (Isomorphism_M _))))
@@ -94,7 +94,7 @@ Module Array_Proofs.
      |}.
 
   Definition get_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
           @RES _ _ (@opaque (FM.M elt) (C.M elt) (InGraph_M) (Isomorphism_M _)))
      ; foreign_fn := @C.get

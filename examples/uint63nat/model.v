@@ -60,7 +60,7 @@ Module UInt63_Proofs.
   Defined.
 
   Definition from_nat_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ nat transparent (fun _ =>
           @RES _ FM.t opaque)
      ; foreign_fn := C.from_nat
@@ -70,7 +70,7 @@ Module UInt63_Proofs.
     |}.
 
   Definition to_nat_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @RES _ nat transparent)
      ; foreign_fn := C.to_nat
@@ -80,7 +80,7 @@ Module UInt63_Proofs.
      |}.
 
   Definition add_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @ARG _ FM.t opaque (fun _ =>
             @RES _ FM.t opaque))
@@ -91,7 +91,7 @@ Module UInt63_Proofs.
      |}.
 
   Definition mul_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @ARG _ FM.t opaque (fun _ =>
             @RES _ FM.t opaque))

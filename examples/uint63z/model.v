@@ -62,7 +62,7 @@ Module UInt63_Proofs.
   Defined.
 
   Definition from_Z_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ Z transparent (fun _ =>
           @RES _ FM.t opaque)
      ; foreign_fn := C.from_Z
@@ -72,7 +72,7 @@ Module UInt63_Proofs.
     |}.
 
   Definition to_Z_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @RES _ Z transparent)
      ; foreign_fn := C.to_Z
@@ -82,7 +82,7 @@ Module UInt63_Proofs.
      |}.
 
   Definition add_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @ARG _ FM.t opaque (fun _ =>
             @RES _ FM.t opaque))
@@ -93,7 +93,7 @@ Module UInt63_Proofs.
      |}.
 
   Definition mul_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ FM.t opaque (fun _ =>
           @ARG _ FM.t opaque (fun _ =>
             @RES _ FM.t opaque))
