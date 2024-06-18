@@ -16,7 +16,7 @@ End FM.
 
 Module Compose_Proofs.
   Definition compose_ep : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
        @TYPEPARAM _ (fun A R_A =>
          @TYPEPARAM _ (fun B R_B =>
            @TYPEPARAM _ (fun C R_C =>
@@ -25,7 +25,7 @@ Module Compose_Proofs.
                  @RES _ (A -> C) (@transparent _ (@InGraph_fun _ _ (@foreign_in_graph A R_A) (@foreign_in_graph C R_C))))))))
      ; foreign_fn := @C.compose
      ; model_fn := fun '(A; (_; (B; (_; (C; (_; (g; (f; tt)))))))) => @FM.compose A B C g f
-     ; f_arity := 5
+     ; fn_arity := 5
      ; c_name := "compose"
      |}.
 

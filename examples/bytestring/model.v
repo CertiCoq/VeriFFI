@@ -192,7 +192,7 @@ Module Bytestring_Proofs.
             @RES _ FM.bytestring opaque))
      ; foreign_fn := C.append
      ; model_fn := fun '(a; (b; tt)) =>  FM.append a b
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "append"
      |}.
 
@@ -202,7 +202,7 @@ Module Bytestring_Proofs.
           @RES _ FM.bytestring opaque)
      ; foreign_fn := C.pack
      ; model_fn := fun '(x; tt) => FM.pack x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "pack"
      |}.
 
@@ -212,7 +212,7 @@ Module Bytestring_Proofs.
           @RES _ string transparent)
      ; foreign_fn := C.unpack
      ; model_fn := fun '(x; tt) => FM.unpack x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "unpack"
      |}.
 
@@ -225,7 +225,7 @@ Module Bytestring_Proofs.
                               (Isomorphism_M _))))
      ; foreign_fn := @C.pure
      ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "m_pure"
      |}.
 
@@ -238,7 +238,7 @@ Module Bytestring_Proofs.
   (*                             (Isomorphism_M _)))) *)
   (*    ; foreign_fn := @C.pure *)
   (*    ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a *)
-  (*    ; f_arity := 2 *)
+  (*    ; fn_arity := 2 *)
   (*    ; c_name := "m_pure" *)
   (*    |}. *)
 
@@ -249,7 +249,7 @@ Module Bytestring_Proofs.
   (*           @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@foreign_in_graph _ H_A)) (Isomorphism_M _)))) *)
   (*    ; foreign_fn := @C.pure *)
   (*    ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a *)
-  (*    ; f_arity := 2 *)
+  (*    ; fn_arity := 2 *)
   (*    ; c_name := "m_pure" *)
   (*    |}. *)
 
@@ -262,7 +262,7 @@ Module Bytestring_Proofs.
                 @RES _ _ (@opaque (FM.M B) (C.M B) (@ForeignInGraph_M B B (@foreign_in_graph _ H_B)) (Isomorphism_M _))))))
      ; foreign_fn := @C.bind
      ; model_fn := fun '(A; (_; (B; (_; (m; (f; tt)))))) => @FM.bind A B m f
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_bind"
      |}.
 
@@ -275,7 +275,7 @@ Module Bytestring_Proofs.
                 @RES _ _ (@transparent A (@foreign_in_graph _ H_A))))))
      ; foreign_fn := @C.runM
      ; model_fn := fun '(A; (_; (i; (o; (m; tt))))) => @FM.runM A i o m
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_runM"
      |}.
 
@@ -286,7 +286,7 @@ Module Bytestring_Proofs.
                             (@ForeignInGraph_M unit unit InGraph_unit) (Isomorphism_M _)))
      ; foreign_fn := @C.print
      ; model_fn := fun '(x; tt) => @FM.print x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "print"
      |}.
 
@@ -297,7 +297,7 @@ Module Bytestring_Proofs.
                             (Isomorphism_M Isomorphism_bytestring)))
      ; foreign_fn := @C.scan
      ; model_fn := fun '(x; tt) => @FM.scan x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "scan"
      |}.
 

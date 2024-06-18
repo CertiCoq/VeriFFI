@@ -74,7 +74,7 @@ Record fn_desc :=
   { fn_type_reified : reified foreign_ann
   ; foreign_fn : to_foreign_fn_type fn_type_reified
   ; model_fn : reflect fn_type_reified
-  ; f_arity : nat
+  ; fn_arity : nat
   ; c_name : string
   }.
 

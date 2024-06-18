@@ -67,7 +67,7 @@ Module UInt63_Proofs.
           @RES _ FM.t opaque)
      ; foreign_fn := C.from_Z
      ; model_fn := fun '(x; tt) => FM.from_Z x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "int63_from_Z"
     |}.
 
@@ -77,7 +77,7 @@ Module UInt63_Proofs.
           @RES _ Z transparent)
      ; foreign_fn := C.to_Z
      ; model_fn := fun '(x; tt) => FM.to_Z x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "int63_to_Z"
      |}.
 
@@ -88,7 +88,7 @@ Module UInt63_Proofs.
             @RES _ FM.t opaque))
      ; foreign_fn := C.add
      ; model_fn := fun '(x; (y; tt)) => FM.add x y
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "int63_add"
      |}.
 
@@ -99,7 +99,7 @@ Module UInt63_Proofs.
             @RES _ FM.t opaque))
      ; foreign_fn := C.mul
      ; model_fn := fun '(x; (y; tt)) => FM.mul x y
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "int63_mul"
      |}.
 

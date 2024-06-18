@@ -7,6 +7,7 @@ using a representation of constructors.
 *)
 Require Import Coq.Lists.List.
 Import ListNotations.
+Import SigTNotations.
 
 Require Import VST.floyd.proofauto.
 Require Import CertiGraph.CertiGC.GCGraph.
@@ -17,6 +18,7 @@ From VeriFFI Require Export verification.graph_add.
 (* From VeriFFI Require Export verification.example.glue. *)
 From VeriFFI Require Export verification.specs_library.
 Import spatial_gcgraph.
+
 
 (** ** 3. A General Specification *)
 
@@ -82,7 +84,7 @@ Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
   WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
        xs : args (fn_type_reified d), ps : list rep_type, ti : val,
        outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
-   PRE' (cons thread_info (repeat int_or_ptr_type (f_arity d)))
+   PRE' (cons thread_info (repeat int_or_ptr_type (fn_arity d)))
       PROP (writable_share sh ;
             foreign_in_graphs g outlier (fn_type_reified d) xs ps)
       (PARAMSx (ti :: map (rep_type_val g) ps)
@@ -90,8 +92,8 @@ Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
         (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
    POST [ int_or_ptr_type ]
      EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
-       PROP (let p := result (fn_type_reified d) xs in
-             @is_in_graph (projT1 p) (@foreign_in_graph (projT1 p) (projT2 p)) g'
+       PROP (let r := result (fn_type_reified d) xs in
+             @is_in_graph r.1 (@foreign_in_graph r.1 r.2) g'
                outlier (model_fn d xs) p' ;
              gc_graph_iso g roots g' roots')
        RETURN  (rep_type_val g' p')
@@ -137,7 +139,7 @@ Definition alloc_make_spec_general
     POST [ int_or_ptr_type ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
-              @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' outlier (ctor_reflected c xs) p' ;
+              @is_in_graph r.1 (@field_in_graph r.1 r.2) g' outlier (ctor_reflected c xs) p' ;
               headroom t_info' = headroom t_info - Z.of_nat (S n);
               gc_graph_iso g roots g' roots;
               ti_frames t_info = ti_frames t_info'

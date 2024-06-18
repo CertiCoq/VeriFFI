@@ -52,7 +52,7 @@ Module Array_Proofs.
             @RES _ (FM.M A) (@opaque _ (C.M A) (@InGraph_M A (@foreign_in_graph _ P_A)) (@Isomorphism_M A A (@Isomorphism_refl A)))))
      ; foreign_fn := @C.pure
      ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "m_pure"
      |}.
 
@@ -65,7 +65,7 @@ Module Array_Proofs.
                                                                                                                     @RES _ (FM.M B) (@opaque _ (C.M B) (@InGraph_M B (@foreign_in_graph _ P_B)) (Isomorphism_M _))))))
      ; foreign_fn := @C.bind
      ; model_fn := fun '(A; (_; (B; (_; (m; (f; tt)))))) => @FM.bind A B m f
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_bind"
      |}.
 
@@ -78,7 +78,7 @@ Module Array_Proofs.
                 @RES _ _ (@transparent A (@foreign_in_graph _ P_A))))))
      ; foreign_fn := @C.runM
      ; model_fn := fun '(A; (_; (len; (init; (f; tt))))) => @FM.runM A len init f
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_runM"
      |}.
 
@@ -89,7 +89,7 @@ Module Array_Proofs.
             @RES _ _ (@opaque (FM.M unit) _ (InGraph_M) (Isomorphism_M _))))
      ; foreign_fn := @C.set
      ; model_fn := fun '(n; (a; tt)) => @FM.set n a
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "array_set"
      |}.
 
@@ -99,7 +99,7 @@ Module Array_Proofs.
           @RES _ _ (@opaque (FM.M elt) (C.M elt) (InGraph_M) (Isomorphism_M _)))
      ; foreign_fn := @C.get
      ; model_fn := fun '(n; tt) => @FM.get n
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "array_get"
      |}.
 
