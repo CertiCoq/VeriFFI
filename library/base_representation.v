@@ -13,7 +13,7 @@
 
 Require Import VST.floyd.proofauto.
 From CertiGraph Require Import graph_model.
-From CertiGraph.CertiGC Require Import spec_gc.
+From CertiGraph.CertiGC Require Import gc_spec.
 (* Require Import CertiGraph.CertiGC.GCGraph. *)
 (* Require Import CertiGraph.CertiGC.spatial_gcgraph. *)
 

@@ -237,7 +237,7 @@ rewrite !prop_true_andp by auto.
 Exists (outlier_rep outlier 
        * before_gc_thread_info_rep sh t_info ti
        * ti_token_rep (ti_heap t_info) (ti_heap_p t_info)
-       * spec_gc.all_string_constants Ers gv)%logic.
+       * gc_spec.all_string_constants Ers gv)%logic.
 apply andp_right.
 cancel.
 apply prop_right.
@@ -299,6 +299,6 @@ Definition Gprog := [ ascii_to_char_spec;
                       make_Coq_Strings_String_string_EmptyString_spec;
                       alloc_make_Coq_Strings_String_string_String_spec;
                       alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec;
-                      spec_gc.garbage_collect_spec
+                      gc_spec.garbage_collect_spec
                       (* _call, call_spec *)
                       ] .

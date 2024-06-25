@@ -197,7 +197,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
-   spec_malloc.mem_mgr gv))
+   library.mem_mgr gv))
   GC_SAVE1
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
@@ -212,7 +212,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
       gvars gv)
       SEP (full_gc g' t_info' roots' outlier ti sh gv;
       frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
-      spec_malloc.mem_mgr gv))%argsassert).
+      library.mem_mgr gv))%argsassert).
 Proof.
 intros.
 eapply semax_post_flipped'.
@@ -264,7 +264,7 @@ forward_while
       gvars gv)
 SEP (full_gc g' t_info' roots' outlier ti sh gv;
     frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
-    spec_malloc.mem_mgr gv)
+    library.mem_mgr gv)
 ). 
 - (* Before the while *)
    Exists v O g t_info roots.

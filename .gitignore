@@ -37,3 +37,4 @@ Makefile.coq.conf
 /*.c
 /*.h
 .vscode/
+examples/*/prims.v

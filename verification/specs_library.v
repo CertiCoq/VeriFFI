@@ -57,7 +57,7 @@ Definition heap_rest_rep {cs: compspecs} (hp: heap): mpred :=
 Definition full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv :=
   (outlier_rep outlier * before_gc_thread_info_rep sh t_info ti 
   * ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * graph_rep g 
-  * spec_gc.all_string_constants Ers gv
+  * gc_spec.all_string_constants Ers gv
   && !!gc_condition_prop g t_info roots outlier)%logic.
 
 Lemma full_gc_fold:
@@ -67,7 +67,7 @@ Lemma full_gc_fold:
    before_gc_thread_info_rep sh t_info ti *
    ti_token_rep (ti_heap t_info) (ti_heap_p t_info) * 
    graph_rep g *
-   spec_gc.all_string_constants Ers gv
+   gc_spec.all_string_constants Ers gv
   |--   full_gc g (t_info: GCGraph.thread_info) roots outlier ti sh gv.
 Proof. intros. unfold full_gc. entailer!!.
 Qed.
