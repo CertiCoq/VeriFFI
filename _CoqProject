@@ -12,7 +12,7 @@ library/meta.v
 generator/gen_utils.v
 generator/GraphPredicate.v
 generator/InGraph.v
-generator/Desc.v
+generator/CtorDesc.v
 generator/Discrimination.v
 generator/Rep.v
 

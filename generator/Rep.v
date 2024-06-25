@@ -2,7 +2,7 @@ Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
 Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
-Require Import VeriFFI.generator.Desc.
+Require Import VeriFFI.generator.CtorDesc.
 
 Require Import MetaCoq.Template.All.
 
@@ -15,7 +15,7 @@ Definition gen_for {kind : Type} (Tau : kind) : TemplateMonad unit :=
   @in_graph_gen kind Tau.
 
 Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
-  @Desc.desc_gen T ctor_val.
+  @ctor_desc_gen T ctor_val.
 
 Ltac gen :=
   match goal with

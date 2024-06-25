@@ -9,7 +9,7 @@ Require Import VeriFFI.examples.uint63nat.specs.
 make_cs_preserve Verif_prog_general.CompSpecs CompSpecs.
 Defined.
 
-Definition description_S := @desc _ S _. 
+Definition description_S := @ctor_desc_of_val _ S _. 
 
 Lemma decode_encode_Z: 
   forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->

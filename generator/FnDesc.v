@@ -14,9 +14,11 @@ Require Import MetaCoq.Template.All.
 Require Import VeriFFI.generator.gen_utils.
 Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
+Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
 
+(*
 (* Unset MetaCoq Strict Unquote Universe Mode. *)
 
 (* Require Import VeriFFI.generator.InGraph. *)
@@ -92,16 +94,16 @@ Polymorphic Definition create_reified
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body)
-           (ctor : constructor_body) : TemplateMonad (reified ctor_ann) :=
-  let cn := cstr_name ctor in
-  let t := cstr_type ctor in
-  let arity := cstr_arity ctor in
-  (* We convert the constructor type to the named representation *)
-  let init_index_ctx : list (Kernames.ident  * named_term) :=
-      mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind
-                                              ; inductive_ind := i |} []))
-           (ind_bodies mut) in
-  t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) init_index_ctx) t ;;
+           (ctor : constructor_body) : TemplateMonad (reified foreign_ann) :=
+  (* let cn := cstr_name ctor in *)
+  (* let t := cstr_type ctor in *)
+  (* let arity := cstr_arity ctor in *)
+  (* (* We convert the constructor type to the named representation *) *)
+  (* let init_index_ctx : list (Kernames.ident  * named_term) := *)
+  (*     mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind *)
+  (*                                             ; inductive_ind := i |} [])) *)
+  (*          (ind_bodies mut) in *)
+  (* t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) init_index_ctx) t ;; *)
 
   let fix go
            (* type of the constructor to be taken apart *)
@@ -152,89 +154,43 @@ Polymorphic Definition create_reified
   (* tmEval all c' >>= tmPrint ;; *)
   tmUnquoteTyped (reified ctor_ann) c'.
 
-Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
-  t <- tmQuote ctor_val ;;
-  match t with
-  | tConstruct ({| inductive_mind := kn ; inductive_ind := mut_tag |} as ind) ctor_tag _ =>
-    mut <- tmQuoteInductive kn ;;
+Print tmQuote.
+Print constant_body.
 
-    match (nth_error (ind_bodies mut) mut_tag) with
-    | None => tmFail "Impossible mutual block index"
-    | Some one =>
-      match (nth_error (ind_ctors one) ctor_tag) with
-      | None => tmFail "Impossible constructor index"
-      | Some ctor =>
-        reified <- create_reified ind mut one ctor ;;
-        (* tmPrint "after create reified" ;; *)
-        (* tmEval all reified >>= tmPrint ;; *)
+Definition fn_desc_gen
+           {T1 T2 : Type}
+           (model_val : T1) (foreign_val : T2)
+           (c_name : string) : TemplateMonad unit :=
+  model_t <- tmQuote model_val ;;
+  foreign_t <- tmQuote foreign_val ;;
+  match model_t , foreign_t with
+  | tConst model_kn _ , tConst foreign_kn _ =>
+    if ident_eq (snd model_kn) (snd foreign_kn)
+      then tmMsg "Warning: functional model and foreign function names are different"
+      else ret tt ;;
+        
+    reified <- create_reified model_t foreign_t ;;
+    (* tmPrint "after create reified" ;; *)
+    (* tmEval all reified >>= tmPrint ;; *)
 
-        newName <- tmFreshName "new"%bs ;;
-        reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
+    newName <- tmFreshName "new"%bs ;;
+    reflected <- tmLemma newName (@reflector foreign_ann T2 foreign_val reified) ;;
 
-        let d := {| ctor_name := cstr_name ctor
-                  ; ctor_reified := reified
-                  ; ctor_reflected := reflected
-                  ; ctor_tag := ctor_tag
-                  ; ctor_arity := cstr_arity ctor
-                  |} in
+    let d := {| type_desc := reified
+              ; foreign_fn := foreign_val
+              ; model_fn := reflected
+              ; fn_arity := _
+              ; c_name := c_name
+              |} in
 
-        name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-        @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
-        (* Declare the new definition a type class instance *)
-        mp <- tmCurrentModPath tt ;;
-        tmExistingInstance export (ConstRef (mp, name)) ;;
-        ret tt
-      end
-    end
-  | t' => tmPrint t' ;; tmFail "Not a constructor"
-  end.
-
-Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
-  '(env, tau) <- tmQuoteRec Tau ;;
-  match declarations (env) with
-  | (kn, InductiveDecl decl) :: _ =>
-    let each_ctor (mut : mutual_inductive_body)
-                  (one : one_inductive_body)
-                  (mut_type_count : nat)
-                  (ctor_count : nat)
-                  (ctor : constructor_body) : TemplateMonad unit :=
-      let ind := {| inductive_mind := kn ; inductive_ind := mut_type_count |} in
-      t <- tmUnquote (tConstruct ind ctor_count []) ;;
-      let '{| my_projT1 := T; my_projT2 := ctor_val |} := t in
-
-      reified <- create_reified ind mut one ctor ;;
-      (* tmPrint "after create reified" ;; *)
-      (* tmEval all reified >>= tmPrint ;; *)
-
-      newName <- tmFreshName "new"%bs ;;
-      reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
-
-      let d := {| ctor_name := cstr_name ctor
-                ; ctor_reified := reified
-                ; ctor_reflected := reflected
-                ; ctor_tag := ctor_count
-                ; ctor_arity := cstr_arity ctor
-                |} in
-
-      name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-      @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
-      (* Declare the new definition a type class instance *)
-      mp <- tmCurrentModPath tt ;;
-      tmExistingInstance export (ConstRef (mp, name)) ;;
-      ret tt
-
-    in
-    let all_in_one (mut : mutual_inductive_body)
-                   (mut_type_count : nat)
-                   (one : one_inductive_body) : TemplateMonad unit :=
-      let ctors := ind_ctors one in
-      monad_map_i (each_ctor mut one mut_type_count) (ind_ctors one) ;; ret tt
-    in
-    let all_in_mut (mut : mutual_inductive_body) : TemplateMonad unit :=
-      monad_map_i (all_in_one mut) (ind_bodies mut) ;; ret tt
-    in
-    all_in_mut decl
-  | _ => tmFail "Need an inductive type in the environment"
+    name <- tmFreshName (snd foreign_kn ++ "_desc")%bs ;;
+    @tmDefinition name fn_desc d ;;
+    (* Declare the new definition a type class instance *)
+    (* mp <- tmCurrentModPath tt ;; *)
+    (* tmExistingInstance export (ConstRef (mp, name)) ;; *)
+    ret tt
+  | _ , _ =>
+    tmFail "Need two constant definitions in the environment"
   end.
 
 Local Obligation Tactic := reflecting.
@@ -286,3 +242,5 @@ Unset MetaCoq Strict Unquote Universe Mode.
 (* MetaCoq Run (desc_gen O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
 (* Print S_desc. *)
 
+
+*)
