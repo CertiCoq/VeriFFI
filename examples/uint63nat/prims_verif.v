@@ -12,21 +12,40 @@ Defined.
 Definition description_S := @desc _ S _. 
 
 Lemma decode_encode_Z: 
-  forall n, min_signed <= encode_Z (Z.of_nat n) <= max_signed ->
+  forall n, (* min_signed <= *) encode_Z (Z.of_nat n) <= Int64.max_unsigned ->
   Int64.shru (Int64.repr (encode_Z (Z.of_nat n)))
               (Int64.repr (Int.unsigned (Int.repr 1)))
                = Int64.repr (Z.of_nat n).
 Proof.
 intros.
-unfold encode_Z, min_signed, max_signed in *.
+unfold encode_Z in *.
 autorewrite with norm. rewrite Int64.shru_div_two_p.
 change (two_p _) with 2.
-rewrite !Int64.unsigned_repr by  rep_lia.
+rewrite !Int64.unsigned_repr by lia.  
 rewrite Z.div_add_l by lia.
 simpl Z.div; rewrite Z.add_0_r.
 auto.
 Qed.
 
+Lemma body_uint63_add:
+  semax_body Vprog Gprog f_uint63_add uint63_add_spec.
+Proof. 
+  start_function. 
+  forward. entailer!.
+  unfold encode_Z in *.
+  autorewrite with norm. rewrite !Int64.shru_div_two_p.
+change (two_p _) with 2.
+rewrite !Int64.unsigned_repr by lia.  
+rewrite Z.div_add_l by lia.
+rewrite Int64.shl_mul_two_p.
+autorewrite with norm. change (two_p _) with 2. 
+f_equal. f_equal.
+assert ((Z.of_nat n * 2 + 1) / 2 = Z.of_nat n) as ->. 
+{ rewrite Z.add_comm. rewrite Z_div_plus; try lia.
+  replace (1/2) with 0 by reflexivity. 
+  lia. }
+lia. 
+Qed.
 
 Lemma body_uint63_from_nat:
   semax_body Vprog Gprog f_uint63_from_nat uint63_from_nat_spec.
@@ -36,7 +55,7 @@ Proof.
  fold (rep_type_val g p).
  forward.
  rewrite Int.signed_repr 
-   by (unfold encode_Z, max_signed in H; rep_lia).
+   by (unfold encode_Z in H; rep_lia).
  forward_loop ( EX m : nat, EX p': rep_type,
         PROP ( (m <= n)%nat; is_in_graph g outlier (n - m)%nat p';        
               nat_has_tag_prop (n - m)%nat (nat_get_desc (n-m)%nat))
@@ -144,8 +163,7 @@ Proof.
     enough (n- m = 0)%nat.
     { assert (n = m) by lia. subst. eauto. }
     apply repr_inj_unsigned64 in HRE; try rep_lia.
-    unfold encode_Z in H0.
-    unfold min_signed, max_signed in H0. rep_lia.
+    unfold encode_Z in H0. rep_lia.
 Qed.
 
 #[export] Instance CCE: change_composite_env env_graph_gc.CompSpecs CompSpecs.
@@ -197,7 +215,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
-   library.mem_mgr gv))
+   VST.floyd.library.mem_mgr gv))
   GC_SAVE1
   (normal_ret_assert
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
@@ -212,7 +230,7 @@ semax (func_tycontext f_uint63_to_nat Vprog Gprog nil)
       gvars gv)
       SEP (full_gc g' t_info' roots' outlier ti sh gv;
       frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
-      library.mem_mgr gv))%argsassert).
+      VST.floyd.library.mem_mgr gv))%argsassert).
 Proof.
 intros.
 eapply semax_post_flipped'.
@@ -264,7 +282,7 @@ forward_while
       gvars gv)
 SEP (full_gc g' t_info' roots' outlier ti sh gv;
     frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
-    library.mem_mgr gv)
+    VST.floyd.library.mem_mgr gv)
 ). 
 - (* Before the while *)
    Exists v O g t_info roots.
@@ -318,7 +336,7 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
  - (* after the loop *)
    forward.
    assert (m=n). {
-    clear - H3 H HRE. unfold encode_Z, min_signed, max_signed in H. 
+    clear - H3 H HRE. unfold encode_Z in H. 
     apply repr_inj_unsigned64 in HRE; rep_lia.
    }
    subst m.
