@@ -95,7 +95,8 @@ Definition fn_desc_to_funspec_aux
           PROP (let r := result c xs in
                 @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
                   outlier (model_fn xs) p' ;
-                gc_graph_iso g roots g' roots')
+                gc_graph_iso g roots g' roots';
+                frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
           RETURN  (rep_type_val g' p')
           SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
 
