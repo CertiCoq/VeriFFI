@@ -104,12 +104,16 @@ Inductive compatible (g : graph) (v : VType) ( n : nat) : list raw_field -> list
     graph_cRep g p c args states that in graph g, p : rep_type corresponds to the value with the constructor described by c and with arguments args.
 
     Two cases:
-    - If we describe an unboxed constructor enum t with tag t, then the list of arguments has to be empty and the representation of the tag has to fit with the actual value z according to the relation repr_unboxed_L7.
+    - If we describe an unboxed constructor enum t with tag t,
+      then the list of arguments has to be empty and the representation of
+      the tag has to fit with the actual value z according to the relation repr_unboxed_L7.
     - If we describe a boxed constructor boxed t n with tag t and length n,
       then we describe a node repNode v in the graph and
-      1. the length of the arguments arrays has to coincide with the number given in the constructor description,
+      1. the length of the arguments arrays has to coincide with the number 
+        given in the constructor description,
       2. the given graph g has to actually contain the node v,
-      3. the label of v in the graph g has to coincide with the information we have given, using the predicate compatible.
+      3. the label of v in the graph g has to coincide with the
+        information we have given, using the predicate compatible.
 
    TODO:
    - Do we want the args computational in the first case?
@@ -120,7 +124,7 @@ match c, p with
  | enum t, repZ z => args = nil /\ (* repr_unboxed_L7 t z *) Z.to_N z = t
  | boxed t n, repNode v => length args = N.to_nat n /\ graph_has_v g v /\
                               match (vlabel g v) with
-                                | Build_raw_vertex_block false v' raws 0 n _ _ _ _ => v = v' /\ n = Z.of_N t /\ compatible g v 0 raws args
+                                | Build_raw_vertex_block false v' raws 0 n _ _ _ _ => (* v = v' /\ *) n = Z.of_N t /\ compatible g v 0 raws args
                                 | _ => False
                               end
  | _, _ => False

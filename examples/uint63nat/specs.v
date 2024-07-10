@@ -19,6 +19,8 @@ From VeriFFI Require Export library.base_representation library.meta verificatio
 
 Require Export VeriFFI.examples.uint63nat.Verif_prog_general.
 Require Export VeriFFI.examples.uint63nat.prims. 
+Require Export VeriFFI.examples.uint63nat.model.
+
 
 (* Specific alloc*)
 
@@ -41,8 +43,7 @@ Definition alloc_make_Coq_Init_Datatypes_nat_O_spec : ident * funspec :=
 Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
           (alloc_make_spec_general (@desc _ S _) 1).        
-
-(* KS: Use *)          
+      
 Definition nat_get_desc (x : nat) : ctor_desc := 
 match x with 
 | O => (@desc _ O _)
@@ -80,7 +81,7 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
       let r := result (ctor_reific c) xs in
       @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g (ctor_real c xs) p   *)
       let c := nat_get_desc x in 
-      nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
+      nat_has_tag_prop x c 
     )
 RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
@@ -108,8 +109,6 @@ Definition args_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
 DECLARE _get_args
         (args_spec_S').
 
-(* Same as in UVRooster 
-- TODO: encode_Z as relation to fit our general scheme *)
 Definition encode_Z (x: Z): Z := x * 2 + 1.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
@@ -121,7 +120,9 @@ MetaCoq Run (disc_gen nat).
 `(Discrimination_A : Discrimination A) : Rep A := 
 {| in_graph := InGraph_A ; discrimination := Discrimination_A |}.
 
-Definition uint63_to_nat_spec :  ident *  funspec := 
+Definition uint63_to_nat_spec := fn_desc_to_funspec UInt63_Proofs.to_nat_desc.
+
+Definition uint63_to_nat_spec' :  ident *  funspec := 
    DECLARE _uint63_to_nat  
    WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
@@ -159,7 +160,9 @@ POST [ (talignas 3%N (tptr tvoid)) ]
     RETURN  (rep_type_val g' p')
     SEP (full_gc g' t_info' roots outlier ti sh gv). 
 
-Definition uint63_from_nat_spec :  ident *  funspec := 
+Definition uint63_from_nat_spec := fn_desc_to_funspec UInt63_Proofs.from_nat_desc.
+
+Definition uint63_from_nat_spec' :  ident *  funspec := 
 DECLARE _uint63_from_nat  
 WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
@@ -174,16 +177,14 @@ POST [ int_or_ptr_type ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
     SEP (full_gc g t_info roots outlier ti sh gv). 
-    (* KS: Existential *)
 
-Definition uint63_add_spec : ident * funspec := 
+Definition uint63_add_spec := fn_desc_to_funspec UInt63_Proofs.add_desc.
+
+Definition uint63_add_spec' : ident * funspec := 
   DECLARE _uint63_add 
   WITH m : nat, n : nat 
 PRE [ int_or_ptr_type, int_or_ptr_type ]
-  PROP (encode_Z (Z.of_nat m) <= Int64.max_unsigned;
-        encode_Z (Z.of_nat n) <= Int64.max_unsigned; 
-        encode_Z (Z.of_nat (m + n)) <= Int64.max_unsigned
-        ) 
+  PROP (encode_Z (Z.of_nat (m + n)) <= Int64.max_unsigned) 
   PARAMS (Vlong (Int64.repr (encode_Z (Z.of_nat m)));
            Vlong (Int64.repr (encode_Z (Z.of_nat n)))) 
   GLOBALS () 
@@ -284,7 +285,9 @@ POST [ int_or_ptr_type ]
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
-                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
+                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  
+                      uint63_to_nat_spec;
+                      uint63_from_nat_spec; 
                       uint63_to_nat_no_gc_spec;
                       gc_spec.garbage_collect_spec;
                       uint63_add_spec

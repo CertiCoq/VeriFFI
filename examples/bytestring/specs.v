@@ -284,8 +284,9 @@ Definition alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec : ident * funspec :=
 Definition pack_spec : ident * funspec :=
   fn_desc_to_funspec Bytestring_Proofs.pack_desc.
 
+
 Definition unpack_spec : ident * funspec :=
-  fn_desc_to_funspec Bytestring_Proofs.unpack_desc.
+  fn_desc_to_funspec Bytestring_Proofs.unpack_desc.  
 
 Definition append_spec : ident * funspec :=
   fn_desc_to_funspec Bytestring_Proofs.append_desc.

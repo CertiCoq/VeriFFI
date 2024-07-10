@@ -122,7 +122,8 @@ Definition _t'3 : ident := 130%positive.
 Definition f_uint63_from_nat := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((_n, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((_tinfo, (tptr (Tstruct _thread_info noattr))) ::
+                (_n, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := ((_temp, (talignas 3%N (tptr tvoid))) :: (_i, tulong) ::
                (_t'2, (tptr (talignas 3%N (tptr tvoid)))) ::
@@ -394,7 +395,8 @@ Definition f_uint63_to_nat := {|
 Definition f_uint63_add := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((_x, (talignas 3%N (tptr tvoid))) ::
+  fn_params := ((_tinfo, (tptr (Tstruct _thread_info noattr))) ::
+                (_x, (talignas 3%N (tptr tvoid))) ::
                 (_y, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
   fn_temps := nil;

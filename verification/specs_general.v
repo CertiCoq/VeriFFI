@@ -776,6 +776,8 @@ Definition GC_SAVE1_tycontext :=
   (make_tycontext_s GC_SAVE1_G)
   (make_tycontext_a nil).
 
+Print graph_unmarked.  
+  
 (* delete this from examples/*/*.v *)
 Lemma gc_preserved {A: Type} `{InG: InGraph A}:
   forall outlier (g1 :graph) (roots1: list root_t)

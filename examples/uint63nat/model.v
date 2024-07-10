@@ -16,18 +16,18 @@ Require Import VeriFFI.examples.uint63nat.prog.
 
 Module FM <: UInt63.
   Definition t := {z : nat | z < 2^63}.
-  Definition from_nat (z : nat) : t.
-    exists (Nat.modulo z (2^63)).
-    apply Nat.mod_upper_bound.
-    apply Nat.pow_nonzero.
-    auto.
-  Defined.
-
-  Definition to_nat (z : t) : nat := proj1_sig z.
 
   Lemma mod63_ok:
     forall z, (z mod (2^63) < 2^63)%nat.
   Proof. intro. apply Nat.mod_upper_bound, Nat.pow_nonzero. auto. Qed.
+
+  Definition from_nat (z : nat) : t.
+    exists (Nat.modulo z (2^63)).
+    apply mod63_ok.
+  Defined.
+
+  Definition to_nat (z : t) : nat := proj1_sig z.
+
 
   Definition add (x y: t) : t :=
   let '(exist xz x_pf) := x in
