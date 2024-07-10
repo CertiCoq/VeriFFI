@@ -15,7 +15,7 @@ echo "RUN: opam switch create veriffi-coq8.19.1 4.14.1"
 opam switch create veriffi-coq8.19.1 4.14.1  # this will fail if the switch already exists
 echo "RUN: opam switch veriffi-coq8.19.1"
 opam switch veriffi-coq8.19.1 # do this in case the previous command failed, harmless if succeeded
-eval $(opam env --switch=veriffi-coq8.19.1)
+eval $(opam env --switch=veriffi-coq8.19.1 --set-switch)
 
 # RUN opam repo add coq-released http://coq.inria.fr/opam/released && opam pin add coq 8.19.1
 echo "RUN: opam repo add coq-released http://coq.inria.fr/opam/released"

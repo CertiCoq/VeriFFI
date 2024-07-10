@@ -20,6 +20,8 @@ From VeriFFI Require Export library.base_representation library.meta verificatio
 
 Require Export VeriFFI.examples.uint63nat.Verif_prog_general.
 Require Export VeriFFI.examples.uint63nat.prims. 
+Require Export VeriFFI.examples.uint63nat.model.
+
 
 (* Specific alloc*)
 
@@ -44,6 +46,8 @@ Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
           (alloc_make_spec_general (@ctor_desc_of_val _ S _) 1).        
 
 (* KS: Use Discrimination *)          
+          (alloc_make_spec_general (@desc _ S _) 1).        
+      
 Definition nat_get_desc (x : nat) : ctor_desc := 
 match x with 
 | O => (@ctor_desc_of_val _ O _)
@@ -81,7 +85,7 @@ PROP ( (* 1. x has tag t and is constructed with the constructor description c.
       let r := result (ctor_reific c) xs in
       @is_in_graph (projT1 r) (@in_graph (projT1 r) (projT2 r)) g (ctor_real c xs) p   *)
       let c := nat_get_desc x in 
-      nat_has_tag_prop x c (* Not 100% sure this is how we want it*)
+      nat_has_tag_prop x c 
     )
 RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (nat_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
@@ -109,10 +113,7 @@ Definition args_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
 DECLARE _get_args
         (args_spec_S').
 
-(* Same as in UVRooster - TODO: encode_Z as relation to fit our general scheme *)
 Definition encode_Z (x: Z): Z := x * 2 + 1.
-Definition min_signed: Z := - 2^62.
-Definition max_signed: Z := 2^62 - 1.
 
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 
@@ -123,24 +124,26 @@ MetaCoq Run (disc_gen nat).
 `(Discrimination_A : Discrimination A) : Rep A := 
 {| in_graph := InGraph_A ; discrimination := Discrimination_A |}.
 
-Definition uint63_to_nat_spec :  ident *  funspec := 
+Definition uint63_to_nat_spec := fn_desc_to_funspec UInt63_Proofs.to_nat_desc.
+
+Definition uint63_to_nat_spec' :  ident *  funspec := 
    DECLARE _uint63_to_nat  
    WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
    PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
       PROP (  writable_share sh; 
-            min_signed <= encode_Z (Z.of_nat n) <= max_signed
+            encode_Z (Z.of_nat n) <= Int64.max_unsigned
             )
       PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
       GLOBALS (gv)
-      SEP (full_gc g t_info roots outlier ti sh gv; library.mem_mgr gv)
+      SEP (full_gc g t_info roots outlier ti sh gv; VST.floyd.library.mem_mgr gv)
    POST [ (talignas 3%N (tptr tvoid)) ]
      EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info) (roots': roots_t),
        PROP (@is_in_graph nat (@in_graph nat _) g' outlier n p' ;
              gc_graph_iso g roots g' roots';
              frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
        RETURN  (rep_type_val g' p')
-       SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv). 
+       SEP (full_gc g' t_info' roots' outlier ti sh gv; VST.floyd.library.mem_mgr gv). 
 
 Definition uint63_to_nat_no_gc_spec :  ident *  funspec := 
 DECLARE _uint63_to_nat_no_gc
@@ -149,7 +152,7 @@ WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat,
 PRE  [ tptr (Tstruct _thread_info noattr ),  (talignas 3%N (tptr tvoid)) ]
     PROP ( 2 * (Z.of_nat n) < headroom t_info ; 
           writable_share sh; 
-          min_signed <= encode_Z (Z.of_nat n) <= max_signed
+          encode_Z (Z.of_nat n) <= Int64.max_unsigned
           )
     PARAMS (ti; Vlong (Int64.repr (encode_Z (Z.of_nat n))))
     GLOBALS (gv)
@@ -161,12 +164,14 @@ POST [ (talignas 3%N (tptr tvoid)) ]
     RETURN  (rep_type_val g' p')
     SEP (full_gc g' t_info' roots outlier ti sh gv). 
 
-Definition uint63_from_nat_spec :  ident *  funspec := 
+Definition uint63_from_nat_spec := fn_desc_to_funspec UInt63_Proofs.from_nat_desc.
+
+Definition uint63_from_nat_spec' :  ident *  funspec := 
 DECLARE _uint63_from_nat  
 WITH gv : globals, g : graph, roots : roots_t, sh : share, n: nat, p : rep_type,
         ti : val, outlier : outlier_t, t_info : GCGraph.thread_info
 PRE  [ int_or_ptr_type ]
-    PROP ( encode_Z (Z.of_nat n) <= max_signed; 
+    PROP ( encode_Z (Z.of_nat n) <= Int64.max_signed; 
             @is_in_graph nat (@in_graph nat _) g outlier n p ;
             writable_share sh)
     PARAMS (rep_type_val g p)
@@ -176,7 +181,22 @@ POST [ int_or_ptr_type ]
     PROP ()
     RETURN  (Vlong (Int64.repr (encode_Z (Z.of_nat n))))
     SEP (full_gc g t_info roots outlier ti sh gv). 
-    (* KS: Existential *)
+
+Definition uint63_add_spec := fn_desc_to_funspec UInt63_Proofs.add_desc.
+
+Definition uint63_add_spec' : ident * funspec := 
+  DECLARE _uint63_add 
+  WITH m : nat, n : nat 
+PRE [ int_or_ptr_type, int_or_ptr_type ]
+  PROP (encode_Z (Z.of_nat (m + n)) <= Int64.max_unsigned) 
+  PARAMS (Vlong (Int64.repr (encode_Z (Z.of_nat m)));
+           Vlong (Int64.repr (encode_Z (Z.of_nat n)))) 
+  GLOBALS () 
+  SEP () 
+POST [ int_or_ptr_type ]
+  PROP ()
+  RETURN (Vlong (Int64.repr (encode_Z (Z.of_nat (m + n)))))
+  SEP ().
 
 (* Function Spec
 
@@ -266,10 +286,14 @@ POST [ int_or_ptr_type ]
 	SEP (full_gc g' t_info' roots outlier ti sh gv).
 
 
+
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ tag_spec_S; alloc_make_Coq_Init_Datatypes_nat_O_spec; alloc_make_Coq_Init_Datatypes_nat_S_spec
-                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  uint63_to_nat_spec ; uint63_from_nat_spec; 
+                      ; args_make_Coq_Init_Datatypes_nat_S_spec ;  
+                      uint63_to_nat_spec;
+                      uint63_from_nat_spec; 
                       uint63_to_nat_no_gc_spec;
-                      gc_spec.garbage_collect_spec
+                      gc_spec.garbage_collect_spec;
+                      uint63_add_spec
                       (* _call, call_spec *)
                       ] .
