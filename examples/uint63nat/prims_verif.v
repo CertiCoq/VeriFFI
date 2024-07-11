@@ -38,24 +38,69 @@ destruct xs. unfold foreign_in_graphs in H1. simpl in H1. destruct ps; try contr
 destruct H1. subst.
 start_function2. 
 start_function3.
+destruct x as (m&H_m). destruct x0 as (n&H_n). 
+cbn - [Nat.pow] in H0, H1. destruct p; destruct r; try contradiction.
 forward.
- entailer!.
-  unfold encode_Z in *.
-  autorewrite with norm.
-(*   rewrite !Int64.shru_div_two_p.
+Exists (repZ (Z.of_nat ((m + n) mod 2^63 ))) g roots t_info.
+entailer!.
+autorewrite with norm. 
+split3. 
+- cbn - [Nat.pow]. destruct u. reflexivity.
+- apply gc_graph_iso_refl.
+- cbn - [Nat.pow]. unfold odd_Z2val.
+  rewrite !Int64.shru_div_two_p.
 change (two_p _) with 2.
-rewrite !Int64.unsigned_repr by lia.  
-rewrite Z.div_add_l by lia.
+
+autorewrite with norm. 
 rewrite Int64.shl_mul_two_p.
 autorewrite with norm. change (two_p _) with 2. 
-f_equal. f_equal.
-assert ((Z.of_nat n * 2 + 1) / 2 = Z.of_nat n) as ->. 
-{ rewrite Z.add_comm. rewrite Z_div_plus; try lia.
-  replace (1/2) with 0 by reflexivity. 
-  lia. }
-lia. 
-Qed. *)
-Admitted.
+f_equal. rewrite Z.mul_comm. 
+assert (0 <= 2 * Z.of_nat m + 1 <= Int64.max_unsigned). 
+{ split; try rep_lia. 
+(* KS: Lemma. *)
+apply Nat2Z.inj_le in H_m. 
+rewrite Nat2Z.inj_pow in H_m.
+replace (Z.of_nat 2) with 2 in H_m by lia.
+rewrite <- two_power_nat_equiv in H_m.
+unfold two_power_nat in H_m. simpl in H_m.
+rep_lia.  }
+assert (0 <= 2 * Z.of_nat n + 1 <= Int64.max_unsigned). { 
+  split; try rep_lia. 
+apply Nat2Z.inj_le in H_n. 
+rewrite Nat2Z.inj_pow in H_n.
+replace (Z.of_nat 2) with 2 in H_n by lia.
+rewrite <- two_power_nat_equiv in H_n.
+unfold two_power_nat in H_n. simpl in H_n.
+rep_lia.
+ }
+
+rewrite !Int64.unsigned_repr by lia.  
+rewrite (Z.mul_comm 2 (Z.of_nat m)).
+rewrite Z.div_add_l; try lia. 
+rewrite (Z.mul_comm 2 (Z.of_nat n)).
+rewrite  Z.div_add_l; try lia.
+assert (1/2 = 0) as -> by reflexivity.
+autorewrite with norm. 
+
+rewrite <- Int64.repr_unsigned at 1.
+rewrite Int64.unsigned_repr_eq.
+setoid_rewrite <- Int64.repr_unsigned at 2.
+rewrite Int64.unsigned_repr_eq.
+f_equal.
+unfold Int64.modulus. unfold Int64.wordsize. unfold Wordsize_64.wordsize.
+unfold two_power_nat.
+cbn - [Nat.pow].
+rewrite Zplus_mod.  cbn - [Nat.pow].
+enough ((2 * (Z.of_nat m + Z.of_nat n)) mod 18446744073709551616 = 2 * Z.of_nat ((m + n) mod 2 ^ 63)) by congruence.
+rewrite Nat2Z.inj_mod.
+rewrite Nat2Z.inj_pow. replace (Z.of_nat 2) with 2 by eauto.
+rewrite <- two_power_nat_equiv.
+unfold two_power_nat.
+cbn - [Nat.pow].
+replace 18446744073709551616 with (2 * 9223372036854775808) by reflexivity.
+rewrite Zmult_mod_distr_l. f_equal.
+rep_lia.
+Qed. 
 
 Lemma body_uint63_from_nat:
   semax_body Vprog Gprog f_uint63_from_nat uint63_from_nat_spec.
@@ -118,19 +163,35 @@ Proof.
      lia.
 - (* after the loop *)
  forward. simpl. 
-Exists (repZ (Z.of_nat n)) g roots t_info.
+ Exists (repZ (Z.of_nat (n mod 2 ^ 63))) g roots t_info.
  entailer!. split3.
- + simpl. destruct xs.  unfold FM.from_nat. 
-
- cbn - [Nat.pow].
- admit.
+ + cbn - [Nat.pow]. destruct xs. cbn - [Nat.pow]. 
+ reflexivity.
  + apply gc_graph_iso_refl.
- + simpl. unfold odd_Z2val. simpl.
+ +  cbn - [Nat.pow]. unfold odd_Z2val. 
+ cbn - [Nat.pow]. 
  rewrite Int64.shl_mul_two_p, mul64_repr, add64_repr. 
-  unfold two_p. simpl. unfold two_power_pos. simpl.  
-  f_equal. f_equal. lia. 
- 
-Admitted.
+  unfold two_p.  cbn - [Nat.pow]. unfold two_power_pos.
+  cbn - [Nat.pow]. 
+  rewrite <- Int64.repr_unsigned at 1.
+  rewrite Int64.unsigned_repr_eq.
+  setoid_rewrite <- Int64.repr_unsigned at 2.
+  rewrite Int64.unsigned_repr_eq.
+  f_equal. f_equal. 
+  unfold Int64.modulus. unfold Int64.wordsize. unfold Wordsize_64.wordsize.
+  unfold two_power_nat.
+   cbn - [Nat.pow].
+   rewrite Zplus_mod.  cbn - [Nat.pow].
+   f_equal. f_equal. 
+   rewrite Nat2Z.inj_mod.
+rewrite Nat2Z.inj_pow. replace (Z.of_nat 2) with 2 by eauto.
+rewrite <- two_power_nat_equiv.
+unfold two_power_nat.
+cbn - [Nat.pow].
+replace 18446744073709551616 with (2 * 9223372036854775808) by reflexivity.
+rewrite Z.mul_comm.
+rewrite Zmult_mod_distr_l. reflexivity.
+Qed.
 
 #[export] Instance CCE4: change_composite_env filteredCompSpecs CompSpecs.
 make_cs_preserve filteredCompSpecs CompSpecs.
@@ -296,7 +357,24 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
    split3.
     * apply gc_graph_iso_refl.
     * apply frame_shells_eq_refl.
-    * repeat f_equal. admit. (*  lia. *)
+    * repeat f_equal.
+      rewrite Int64.shru_div_two_p.
+      change (two_p _) with 2.
+      f_equal. 
+      rewrite Nat.sub_0_r.
+      rewrite Z.mul_comm.
+      rewrite !Int64.unsigned_repr. 
+      2 : { split; try lia. 
+      apply Nat2Z.inj_le in n_lt. 
+      rewrite Nat2Z.inj_pow in n_lt.
+      replace (Z.of_nat 2) with 2 in n_lt by lia.
+      rewrite <- two_power_nat_equiv in n_lt.
+      unfold two_power_nat in n_lt. simpl in n_lt.
+      rep_lia. }
+
+      rewrite Z.div_add_l; try lia. simpl.
+      f_equal; lia.
+
 - (* Valid condition  *)
   entailer!!. 
 - (* During the loop *)
@@ -344,11 +422,18 @@ SEP (full_gc g' t_info' roots' outlier ti sh gv;
      eapply frame_shells_eq_trans; eassumption.
  - (* after the loop *)
    forward.
-   assert (m=n). {
-    clear - H3 H HRE. unfold encode_Z in H. 
-    apply repr_inj_unsigned64 in HRE; try rep_lia. admit.  }
-   subst m. unfold model_fn. simpl.
+    assert (m=n). {
+    unfold encode_Z in H. 
+    apply repr_inj_unsigned64 in HRE; try rep_lia.
+    split; try lia.
+    apply Nat2Z.inj_le in n_lt. 
+    rewrite Nat2Z.inj_pow in n_lt.
+    replace (Z.of_nat 2) with 2 in n_lt by lia.
+    rewrite <- two_power_nat_equiv in n_lt.
+    unfold two_power_nat in n_lt. simpl in n_lt.
+    rep_lia. } 
+   unfold model_fn. simpl.
    Exists v0 g' roots' t_info' .
    unfold frame_rep_.
    entailer!!. destruct xs. apply H2. 
-Admitted.
+Qed.
