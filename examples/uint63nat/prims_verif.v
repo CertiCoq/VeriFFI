@@ -34,7 +34,7 @@ start_function1.
 repeat (simple apply intro_prop_through_close_precondition; intro).
 concretize_PARAMS.
 (* TODO: FIX *)
-destruct xs. unfold prim_in_graphs in H1. simpl in H1. destruct ps; try contradiction.
+destruct xs. unfold foreign_in_graphs in H1. simpl in H1. destruct ps; try contradiction.
 destruct H1. subst.
 start_function2. 
 start_function3.

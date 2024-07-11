@@ -1,3 +1,4 @@
+
 Require Import Coq.ZArith.ZArith
                Coq.Program.Basics
                Coq.Strings.String
@@ -18,8 +19,7 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
 
-(*
-(* Unset MetaCoq Strict Unquote Universe Mode. *)
+Unset MetaCoq Strict Unquote Universe Mode.
 
 (* Require Import VeriFFI.generator.InGraph. *)
 (* MetaCoq Run (in_graph_gen bool). *)
@@ -76,8 +76,8 @@ Definition fill_hole
                 match t with
                 | tApp (tInd {| inductive_mind := kn; inductive_ind := 0 |} _) _ =>
                     if eq_kername kn <? InGraph ?>
-                    then tApp <% @field_in_graph %> [hole; tVar id]
-                    (* then tApp (tConst (MPfile ["meta"; "library"; "VeriFFI"], "field_in_graph") []) [hole; tVar id] *)
+                    then tApp <% @foreign_in_graph %> [hole; tVar id]
+                    (* then tApp (tConst (MPfile ["modelled"; "library"; "VeriFFI"], "foreign_in_graph") []) [hole; tVar id] *)
                     else tVar id
                 | _ => tVar id
                 end) named_ctx) in
@@ -85,37 +85,34 @@ Definition fill_hole
   (* ret (strip_lambdas hoisted). *)
   (* ret (tApp hoisted (rev (map (fun '(id, _) => tVar id) named_ctx))). *)
 
-(*
+Instance InGraph_list : forall A, InGraph A -> InGraph (list A).
+Admitted.
+
 MetaCoq Run (fill_hole [("H", tApp <% InGraph %> [tVar "a"]);("a", <% Type %>)]
-                       (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint).
-*)
+                       (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint!).
+
+Print ForeignInGraph.
+Print foreign_ann.
 
 Polymorphic Definition create_reified
-           (ind : inductive)
-           (mut : mutual_inductive_body)
-           (one : one_inductive_body)
-           (ctor : constructor_body) : TemplateMonad (reified foreign_ann) :=
-  (* let cn := cstr_name ctor in *)
-  (* let t := cstr_type ctor in *)
-  (* let arity := cstr_arity ctor in *)
-  (* (* We convert the constructor type to the named representation *) *)
-  (* let init_index_ctx : list (Kernames.ident  * named_term) := *)
-  (*     mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind *)
-  (*                                             ; inductive_ind := i |} [])) *)
-  (*          (ind_bodies mut) in *)
-  (* t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) init_index_ctx) t ;; *)
+           (model_t : term)
+           (foreign_t : term) : TemplateMonad (reified foreign_ann) :=
+  model_t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) []) model_t ;;
+  foreign_t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) []) foreign_t ;;
 
   let fix go
-           (* type of the constructor to be taken apart *)
-             (t : named_term)
+           (* type of the functional model function *)
+             (model_t : named_term)
+           (* type of the foreign function *)
+             (foreign_t : named_term)
            (* the context kept for De Bruijn indices *)
              (index_ctx : list (Kernames.ident  * named_term))
            (* the context kept for "lambda lifting" the holes *)
              (named_ctx : list (Kernames.ident * named_term))
-           (* unprocessed number of parameters left on the type *)
-             (num_params : nat) : TemplateMonad named_term :=
-      match t, num_params with
-      | tProd n (tSort s as t) b , S n' =>
+           : TemplateMonad named_term :=
+      match model_t', foreign_t' with
+      | tProd model_n (tSort model_s as model_t) model_b
+      , tProd foreign_n (tSort foreign_s as foreign_t) foreign_b =>
         '(h, H) <- fresh_aname "H" n ;;
         let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
@@ -123,9 +120,10 @@ Polymorphic Definition create_reified
             | _ => named_ctx end in
         rest <- go b index_ctx named_ctx' (pred num_params) ;;
         let f := tLambda n (tSort s) (tLambda H (tApp <% @ctor_ann %> [tRel O]) rest) in
-        ret (tApp <% @TYPEPARAM ctor_ann %> [f])
+        ret (tApp <% @TYPEPARAM foreign_ann %> [f])
 
-      | tProd n t b , O =>
+      | tProd model_n model_t model_b
+      , tProd foreign_n foreign_t foreign_b =>
         let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
             | nNamed id => (id, t) :: named_ctx
@@ -135,18 +133,19 @@ Polymorphic Definition create_reified
         let f := tLambda n t' rest in
         H <- fill_hole named_ctx (tApp <% InGraph %> [t']) ;;
         let H' := tApp <% Build_ctor_ann %> [t'; <% present %>; H] in
-        ret (tApp <% @ARG ctor_ann %> [t'; H'; f])
+        ret (tApp <% @ARG foreign_ann %> [t'; H'; f])
 
-      | rest , _ =>
-        let rest' := Substitution.named_subst_all index_ctx rest in
-        H <- fill_hole named_ctx (tApp <% InGraph %> [rest']) ;;
-        let H' := tApp <% Build_ctor_ann %> [rest'; <% present %>; H] in
-        ret (tApp <% @RES ctor_ann %> [rest'; H'])
+      | model_rest , foreign_rest =>
+        let model_rest' := Substitution.named_subst_all index_ctx model_rest in
+        let foreign_rest' := Substitution.named_subst_all index_ctx foreign_rest in
+        H <- fill_hole named_ctx (tApp <% ForeignInGraph %> [rest']) ;;
+        let H' := tApp <% Build_foreign_ann %> [rest'; <% present %>; H] in
+        ret (tApp <% @RES foreign_ann %> [rest'; H'])
       end
   in
 
   let num_of_params := ind_npars mut in
-  c <- go t' init_index_ctx [] num_of_params ;;
+  c <- go t' [] [] num_of_params ;;
   tmMsg "after go:" ;;
   tmEval all c >>= tmPrint ;;
   c' <- DB.deBruijn c ;;
@@ -241,6 +240,3 @@ Unset MetaCoq Strict Unquote Universe Mode.
 
 (* MetaCoq Run (desc_gen O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
 (* Print S_desc. *)
-
-
-*)
