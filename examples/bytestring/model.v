@@ -128,7 +128,7 @@ Module Bytestring_Proofs.
     (chars_raw_fields (list_ascii_of_string s)).
 *)
 
-  Definition GraphPredicate_bytestring : GraphPredicate FM.bytestring :=
+  Definition GraphPredicate_bytestring_foreign : GraphPredicate FM.bytestring :=
    Build_GraphPredicate FM.bytestring (fun g _ s p => 
     match p with
     | repNode v => graph_has_v g v /\
@@ -140,8 +140,8 @@ Module Bytestring_Proofs.
     | _ => False
     end).
 
-  #[local] Instance InGraph_bytestring : InGraph FM.bytestring.
-   apply (Build_InGraph _ GraphPredicate_bytestring).
+  #[local] Instance ForeignInGraph_bytestring : ForeignInGraph FM.bytestring C.bytestring.
+   apply (Build_InGraph _ GraphPredicate_bytestring_foreign).
    intros. destruct H as [H _]. auto.
    intros. destruct p; try contradiction. destruct H1.
            destruct (@graph_model.vlabel VType EType V_EqDec
@@ -162,20 +162,22 @@ Module Bytestring_Proofs.
     (* TODO this is where we describe how the monad type
             is represented within the graph *)
     Admitted.
-  #[local] Instance InGraph_M {A : Type} `{GP : InGraph A} : InGraph (FM.M A).
+  #[local] Instance ForeignInGraph_M
+                    {A B : Type}
+                   `{GP : ForeignInGraph A B} : ForeignInGraph (FM.M A) (C.M B).
     econstructor.
     (*  TODO this is where we prove lemmas about the graph predicate above *)
     * admit.
     * admit.
     Admitted.
 
-  #[local] Instance GraphPredicate_stream : GraphPredicate FM.stream :=
+  Definition GraphPredicate_stream_foreign : GraphPredicate FM.stream :=
          {| graph_predicate g outliers x p := 
              match p with
              | repOut q => In q outliers  (* This is probably a bit too weak... *)
              | _ => False end |}.
-  #[local] Instance InGraph_stream : InGraph FM.stream.
-    econstructor.
+  #[local] Instance ForeignInGraph_stream : ForeignInGraph FM.stream C.stream.
+    apply (Build_InGraph _ GraphPredicate_stream_foreign).
     (*  TODO this is where we prove lemmas about the graph predicate above *)
     * intros. contradiction H.
     * intros.  destruct p; try contradiction.
@@ -184,90 +186,118 @@ Module Bytestring_Proofs.
    Defined.
 
   Definition append_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
-          @ARG _ FM.bytestring (opaque C.bytestring) (fun _ =>
-            @RES _ FM.bytestring (opaque C.bytestring)))
-     ; prim_fn := C.append
+    {| fn_type_reified :=
+        @ARG _ FM.bytestring opaque (fun _ =>
+          @ARG _ FM.bytestring opaque (fun _ =>
+            @RES _ FM.bytestring opaque))
+     ; foreign_fn := C.append
      ; model_fn := fun '(a; (b; tt)) =>  FM.append a b
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "append"
      |}.
 
   Definition pack_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ string (@transparent _ InGraph_string) (fun _ =>
-          @RES _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _))
-     ; prim_fn := C.pack
+    {| fn_type_reified :=
+        @ARG _ string transparent (fun _ =>
+          @RES _ FM.bytestring opaque)
+     ; foreign_fn := C.pack
      ; model_fn := fun '(x; tt) => FM.pack x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "pack"
      |}.
 
   Definition unpack_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ FM.bytestring (@opaque _ C.bytestring InGraph_bytestring _) (fun _ =>
-          @RES _ string (@transparent _ InGraph_string))
-     ; prim_fn := C.unpack
+    {| fn_type_reified :=
+        @ARG _ FM.bytestring opaque (fun _ =>
+          @RES _ string transparent)
+     ; foreign_fn := C.unpack
      ; model_fn := fun '(x; tt) => FM.unpack x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "unpack"
      |}.
 
   Definition pure_desc : fn_desc :=
-    {| type_desc :=
-        @TYPEPARAM _ (fun (A : Type) (H_A : prim_ann A) =>
-          @ARG _ _ (@transparent A (@prim_in_graph _ H_A)) (fun _ =>
-            @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _))))
-     ; prim_fn := @C.pure
+    {| fn_type_reified :=
+        @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
+          @ARG _ _ (@transparent A foreign_in_graph) (fun _ =>
+            @RES _ _ (@opaque (FM.M A) (C.M A)
+                              (@ForeignInGraph_M A A (@foreign_in_graph A H_A))
+                              (Isomorphism_M _))))
+     ; foreign_fn := @C.pure
      ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "m_pure"
      |}.
 
+  (* Definition pure_desc : fn_desc := *)
+  (*   {| fn_type_reified := *)
+  (*       @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) => *)
+  (*         @ARG _ A (@transparent A (@foreign_in_graph A H_A)) (fun _ => *)
+  (*           @RES _ _ (@opaque (FM.M A) (C.M A) *)
+  (*                             (@ForeignInGraph_M A A (@foreign_in_graph A H_A)) *)
+  (*                             (Isomorphism_M _)))) *)
+  (*    ; foreign_fn := @C.pure *)
+  (*    ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a *)
+  (*    ; fn_arity := 2 *)
+  (*    ; c_name := "m_pure" *)
+  (*    |}. *)
+
+  (* Definition pure_desc : fn_desc := *)
+  (*   {| fn_type_reified := *)
+  (*       @TYPEPARAM _ (fun (A : Type) (H_A : foreign_ann A) => *)
+  (*         @ARG _ _ (@transparent A (@foreign_in_graph _ H_A)) (fun _ => *)
+  (*           @RES _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@foreign_in_graph _ H_A)) (Isomorphism_M _)))) *)
+  (*    ; foreign_fn := @C.pure *)
+  (*    ; model_fn := fun '(A; (_; (a; tt))) => @FM.pure A a *)
+  (*    ; fn_arity := 2 *)
+  (*    ; c_name := "m_pure" *)
+  (*    |}. *)
+
   Definition bind_desc : fn_desc :=
-    {| type_desc :=
-        @TYPEPARAM _ (fun (A : Type) `(H_A : prim_ann A) =>
-          @TYPEPARAM _ (fun (B : Type) `(H_B : prim_ann B) =>
-            @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _)) (fun m =>
-              @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@prim_in_graph _ H_A) (@InGraph_M B (@prim_in_graph _ H_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
-                @RES _ _ (@opaque (FM.M B) (C.M B) (@InGraph_M B (@prim_in_graph _ H_B)) (Isomorphism_M _))))))
-     ; prim_fn := @C.bind
+    {| fn_type_reified :=
+        @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
+          @TYPEPARAM _ (fun (B : Type) `(H_B : foreign_ann B) =>
+            @ARG _ _ (@opaque (FM.M A) (C.M A) (@ForeignInGraph_M A A (@foreign_in_graph _ H_A)) (Isomorphism_M _)) (fun m =>
+              @ARG _ (A -> FM.M B) (@opaque _ (A -> C.M B) (@InGraph_fun _ _ (@foreign_in_graph _ H_A) (@ForeignInGraph_M B B (@foreign_in_graph _ H_B))) (Isomorphism_fn _ (Isomorphism_M _))) (fun f =>
+                @RES _ _ (@opaque (FM.M B) (C.M B) (@ForeignInGraph_M B B (@foreign_in_graph _ H_B)) (Isomorphism_M _))))))
+     ; foreign_fn := @C.bind
      ; model_fn := fun '(A; (_; (B; (_; (m; (f; tt)))))) => @FM.bind A B m f
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_bind"
      |}.
 
   Definition runM_desc : fn_desc :=
-    {| type_desc :=
-        @TYPEPARAM _ (fun (A : Type) `(H_A : prim_ann A) =>
-          @ARG _ _ (@opaque FM.stream C.stream InGraph_stream Isomorphism_stream) (fun _ =>
-            @ARG _ _ (@opaque FM.stream C.stream InGraph_stream Isomorphism_stream) (fun _ =>
-              @ARG _ _ (@opaque (FM.M A) (C.M A) (@InGraph_M A (@prim_in_graph _ H_A)) (Isomorphism_M _)) (fun _ =>
-                @RES _ _ (@transparent A (@prim_in_graph _ H_A))))))
-     ; prim_fn := @C.runM
+    {| fn_type_reified :=
+        @TYPEPARAM _ (fun (A : Type) `(H_A : foreign_ann A) =>
+          @ARG _ _ opaque (fun _ =>
+            @ARG _ _ opaque (fun _ =>
+              @ARG _ _ (@opaque (FM.M A) (C.M A) (@ForeignInGraph_M A A (@foreign_in_graph _ H_A)) (Isomorphism_M _)) (fun _ =>
+                @RES _ _ (@transparent A (@foreign_in_graph _ H_A))))))
+     ; foreign_fn := @C.runM
      ; model_fn := fun '(A; (_; (i; (o; (m; tt))))) => @FM.runM A i o m
-     ; f_arity := 4
+     ; fn_arity := 4
      ; c_name := "m_runM"
      |}.
 
   Definition print_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ _ (@opaque FM.bytestring C.bytestring InGraph_bytestring Isomorphism_bytestring) (fun n =>
-          @RES _ _ (@opaque (FM.M unit) (C.M unit) (@InGraph_M unit InGraph_unit) (Isomorphism_M _)))
-     ; prim_fn := @C.print
+    {| fn_type_reified :=
+        @ARG _ _ opaque (fun n =>
+          @RES _ _ (@opaque (FM.M unit) (C.M unit)
+                            (@ForeignInGraph_M unit unit InGraph_unit) (Isomorphism_M _)))
+     ; foreign_fn := @C.print
      ; model_fn := fun '(x; tt) => @FM.print x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "print"
      |}.
 
   Definition scan_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ _ (@transparent nat InGraph_nat) (fun n =>
-          @RES _ _ (@opaque (FM.M FM.bytestring) (C.M C.bytestring) _ (Isomorphism_M Isomorphism_bytestring)))
-     ; prim_fn := @C.scan
+    {| fn_type_reified :=
+        @ARG _ _ transparent (fun n =>
+          @RES _ _ (@opaque (FM.M FM.bytestring) (C.M C.bytestring) _
+                            (Isomorphism_M Isomorphism_bytestring)))
+     ; foreign_fn := @C.scan
      ; model_fn := fun '(x; tt) => @FM.scan x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "scan"
      |}.
 
@@ -294,15 +324,15 @@ Module Bytestring_Proofs.
     intros a b.
 
     props runM_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.runM.
 
     props bind_spec.
     unfold FM.bind.
-    prim_rewrites.
+    foreign_rewrites.
 
     props print_spec.
-    prim_rewrites.
+    foreign_rewrites.
 
     auto.
   Qed.

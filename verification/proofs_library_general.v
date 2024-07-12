@@ -1,8 +1,11 @@
 (** * Proof Library *)
 
-From VeriFFI Require Export verification.specs_general.
+From VeriFFI Require Import verification.specs_general.
+Require Import VST.floyd.proofauto.
+Require Import CertiGraph.graph.graph_model.
+Require Import CertiGraph.CertiGC.GCGraph.
 
-
+(*
 (** ** VST Lemmas *)
 
 (** Shows that the composites of glue code and the CertiGraph library are compatible.
@@ -228,6 +231,7 @@ Lemma comp_space_sh_rew g g0 :
 Proof.
   intros (H1&H2&H3). eauto.
 Qed.
+*)
 
 (** ** Stability with add_node *)
 
@@ -258,7 +262,7 @@ Proof.
        destruct raw_color; eauto. intuition.
 Qed.
 
-
+(*
 (** ** Lemmas Specific to the Proof *)
 
 Hint Rewrite add_node_heap_used_space0 : add.
@@ -766,3 +770,4 @@ Proof.
               destruct (Znth i v ); simpl in *; eauto.
               unfold Znth; if_tac; eauto.
 Qed.
+*)

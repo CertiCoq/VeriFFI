@@ -79,7 +79,7 @@ value myfunc(struct thread_info *tinfo, ...other args...) {
 
 typedef enum { O, S } nat;
 
-value uint63_from_nat(value n) {
+value uint63_from_nat(struct thread_info *tinfo, value n) {
   value temp = n;
   uint64_t i = 0;
 
@@ -143,7 +143,7 @@ value uint63_to_nat(struct thread_info *tinfo, value t) {
   ENDFRAME
 }
 
-value uint63_add(value x, value y) {
+value uint63_add(struct thread_info *tinfo, value x, value y) {
   return (value) ((((((uint64_t) x) >> 1) + (((uint64_t) y) >> 1)) << 1) + 1);
 }
 

@@ -15,17 +15,10 @@ Module Info.
   Definition abi := "apple".
   Definition bitsize := 64.
   Definition big_endian := false.
-  Definition source_file := "examples/compose/glue.c".
+  Definition source_file := "examples/compose/prims.c".
   Definition normalized := true.
 End Info.
 
-Definition __arg : ident := $"$arg".
-Definition __clo : ident := $"$clo".
-Definition __envi : ident := $"$envi".
-Definition __f : ident := $"$f".
-Definition __tinfo : ident := $"$tinfo".
-Definition __tmp : ident := $"$tmp".
-Definition __v : ident := $"$v".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
 Definition ___builtin_bswap : ident := $"__builtin_bswap".
@@ -81,183 +74,74 @@ Definition ___compcert_va_composite : ident := $"__compcert_va_composite".
 Definition ___compcert_va_float64 : ident := $"__compcert_va_float64".
 Definition ___compcert_va_int32 : ident := $"__compcert_va_int32".
 Definition ___compcert_va_int64 : ident := $"__compcert_va_int64".
+Definition _a : ident := $"a".
 Definition _alloc : ident := $"alloc".
 Definition _args : ident := $"args".
+Definition _b : ident := $"b".
+Definition _c : ident := $"c".
 Definition _call : ident := $"call".
-Definition _closure : ident := $"closure".
-Definition _env : ident := $"env".
+Definition _compose : ident := $"compose".
+Definition _f : ident := $"f".
 Definition _fp : ident := $"fp".
-Definition _fun_lit : ident := $"fun_lit".
-Definition _func : ident := $"func".
-Definition _get_args : ident := $"get_args".
-Definition _get_boxed_ordinal : ident := $"get_boxed_ordinal".
-Definition _get_unboxed_ordinal : ident := $"get_unboxed_ordinal".
+Definition _g : ident := $"g".
 Definition _heap : ident := $"heap".
 Definition _limit : ident := $"limit".
-Definition _lparen_lit : ident := $"lparen_lit".
 Definition _main : ident := $"main".
 Definition _nalloc : ident := $"nalloc".
 Definition _next : ident := $"next".
 Definition _odata : ident := $"odata".
 Definition _prev : ident := $"prev".
-Definition _prop_lit : ident := $"prop_lit".
 Definition _rem_limit : ident := $"rem_limit".
 Definition _root : ident := $"root".
-Definition _rparen_lit : ident := $"rparen_lit".
 Definition _space : ident := $"space".
-Definition _space_lit : ident := $"space_lit".
 Definition _spaces : ident := $"spaces".
 Definition _stack_frame : ident := $"stack_frame".
 Definition _start : ident := $"start".
+Definition _temp : ident := $"temp".
 Definition _thread_info : ident := $"thread_info".
-Definition _type_lit : ident := $"type_lit".
-Definition _unk_lit : ident := $"unk_lit".
+Definition _tinfo : ident := $"tinfo".
+Definition _x : ident := $"x".
 Definition _t'1 : ident := 128%positive.
+Definition _t'2 : ident := 129%positive.
 
-Definition v_lparen_lit := {|
-  gvar_info := (tarray tschar 2);
-  gvar_init := (Init_int8 (Int.repr 40) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_rparen_lit := {|
-  gvar_info := (tarray tschar 2);
-  gvar_init := (Init_int8 (Int.repr 41) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_space_lit := {|
-  gvar_info := (tarray tschar 2);
-  gvar_init := (Init_int8 (Int.repr 32) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_fun_lit := {|
-  gvar_info := (tarray tschar 6);
-  gvar_init := (Init_int8 (Int.repr 60) :: Init_int8 (Int.repr 102) ::
-                Init_int8 (Int.repr 117) :: Init_int8 (Int.repr 110) ::
-                Init_int8 (Int.repr 62) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_type_lit := {|
-  gvar_info := (tarray tschar 7);
-  gvar_init := (Init_int8 (Int.repr 60) :: Init_int8 (Int.repr 116) ::
-                Init_int8 (Int.repr 121) :: Init_int8 (Int.repr 112) ::
-                Init_int8 (Int.repr 101) :: Init_int8 (Int.repr 62) ::
-                Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_unk_lit := {|
-  gvar_info := (tarray tschar 6);
-  gvar_init := (Init_int8 (Int.repr 60) :: Init_int8 (Int.repr 117) ::
-                Init_int8 (Int.repr 110) :: Init_int8 (Int.repr 107) ::
-                Init_int8 (Int.repr 62) :: Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition v_prop_lit := {|
-  gvar_info := (tarray tschar 7);
-  gvar_init := (Init_int8 (Int.repr 60) :: Init_int8 (Int.repr 112) ::
-                Init_int8 (Int.repr 114) :: Init_int8 (Int.repr 111) ::
-                Init_int8 (Int.repr 112) :: Init_int8 (Int.repr 62) ::
-                Init_int8 (Int.repr 0) :: nil);
-  gvar_readonly := true;
-  gvar_volatile := false
-|}.
-
-Definition f_get_unboxed_ordinal := {|
-  fn_return := tulong;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ebinop Oshr
-                 (Ecast (Etempvar __v (talignas 3%N (tptr tvoid))) tulong)
-                 (Econst_long (Int64.repr 1) tlong) tulong)))
-|}.
-
-Definition f_get_boxed_ordinal := {|
-  fn_return := tulong;
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := ((_t'1, tulong) :: nil);
-  fn_body :=
-(Ssequence
-  (Sset _t'1
-    (Ederef
-      (Ebinop Oadd
-        (Ecast (Etempvar __v (talignas 3%N (tptr tvoid))) (tptr tulong))
-        (Eunop Oneg (Econst_long (Int64.repr 1) tlong) tlong) (tptr tulong))
-      tulong))
-  (Sreturn (Some (Ebinop Oand (Ecast (Etempvar _t'1 tulong) tulong)
-                   (Econst_long (Int64.repr 255) tlong) tulong))))
-|}.
-
-Definition f_get_args := {|
-  fn_return := (tptr (talignas 3%N (tptr tvoid)));
-  fn_callconv := cc_default;
-  fn_params := ((__v, (talignas 3%N (tptr tvoid))) :: nil);
-  fn_vars := nil;
-  fn_temps := nil;
-  fn_body :=
-(Sreturn (Some (Ecast (Etempvar __v (talignas 3%N (tptr tvoid)))
-                 (tptr (talignas 3%N (tptr tvoid))))))
-|}.
-
-Definition f_call := {|
+Definition f_compose := {|
   fn_return := (talignas 3%N (tptr tvoid));
   fn_callconv := cc_default;
-  fn_params := ((__tinfo, (tptr (Tstruct _thread_info noattr))) ::
-                (__clo, (talignas 3%N (tptr tvoid))) ::
-                (__arg, (talignas 3%N (tptr tvoid))) :: nil);
+  fn_params := ((_tinfo, (tptr (Tstruct _thread_info noattr))) ::
+                (_a, (talignas 3%N (tptr tvoid))) ::
+                (_b, (talignas 3%N (tptr tvoid))) ::
+                (_c, (talignas 3%N (tptr tvoid))) ::
+                (_g, (talignas 3%N (tptr tvoid))) ::
+                (_f, (talignas 3%N (tptr tvoid))) ::
+                (_x, (talignas 3%N (tptr tvoid))) :: nil);
   fn_vars := nil;
-  fn_temps := ((__f, (talignas 3%N (tptr tvoid))) ::
-               (__envi, (talignas 3%N (tptr tvoid))) ::
-               (__tmp, (talignas 3%N (tptr tvoid))) ::
+  fn_temps := ((_temp, (talignas 3%N (tptr tvoid))) ::
+               (_t'2, (talignas 3%N (tptr tvoid))) ::
                (_t'1, (talignas 3%N (tptr tvoid))) :: nil);
   fn_body :=
 (Ssequence
-  (Sset __f
-    (Efield
-      (Ederef
-        (Ecast (Etempvar __clo (talignas 3%N (tptr tvoid)))
-          (tptr (Tstruct _closure noattr))) (Tstruct _closure noattr)) _func
-      (tptr (Tfunction
-              (Tcons (tptr (Tstruct _thread_info noattr))
-                (Tcons (talignas 3%N (tptr tvoid))
-                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)))
-              (talignas 3%N (tptr tvoid)) cc_default))))
   (Ssequence
-    (Sset __envi
-      (Efield
-        (Ederef
-          (Ecast (Etempvar __clo (talignas 3%N (tptr tvoid)))
-            (tptr (Tstruct _closure noattr))) (Tstruct _closure noattr)) _env
-        (talignas 3%N (tptr tvoid))))
-    (Ssequence
-      (Ssequence
-        (Scall (Some _t'1)
-          (Ecast (Etempvar __f (talignas 3%N (tptr tvoid)))
-            (tptr (Tfunction
+    (Scall (Some _t'1)
+      (Evar _call (Tfunction
                     (Tcons (tptr (Tstruct _thread_info noattr))
                       (Tcons (talignas 3%N (tptr tvoid))
                         (Tcons (talignas 3%N (tptr tvoid)) Tnil)))
-                    (talignas 3%N (tptr tvoid)) cc_default)))
-          ((Etempvar __tinfo (tptr (Tstruct _thread_info noattr))) ::
-           (Etempvar __envi (talignas 3%N (tptr tvoid))) ::
-           (Etempvar __arg (talignas 3%N (tptr tvoid))) :: nil))
-        (Sset __tmp (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))
-      (Sreturn (Some (Etempvar __tmp (talignas 3%N (tptr tvoid))))))))
+                    (talignas 3%N (tptr tvoid)) cc_default))
+      ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+       (Etempvar _f (talignas 3%N (tptr tvoid))) ::
+       (Etempvar _x (talignas 3%N (tptr tvoid))) :: nil))
+    (Sset _temp (Etempvar _t'1 (talignas 3%N (tptr tvoid)))))
+  (Ssequence
+    (Scall (Some _t'2)
+      (Evar _call (Tfunction
+                    (Tcons (tptr (Tstruct _thread_info noattr))
+                      (Tcons (talignas 3%N (tptr tvoid))
+                        (Tcons (talignas 3%N (tptr tvoid)) Tnil)))
+                    (talignas 3%N (tptr tvoid)) cc_default))
+      ((Etempvar _tinfo (tptr (Tstruct _thread_info noattr))) ::
+       (Etempvar _g (talignas 3%N (tptr tvoid))) ::
+       (Etempvar _temp (talignas 3%N (tptr tvoid))) :: nil))
+    (Sreturn (Some (Etempvar _t'2 (talignas 3%N (tptr tvoid)))))))
 |}.
 
 Definition composites : list composite_definition :=
@@ -282,15 +166,6 @@ Definition composites : list composite_definition :=
     Member_plain _args (tarray (talignas 3%N (tptr tvoid)) 1024) ::
     Member_plain _fp (tptr (Tstruct _stack_frame noattr)) ::
     Member_plain _nalloc tulong :: Member_plain _odata (tptr tvoid) :: nil)
-   noattr ::
- Composite _closure Struct
-   (Member_plain _func
-      (tptr (Tfunction
-              (Tcons (tptr (Tstruct _thread_info noattr))
-                (Tcons (talignas 3%N (tptr tvoid))
-                  (Tcons (talignas 3%N (tptr tvoid)) Tnil)))
-              (talignas 3%N (tptr tvoid)) cc_default)) ::
-    Member_plain _env (talignas 3%N (tptr tvoid)) :: nil)
    noattr :: nil).
 
 Definition global_definitions : list (ident * globdef fundef type) :=
@@ -552,19 +427,18 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|}))
      (Tcons tint Tnil) tvoid
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
- (_lparen_lit, Gvar v_lparen_lit) :: (_rparen_lit, Gvar v_rparen_lit) ::
- (_space_lit, Gvar v_space_lit) :: (_fun_lit, Gvar v_fun_lit) ::
- (_type_lit, Gvar v_type_lit) :: (_unk_lit, Gvar v_unk_lit) ::
- (_prop_lit, Gvar v_prop_lit) ::
- (_get_unboxed_ordinal, Gfun(Internal f_get_unboxed_ordinal)) ::
- (_get_boxed_ordinal, Gfun(Internal f_get_boxed_ordinal)) ::
- (_get_args, Gfun(Internal f_get_args)) :: (_call, Gfun(Internal f_call)) ::
- nil).
+ (_call,
+   Gfun(External (EF_external "call"
+                   (mksignature (AST.Tlong :: AST.Tlong :: AST.Tlong :: nil)
+                     AST.Tlong cc_default))
+     (Tcons (tptr (Tstruct _thread_info noattr))
+       (Tcons (talignas 3%N (tptr tvoid))
+         (Tcons (talignas 3%N (tptr tvoid)) Tnil)))
+     (talignas 3%N (tptr tvoid)) cc_default)) ::
+ (_compose, Gfun(Internal f_compose)) :: nil).
 
 Definition public_idents : list ident :=
-(_call :: _get_args :: _get_boxed_ordinal :: _get_unboxed_ordinal ::
- _prop_lit :: _unk_lit :: _type_lit :: _fun_lit :: _space_lit ::
- _rparen_lit :: _lparen_lit :: ___builtin_debug :: ___builtin_fmin ::
+(_compose :: _call :: ___builtin_debug :: ___builtin_fmin ::
  ___builtin_fmax :: ___builtin_fnmsub :: ___builtin_fnmadd ::
  ___builtin_fmsub :: ___builtin_fmadd :: ___builtin_clsll ::
  ___builtin_clsl :: ___builtin_cls :: ___builtin_fence ::

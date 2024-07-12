@@ -453,6 +453,9 @@ Proof.
   reflexivity.
 Qed.
 
+
+Local Opaque Int64.repr.
+
 Lemma bytestring_contents_lemma1:
   forall g g' bytes k, map (field2val BYTESTRING_TAG g) 
        (make_fields' (map (fun i : int64 => Some (inl (Int64.unsigned i))) (bytes_to_words bytes))
@@ -467,12 +470,13 @@ clearbody n.
 revert bytes H k; induction n; intros.
 destruct bytes. reflexivity. exfalso. list_solve.
 do 8 (destruct bytes; simpl; [ reflexivity | ]).
+rewrite if_false by (intro; discriminate).
 specialize (IHn bytes ltac:(list_solve)).
 f_equal; auto.
-rewrite Int64.unsigned_repr 
+f_equal; auto.
+rewrite Int64.unsigned_repr
  by (unfold decode_int, rev_if_be; destruct Archi.big_endian; simpl ; rep_lia).
 set (a := decode_int _).
-rewrite if_false by (unfold BYTESTRING_TAG; rep_lia).
 auto.
 Qed.
 
@@ -1530,7 +1534,7 @@ entailer!!.
      clear - H10 H14.
     destruct (len - i) eqn:?H; try lia.
     subst s. simpl in H14.
-    elimtype False. clear - H14. forget (Z.to_nat i) as j.
+    exfalso. clear - H14. forget (Z.to_nat i) as j.
     revert j H14; induction x; destruct j; simpl; intros; try discriminate; eauto.
    }
    rewrite upd_Znth_app2 by list_solve.
@@ -1889,10 +1893,11 @@ entailer!!.
  2: unfold frame_rep_; limited_change_compspecs CompSpecs; entailer!!.
  simpl.
  unfold AP_newg in H11|-*. simpl AP_rvb in H11|-*. simpl AP_fields in H11|-*.
- clear new0 new1 FC FC1 H10.
+ destruct xs.
+ clear new1 FC FC1 H10.
+ subst new0. unfold alloc_at. 
  split3.
- ++ destruct xs. 
-    split. rewrite <- add_node_graph_has_v by auto. right. reflexivity.
+ ++ split. rewrite <- add_node_graph_has_v by auto. right. reflexivity.
     rewrite add_node_vlabel. split; auto.
     reflexivity.
  ++ eapply gc_graph_iso_trans. apply H5.
@@ -1900,11 +1905,12 @@ entailer!!.
     apply add_node_iso; simpl; auto.
     apply new_node_roots with outlier.
     split; auto.
- ++ unfold alloc_at, vertex_address. rewrite offset_offset_val.
+ ++ unfold vertex_address. rewrite offset_offset_val.
     f_equal.
     ** change 8 with (WORD_SIZE * 1). rewrite <- Z.mul_add_distr_l. f_equal.
        rewrite <- VOFF.
-       unfold vertex_offset. f_equal.
+       unfold vertex_offset.
+       f_equal.
        symmetry; apply add_node_previous_vertices_size.
        red; simpl; clear; lia. 
     ** rewrite add_node_gen_start by auto. simpl.

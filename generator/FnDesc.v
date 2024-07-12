@@ -1,3 +1,4 @@
+
 Require Import Coq.ZArith.ZArith
                Coq.Program.Basics
                Coq.Strings.String
@@ -14,10 +15,11 @@ Require Import MetaCoq.Template.All.
 Require Import VeriFFI.generator.gen_utils.
 Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
+Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.generator.GraphPredicate.
 Require Import VeriFFI.generator.InGraph.
 
-(* Unset MetaCoq Strict Unquote Universe Mode. *)
+Unset MetaCoq Strict Unquote Universe Mode.
 
 (* Require Import VeriFFI.generator.InGraph. *)
 (* MetaCoq Run (in_graph_gen bool). *)
@@ -74,8 +76,8 @@ Definition fill_hole
                 match t with
                 | tApp (tInd {| inductive_mind := kn; inductive_ind := 0 |} _) _ =>
                     if eq_kername kn <? InGraph ?>
-                    then tApp <% @field_in_graph %> [hole; tVar id]
-                    (* then tApp (tConst (MPfile ["meta"; "library"; "VeriFFI"], "field_in_graph") []) [hole; tVar id] *)
+                    then tApp <% @foreign_in_graph %> [hole; tVar id]
+                    (* then tApp (tConst (MPfile ["modelled"; "library"; "VeriFFI"], "foreign_in_graph") []) [hole; tVar id] *)
                     else tVar id
                 | _ => tVar id
                 end) named_ctx) in
@@ -83,37 +85,34 @@ Definition fill_hole
   (* ret (strip_lambdas hoisted). *)
   (* ret (tApp hoisted (rev (map (fun '(id, _) => tVar id) named_ctx))). *)
 
-(*
+Instance InGraph_list : forall A, InGraph A -> InGraph (list A).
+Admitted.
+
 MetaCoq Run (fill_hole [("H", tApp <% InGraph %> [tVar "a"]);("a", <% Type %>)]
-                       (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint).
-*)
+                       (tApp <% InGraph %> [tApp <% @list %> [tVar "a"]]) >>= tmEval all >>= tmPrint!).
+
+Print ForeignInGraph.
+Print foreign_ann.
 
 Polymorphic Definition create_reified
-           (ind : inductive)
-           (mut : mutual_inductive_body)
-           (one : one_inductive_body)
-           (ctor : constructor_body) : TemplateMonad (reified ctor_ann) :=
-  let cn := cstr_name ctor in
-  let t := cstr_type ctor in
-  let arity := cstr_arity ctor in
-  (* We convert the constructor type to the named representation *)
-  let init_index_ctx : list (Kernames.ident  * named_term) :=
-      mapi (fun i one => (ind_name one, tInd {| inductive_mind := inductive_mind ind
-                                              ; inductive_ind := i |} []))
-           (ind_bodies mut) in
-  t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) init_index_ctx) t ;;
+           (model_t : term)
+           (foreign_t : term) : TemplateMonad (reified foreign_ann) :=
+  model_t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) []) model_t ;;
+  foreign_t' <- DB.undeBruijn' (map (fun '(id, _) => nNamed id) []) foreign_t ;;
 
   let fix go
-           (* type of the constructor to be taken apart *)
-             (t : named_term)
+           (* type of the functional model function *)
+             (model_t : named_term)
+           (* type of the foreign function *)
+             (foreign_t : named_term)
            (* the context kept for De Bruijn indices *)
              (index_ctx : list (Kernames.ident  * named_term))
            (* the context kept for "lambda lifting" the holes *)
              (named_ctx : list (Kernames.ident * named_term))
-           (* unprocessed number of parameters left on the type *)
-             (num_params : nat) : TemplateMonad named_term :=
-      match t, num_params with
-      | tProd n (tSort s as t) b , S n' =>
+           : TemplateMonad named_term :=
+      match model_t', foreign_t' with
+      | tProd model_n (tSort model_s as model_t) model_b
+      , tProd foreign_n (tSort foreign_s as foreign_t) foreign_b =>
         '(h, H) <- fresh_aname "H" n ;;
         let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
@@ -121,9 +120,10 @@ Polymorphic Definition create_reified
             | _ => named_ctx end in
         rest <- go b index_ctx named_ctx' (pred num_params) ;;
         let f := tLambda n (tSort s) (tLambda H (tApp <% @ctor_ann %> [tRel O]) rest) in
-        ret (tApp <% @TYPEPARAM ctor_ann %> [f])
+        ret (tApp <% @TYPEPARAM foreign_ann %> [f])
 
-      | tProd n t b , O =>
+      | tProd model_n model_t model_b
+      , tProd foreign_n foreign_t foreign_b =>
         let named_ctx' : list (Kernames.ident * named_term) :=
             match binder_name n with
             | nNamed id => (id, t) :: named_ctx
@@ -133,18 +133,19 @@ Polymorphic Definition create_reified
         let f := tLambda n t' rest in
         H <- fill_hole named_ctx (tApp <% InGraph %> [t']) ;;
         let H' := tApp <% Build_ctor_ann %> [t'; <% present %>; H] in
-        ret (tApp <% @ARG ctor_ann %> [t'; H'; f])
+        ret (tApp <% @ARG foreign_ann %> [t'; H'; f])
 
-      | rest , _ =>
-        let rest' := Substitution.named_subst_all index_ctx rest in
-        H <- fill_hole named_ctx (tApp <% InGraph %> [rest']) ;;
-        let H' := tApp <% Build_ctor_ann %> [rest'; <% present %>; H] in
-        ret (tApp <% @RES ctor_ann %> [rest'; H'])
+      | model_rest , foreign_rest =>
+        let model_rest' := Substitution.named_subst_all index_ctx model_rest in
+        let foreign_rest' := Substitution.named_subst_all index_ctx foreign_rest in
+        H <- fill_hole named_ctx (tApp <% ForeignInGraph %> [rest']) ;;
+        let H' := tApp <% Build_foreign_ann %> [rest'; <% present %>; H] in
+        ret (tApp <% @RES foreign_ann %> [rest'; H'])
       end
   in
 
   let num_of_params := ind_npars mut in
-  c <- go t' init_index_ctx [] num_of_params ;;
+  c <- go t' [] [] num_of_params ;;
   tmMsg "after go:" ;;
   tmEval all c >>= tmPrint ;;
   c' <- DB.deBruijn c ;;
@@ -152,89 +153,43 @@ Polymorphic Definition create_reified
   (* tmEval all c' >>= tmPrint ;; *)
   tmUnquoteTyped (reified ctor_ann) c'.
 
-Definition desc_gen {T : Type} (ctor_val : T) : TemplateMonad unit :=
-  t <- tmQuote ctor_val ;;
-  match t with
-  | tConstruct ({| inductive_mind := kn ; inductive_ind := mut_tag |} as ind) ctor_tag _ =>
-    mut <- tmQuoteInductive kn ;;
+Print tmQuote.
+Print constant_body.
 
-    match (nth_error (ind_bodies mut) mut_tag) with
-    | None => tmFail "Impossible mutual block index"
-    | Some one =>
-      match (nth_error (ind_ctors one) ctor_tag) with
-      | None => tmFail "Impossible constructor index"
-      | Some ctor =>
-        reified <- create_reified ind mut one ctor ;;
-        (* tmPrint "after create reified" ;; *)
-        (* tmEval all reified >>= tmPrint ;; *)
+Definition fn_desc_gen
+           {T1 T2 : Type}
+           (model_val : T1) (foreign_val : T2)
+           (c_name : string) : TemplateMonad unit :=
+  model_t <- tmQuote model_val ;;
+  foreign_t <- tmQuote foreign_val ;;
+  match model_t , foreign_t with
+  | tConst model_kn _ , tConst foreign_kn _ =>
+    if ident_eq (snd model_kn) (snd foreign_kn)
+      then tmMsg "Warning: functional model and foreign function names are different"
+      else ret tt ;;
+        
+    reified <- create_reified model_t foreign_t ;;
+    (* tmPrint "after create reified" ;; *)
+    (* tmEval all reified >>= tmPrint ;; *)
 
-        newName <- tmFreshName "new"%bs ;;
-        reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
+    newName <- tmFreshName "new"%bs ;;
+    reflected <- tmLemma newName (@reflector foreign_ann T2 foreign_val reified) ;;
 
-        let d := {| ctor_name := cstr_name ctor
-                  ; ctor_reified := reified
-                  ; ctor_reflected := reflected
-                  ; ctor_tag := ctor_tag
-                  ; ctor_arity := cstr_arity ctor
-                  |} in
+    let d := {| type_desc := reified
+              ; foreign_fn := foreign_val
+              ; model_fn := reflected
+              ; fn_arity := _
+              ; c_name := c_name
+              |} in
 
-        name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-        @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
-        (* Declare the new definition a type class instance *)
-        mp <- tmCurrentModPath tt ;;
-        tmExistingInstance export (ConstRef (mp, name)) ;;
-        ret tt
-      end
-    end
-  | t' => tmPrint t' ;; tmFail "Not a constructor"
-  end.
-
-Definition descs_gen {kind : Type} (Tau : kind) : TemplateMonad unit :=
-  '(env, tau) <- tmQuoteRec Tau ;;
-  match declarations (env) with
-  | (kn, InductiveDecl decl) :: _ =>
-    let each_ctor (mut : mutual_inductive_body)
-                  (one : one_inductive_body)
-                  (mut_type_count : nat)
-                  (ctor_count : nat)
-                  (ctor : constructor_body) : TemplateMonad unit :=
-      let ind := {| inductive_mind := kn ; inductive_ind := mut_type_count |} in
-      t <- tmUnquote (tConstruct ind ctor_count []) ;;
-      let '{| my_projT1 := T; my_projT2 := ctor_val |} := t in
-
-      reified <- create_reified ind mut one ctor ;;
-      (* tmPrint "after create reified" ;; *)
-      (* tmEval all reified >>= tmPrint ;; *)
-
-      newName <- tmFreshName "new"%bs ;;
-      reflected <- tmLemma newName (@reflector ctor_ann T ctor_val reified) ;;
-
-      let d := {| ctor_name := cstr_name ctor
-                ; ctor_reified := reified
-                ; ctor_reflected := reflected
-                ; ctor_tag := ctor_count
-                ; ctor_arity := cstr_arity ctor
-                |} in
-
-      name <- tmFreshName (cstr_name ctor ++ "_desc")%bs ;;
-      @tmDefinition name (@Desc T ctor_val) {| desc := d |} ;;
-      (* Declare the new definition a type class instance *)
-      mp <- tmCurrentModPath tt ;;
-      tmExistingInstance export (ConstRef (mp, name)) ;;
-      ret tt
-
-    in
-    let all_in_one (mut : mutual_inductive_body)
-                   (mut_type_count : nat)
-                   (one : one_inductive_body) : TemplateMonad unit :=
-      let ctors := ind_ctors one in
-      monad_map_i (each_ctor mut one mut_type_count) (ind_ctors one) ;; ret tt
-    in
-    let all_in_mut (mut : mutual_inductive_body) : TemplateMonad unit :=
-      monad_map_i (all_in_one mut) (ind_bodies mut) ;; ret tt
-    in
-    all_in_mut decl
-  | _ => tmFail "Need an inductive type in the environment"
+    name <- tmFreshName (snd foreign_kn ++ "_desc")%bs ;;
+    @tmDefinition name fn_desc d ;;
+    (* Declare the new definition a type class instance *)
+    (* mp <- tmCurrentModPath tt ;; *)
+    (* tmExistingInstance export (ConstRef (mp, name)) ;; *)
+    ret tt
+  | _ , _ =>
+    tmFail "Need two constant definitions in the environment"
   end.
 
 Local Obligation Tactic := reflecting.
@@ -285,4 +240,3 @@ Unset MetaCoq Strict Unquote Universe Mode.
 
 (* MetaCoq Run (desc_gen O >>= @tmDefinition ("O_desc"%string) constructor_description). *)
 (* Print S_desc. *)
-

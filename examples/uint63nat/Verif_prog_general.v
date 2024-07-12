@@ -6,11 +6,11 @@ Require Import Psatz.
 Require Import VeriFFI.verification.specs_general.
 
 Require Import VeriFFI.generator.Rep.
-Require Import VeriFFI.generator.Desc.
+Require Import VeriFFI.generator.CtorDesc.
 
 #[export] Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
-MetaCoq Run (desc_gen S).
+MetaCoq Run (ctor_desc_gen S).
 
 Require Import VST.floyd.proofauto.
 Require Import VeriFFI.examples.uint63nat.glue.
@@ -30,7 +30,7 @@ From VeriFFI Require Import verification.specs_library.
 (* Specfication of alloc - would be generalized otherwise. *)
 Definition alloc_make_Coq_Init_Datatypes_nat_S_spec : ident * funspec :=
   DECLARE _alloc_make_Coq_Init_Datatypes_nat_S
-          (alloc_make_spec_general (@desc _ S _) 1).
+          (alloc_make_spec_general (@ctor_desc_of_val _ S _) 1).
 
 Definition Vprog : varspecs. mk_varspecs prog. Defined.
 Definition Gprog := [ alloc_make_Coq_Init_Datatypes_nat_S_spec ] .
@@ -328,7 +328,7 @@ alloc_start_function.
 change_compspecs CompSpecs.
 repeat_forward custom_tactics.
 f_equal.
-rewrite ptrofs_of_int64_int64_repr by auto.
+simpl.
 now autorewrite with norm.
 Qed.
 

@@ -7,6 +7,7 @@ using a representation of constructors.
 *)
 Require Import Coq.Lists.List.
 Import ListNotations.
+Import SigTNotations.
 
 Require Import VST.floyd.proofauto.
 Require Import CertiGraph.CertiGC.GCGraph.
@@ -17,6 +18,7 @@ From VeriFFI Require Export verification.graph_add.
 (* From VeriFFI Require Export verification.example.glue. *)
 From VeriFFI Require Export verification.specs_library.
 Import spatial_gcgraph.
+
 
 (** ** 3. A General Specification *)
 
@@ -38,7 +40,7 @@ Fixpoint in_graphs {ann: Type -> Type} (ing: forall T, ann T -> InGraph T)
   end xs.
 
 Definition ctor_in_graphs := in_graphs (@field_in_graph).
-Definition prim_in_graphs := in_graphs (@prim_in_graph).
+Definition foreign_in_graphs := in_graphs (@foreign_in_graph).
 
 (** List of [tulong] depending on the number of arguments
     represented in memory, needed for the parameters. *)
@@ -73,36 +75,29 @@ Notation "'WITH'  x1 : t1 , x2 : t2 , x3 : t3 , x4 : t4 , x5 : t5 , x6 : t6 , x7
 
 
 Definition get_c_typesig
-           (c : reified prim_ann)
+           (c : reified foreign_ann)
            (arity : nat) : compcert_rmaps.typesig :=
   (cons thread_info (repeat int_or_ptr_type arity), int_or_ptr_type).
 
-Definition fn_desc_to_funspec_aux
-           (c : reified prim_ann)
-           (model_fn : meta.reflect c)
-           (arity : nat) : funspec :=
-  WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
-       xs : args c, ps : list rep_type, ti : val,
-       outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
-   PRE' (cons thread_info (repeat int_or_ptr_type arity))
-       PROP (writable_share sh ;
-              prim_in_graphs g outlier c xs ps)
-       (PARAMSx (ti :: map (rep_type_val g) ps)
-        (GLOBALSx [gv]
-         (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
-   POST [ int_or_ptr_type ]
-       EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
-          PROP (let r := result c xs in
-                @is_in_graph (projT1 r) (@prim_in_graph (projT1 r) (projT2 r)) g'
-                  outlier (model_fn xs) p' ;
-                gc_graph_iso g roots g' roots')
-          RETURN  (rep_type_val g' p')
-          SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
-
 Definition fn_desc_to_funspec (d : fn_desc) : ident * funspec :=
-  (ident_of_string (c_name d),
-   fn_desc_to_funspec_aux (type_desc d) (model_fn d) (f_arity d)).
-
+  DECLARE (ident_of_string (c_name d))
+  WITH gv : globals, g : graph, roots : GCGraph.roots_t, sh : share,
+       xs : args (fn_type_reified d), ps : list rep_type, ti : val,
+       outlier : GCGraph.outlier_t, t_info : GCGraph.thread_info
+   PRE' (cons thread_info (repeat int_or_ptr_type (fn_arity d)))
+      PROP (writable_share sh ;
+            foreign_in_graphs g outlier (fn_type_reified d) xs ps)
+      (PARAMSx (ti :: map (rep_type_val g) ps)
+       (GLOBALSx [gv]
+        (SEPx (full_gc g t_info roots outlier ti sh gv :: library.mem_mgr gv :: nil))))
+   POST [ int_or_ptr_type ]
+     EX (p' : rep_type) (g' : graph) (roots': GCGraph.roots_t) (t_info' : GCGraph.thread_info),
+       PROP (let r := result (fn_type_reified d) xs in
+             @is_in_graph r.1 (@foreign_in_graph r.1 r.2) g'
+               outlier (model_fn d xs) p' ;
+             gc_graph_iso g roots g' roots')
+       RETURN  (rep_type_val g' p')
+       SEP (full_gc g' t_info' roots' outlier ti sh gv; library.mem_mgr gv).
 
 Definition headroom (ti: GCGraph.thread_info) : Z :=
    let g0 := heap_head (ti_heap ti) in
@@ -125,7 +120,7 @@ Definition alloc_make_nat_S : funspec :=
       RETURN  (rep_type_val g' p')
       SEP (full_gc g' t_info' roots outlier ti sh).
         *)
-        
+
 (* move ps to the spec args somehow instead of WITH args *)
 Definition alloc_make_spec_general
            (c : ctor_desc)
@@ -144,7 +139,7 @@ Definition alloc_make_spec_general
     POST [ int_or_ptr_type ]
       EX (p' : rep_type) (g' : graph) (t_info' : GCGraph.thread_info),
         PROP (let r := result (ctor_reified c) xs in
-              @is_in_graph (projT1 r) (@field_in_graph (projT1 r) (projT2 r)) g' outlier (ctor_reflected c xs) p' ;
+              @is_in_graph r.1 (@field_in_graph r.1 r.2) g' outlier (ctor_reflected c xs) p' ;
               headroom t_info' = headroom t_info - Z.of_nat (S n);
               gc_graph_iso g roots g' roots;
               ti_frames t_info = ti_frames t_info'
@@ -185,7 +180,7 @@ Proof.
 Qed.
 
 Ltac concretize_PARAMS :=
-unfold ctor_in_graphs, prim_in_graphs in *;
+unfold ctor_in_graphs, foreign_in_graphs in *;
 lazymatch goal with
 | xs: args _, H0: in_graphs _ _ _ _ ?xs' ?ps  |- _ =>
    constr_eq xs xs';
@@ -206,10 +201,10 @@ lazymatch goal with
    | _ => idtac
 end;
  change (in_graphs (@field_in_graph)) with ctor_in_graphs in *;
- change (in_graphs (@prim_in_graph)) with prim_in_graphs in *.
+ change (in_graphs (@foreign_in_graph)) with foreign_in_graphs in *.
 
-Ltac start_function' := 
-  start_function1; 
+Ltac start_function' :=
+  start_function1;
   repeat (simple apply intro_prop_through_close_precondition; intro);
   concretize_PARAMS;
   start_function2;
@@ -218,17 +213,17 @@ Ltac start_function' :=
 Definition need_composites := [gc_stack._space; gc_stack._heap; gc_stack._stack_frame; gc_stack._thread_info].
 
 Definition filtered_composites : list composite_definition :=
-  List.filter (fun c => match c with Composite i _ _ _ => 
+  List.filter (fun c => match c with Composite i _ _ _ =>
                    in_dec Pos.eq_dec i need_composites end) gc_stack.composites.
 
-Definition filtered_prog := 
+Definition filtered_prog :=
   Clightdefs.mkprogram filtered_composites nil nil gc_stack._main Logic.I.
 
 
-Definition filteredCompSpecs : compspecs. 
+Definition filteredCompSpecs : compspecs.
 let c := constr:(prog_types filtered_prog) in
 let c := eval unfold prog_types, Clightdefs.mkprogram in c in
-let c := eval hnf in c in 
+let c := eval hnf in c in
 let c := eval simpl in c in
 let comp' := make_composite_env c in
   match comp' with
@@ -242,7 +237,7 @@ make_cs_preserve env_graph_gc.CompSpecs filteredCompSpecs.
 Defined.
 
 Lemma is_pointer_or_integer_rep_type_val:
-  forall {A} `{InG: InGraph A} g outlier (n: A) p, 
+  forall {A} `{InG: InGraph A} g outlier (n: A) p,
    is_in_graph g outlier n p ->
    graph_rep g |-- !! is_pointer_or_integer (rep_type_val g p).
 Proof.
@@ -273,7 +268,7 @@ Lemma before_gc_thread_info_rep_fold:
          offset_val (WORD_SIZE * total_space (heap_head (ti_heap t_info))) (space_start (heap_head (ti_heap t_info))))))
          :: map spatial_gcgraph.space_tri (tl (spaces (ti_heap t_info))))
       (ti_heap_p t_info)
-  * spatial_gcgraph.heap_rest_rep (ti_heap t_info) 
+  * spatial_gcgraph.heap_rest_rep (ti_heap t_info)
   |-- before_gc_thread_info_rep sh t_info ti.
 Proof.
  intros.
@@ -288,7 +283,7 @@ Lemma frames_rep_cons:
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
  (frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
   spatial_gcgraph.frames_rep sh frames)%logic
- = spatial_gcgraph.frames_rep sh 
+ = spatial_gcgraph.frames_rep sh
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames).
 Proof.
 intros.
@@ -328,7 +323,7 @@ Lemma frames_rep_push:
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
 frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
 spatial_gcgraph.frames_rep sh frames
-|-- spatial_gcgraph.frames_rep sh 
+|-- spatial_gcgraph.frames_rep sh
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames).
 Proof.
 intros.
@@ -339,7 +334,7 @@ Qed.
 Lemma frames_rep_pop:
  forall sh vf vr vl frames
   (SIZE: WORD_SIZE * Zlength vl <= Ptrofs.max_signed),
- spatial_gcgraph.frames_rep sh 
+ spatial_gcgraph.frames_rep sh
      ({|fr_adr:=vf; fr_root:=vr; fr_roots := vl|}::frames)
 |-- frame_rep sh vf vr (spatial_gcgraph.frames_p frames) vl *
     spatial_gcgraph.frames_rep sh frames.
@@ -349,7 +344,7 @@ rewrite frames_rep_cons by auto. auto.
 Qed.
 
 
-Lemma headroom_check {cs: compspecs}: 
+Lemma headroom_check {cs: compspecs}:
  forall (n: Z) (hh: space) (startb: block) (starti: ptrofs),
   0 <= n <= Int64.max_signed ->
   typed_false tint
@@ -401,9 +396,9 @@ Qed.
 
 
 Ltac sep_apply_compspecs cs H :=
-  generalize H; 
+  generalize H;
   limited_change_compspecs cs; (* Bug?  If there's no compspecs at all in H or the goal,
-    then this fails, but perhaps in that case it should succeed. *)    
+    then this fails, but perhaps in that case it should succeed. *)
   let Hx := fresh "Hx" in  intro Hx; sep_apply Hx; clear Hx.
 
 Lemma space_start_isptr':
@@ -493,7 +488,7 @@ Definition ___RTEMP__ : ident := ident_of_string "__RTEMP__".
 Definition ___PREV__ : ident := ident_of_string "__PREV__".
 
 
-Definition GC_SAVE1 := 
+Definition GC_SAVE1 :=
                 (Ssequence
                   (Ssequence
                     (Sset __LIMIT
@@ -594,7 +589,7 @@ Ltac get_rep_temps ti nalloc Q :=
  | temp nalloc ?v :: ?r => let r' := get_rep_temps ti nalloc r in constr:(temp nalloc v :: r')
  | temp ?i (rep_type_val ?g ?v) :: ?r =>
     let r' := get_rep_temps ti nalloc r in constr:(temp i (rep_type_val g v) :: r')
- | temp ?i ?v :: ?r => 
+ | temp ?i ?v :: ?r =>
     get_rep_temps ti nalloc r
  | ?t :: ?r => let r' := get_rep_temps ti nalloc r in constr:(t::r')
  end.
@@ -602,11 +597,11 @@ Ltac get_rep_temps ti nalloc Q :=
 Ltac get_nonrep_temps ti nalloc Q :=
  match Q with
  | nil => constr:(Q)
- | temp ti _ :: ?r => get_nonrep_temps ti nalloc r 
- | temp nalloc _ :: ?r => get_nonrep_temps ti nalloc r 
- | temp ?i (rep_type_val ?g ?v) :: ?r => 
+ | temp ti _ :: ?r => get_nonrep_temps ti nalloc r
+ | temp nalloc _ :: ?r => get_nonrep_temps ti nalloc r
+ | temp ?i (rep_type_val ?g ?v) :: ?r =>
     get_nonrep_temps ti nalloc r
- | temp ?i ?x :: ?r => 
+ | temp ?i ?x :: ?r =>
     let r' := get_nonrep_temps ti nalloc r in constr:(temp i x ::r')
  | _ :: ?r => get_nonrep_temps ti nalloc r
  end.
@@ -614,7 +609,7 @@ Ltac get_nonrep_temps ti nalloc Q :=
 Ltac get_gc_mpreds R :=
  lazymatch R with
  | nil => constr:(R)
- | ?r1 :: ?r => 
+ | ?r1 :: ?r =>
    lazymatch r1 with
    | full_gc _ _ _ _ _ _ _  => let r' := get_gc_mpreds r in constr:(r1::r')
    | frame_rep_ _ _ _ _ _ => let r' := get_gc_mpreds r in constr:(r1::r')
@@ -627,7 +622,7 @@ Ltac get_gc_mpreds R :=
 Ltac get_nongc_mpreds R :=
  lazymatch R with
  | nil => constr:(R)
- | ?r1 :: ?r => 
+ | ?r1 :: ?r =>
    lazymatch r1 with
    | full_gc _ _ _ _ _ _ _  => get_nongc_mpreds r
    | frame_rep_ _ _ _ _ _ => get_nongc_mpreds r
@@ -662,8 +657,8 @@ Ltac solve_load_rule_evaluation ::=
   [ clear;
     repeat
     match goal with
-    | A : _ |- _ => clear A 
-    | A := _ |- _ => clear A 
+    | A : _ |- _ => clear A
+    | A := _ |- _ => clear A
     end;
     match goal with
     | |- JMeq (@proj_reptype _ _ ?gfs _) _ =>
@@ -696,13 +691,13 @@ Ltac solve_store_rule_evaluation ::=
   match goal with |- @upd_reptype ?cs ?t ?gfs ?v0 ?v1 = ?B =>
    let rhs := fresh "rhs" in set (rhs := B);
   match type of rhs with ?A =>
-   let a := fresh "a" in set (a:=A) in rhs; 
+   let a := fresh "a" in set (a:=A) in rhs;
     lazy beta zeta iota delta [reptype reptype_gen] in a;
     cbn in a; subst a
   end;
    let h0 := fresh "h0" in let h1 := fresh "h1" in
-   set (h0:=v0 : @reptype cs t); 
-   set (h1:=v1 : @reptype cs (@nested_field_type cs t gfs)); 
+   set (h0:=v0 : @reptype cs t);
+   set (h1:=v1 : @reptype cs (@nested_field_type cs t gfs));
    change (@upd_reptype cs t gfs h0 h1 = rhs);
    remember_indexes gfs;
    let j := fresh "j" in match type of h0 with ?J => set (j := J) in h0 end;
@@ -717,7 +712,7 @@ Ltac solve_store_rule_evaluation ::=
   repeat match goal with
             | |- context [fst (@pair ?t1 ?t2 ?A ?B)] => change (fst(@pair t1 t2 A B)) with A
             | |- context [snd(@pair ?t1 ?t2 ?A ?B)] => change (snd(@pair t1 t2 A B)) with B
-            | |-  context [@pair ?t1 ?t2 _ _] => 
+            | |-  context [@pair ?t1 ?t2 _ _] =>
                       let u1 := eval compute in t1 in
                       let u2 := eval compute in t2 in
                       progress (change_no_check t1 with u1; change_no_check t2 with u2)
@@ -738,13 +733,13 @@ Ltac SEP_field_at_strong_unify gfs ::=
 
 
 Ltac simplify_func_tycontext' DD ::=
-  (* More general version of simplify_func_tycontext that makes 
+  (* More general version of simplify_func_tycontext that makes
     fewer assumptions about the form of DD.
    Compared to the one in floyd/semax_tactics.v, this one
   does not assume that DD is in the form of a func_tycontext *)
-let D1 := fresh "D1" in 
-let Delta := fresh "Delta" in 
-let DS := fresh "Delta_specs" in 
+let D1 := fresh "D1" in
+let Delta := fresh "Delta" in
+let DS := fresh "Delta_specs" in
 pose (D1 := DD);
 pose (Delta := @abbreviate tycontext D1);
 change DD with Delta;
@@ -761,7 +756,7 @@ end.
 Definition GC_SAVE1_G := [gc_spec.garbage_collect_spec].
 
 Definition GC_SAVE1_tycontext :=
- mk_tycontext  
+ mk_tycontext
   (make_tycontext_t [(_tinfo, (tptr (Tstruct _thread_info noattr)))]
          [(_save0, (talignas 3%N (tptr tvoid)));
           (__ALLOC, (tptr (talignas 3%N (tptr tvoid))));
@@ -775,6 +770,8 @@ Definition GC_SAVE1_tycontext :=
   (make_tycontext_g nil GC_SAVE1_G)
   (make_tycontext_s GC_SAVE1_G)
   (make_tycontext_a nil).
+
+Print graph_unmarked.
 
 (* delete this from examples/*/*.v *)
 Lemma gc_preserved {A: Type} `{InG: InGraph A}:
@@ -803,7 +800,7 @@ Lemma semax_GC_SAVE1:
   (t_info : GCGraph.thread_info)
   (roots : roots_t)
   (Hn: 0 <= n <= Int64.max_signed)
-  (H2 : @is_in_graph _ IG0 g outlier m0 v0) 
+  (H2 : @is_in_graph _ IG0 g outlier m0 v0)
   (GCP : gc_condition_prop g t_info roots outlier)
   (STARTptr : isptr (space_start (heap_head (ti_heap t_info)))),
 @semax filteredCompSpecs _ GC_SAVE1_tycontext (*(func_tycontext f_uint63_to_nat Vprog Gprog nil)*)
@@ -811,7 +808,7 @@ Lemma semax_GC_SAVE1:
    LOCAL (temp _nalloc (Vlong (Int64.repr n));
    temp _save0 (rep_type_val g v0);
    lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
-   lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+   lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti;
    gvars gv)
    SEP (full_gc g t_info roots outlier ti sh gv;
    frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info) 1;
@@ -821,15 +818,15 @@ Lemma semax_GC_SAVE1:
      (EX (g' : graph) (v0' : rep_type) (roots' : roots_t)
       (t_info' : GCGraph.thread_info),
       PROP (headroom t_info' >= n; is_in_graph g' outlier m0 v0';
-      gc_condition_prop g' t_info' roots' outlier; 
+      gc_condition_prop g' t_info' roots' outlier;
       gc_graph_iso g roots g' roots';
       frame_shells_eq (ti_frames t_info) (ti_frames t_info'))
       LOCAL (temp _save0 (rep_type_val g' v0'); temp _nalloc (Vlong (Int64.repr n));
       lvar ___FRAME__ (Tstruct _stack_frame noattr) v___FRAME__;
-      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti; 
+      lvar ___ROOT__ (tarray int_or_ptr_type 1) v___ROOT__; temp _tinfo ti;
       gvars gv)
       SEP (full_gc g' t_info' roots' outlier ti sh gv;
-      frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1; 
+      frame_rep_ Tsh v___FRAME__ v___ROOT__ (ti_fp t_info') 1;
       library.mem_mgr gv))%argsassert).
 Proof.
 intros.
@@ -893,7 +890,7 @@ abbreviate_semax.
   * simpl.
     split3; try apply GCP.
     red in GCP.
-    split3. apply GCP. 2: split; try apply GCP. 
+    split3. apply GCP. 2: split; try apply GCP.
     --
      subst frames''; clear t_info'.
      unfold frames2rootpairs. simpl concat.
@@ -901,10 +898,10 @@ abbreviate_semax.
      f_equal.  destruct v0; auto.
      change (rootpairs_compatible g (frames2rootpairs (ti_frames t_info)) roots).
      apply GCP.
-    -- decompose [and] GCP; clear GCP. 
+    -- decompose [and] GCP; clear GCP.
        red in H7; decompose [and] H7; clear H7.
        destruct H11.
-       split. 
+       split.
        ++ clear t_info' frames'' STARTptr STARTeq startb starti.
           unfold root_t_of_rep_type.
           destruct v0; auto.
@@ -960,8 +957,8 @@ abbreviate_semax.
     assert (v0x = root2val g3 (Znth 0 roots3)) by list_solve.
     rewrite H11.
     destruct (Znth 0 roots3); try destruct s ; auto.
-    apply graph_iso_Zlength in ISO.    
-    clear - ISO. rewrite Zlength_cons in ISO. 
+    apply graph_iso_Zlength in ISO.
+    clear - ISO. rewrite Zlength_cons in ISO.
     destruct roots3; autorewrite with sublist in ISO. rep_lia.
     autorewrite with sublist.
     f_equal. rewrite sublist_S_cons by lia.
@@ -971,14 +968,14 @@ abbreviate_semax.
    destruct H10 as [v0' [roots3' [ ? [? ?] ] ] ].
    subst v0x roots3.
   limited_change_compspecs filteredCompSpecs.
-   forward. entailer!!. rewrite Znth_0_cons. { 
+   forward. entailer!!. rewrite Znth_0_cons. {
         destruct v0'; simpl; auto. destruct g0; simpl; auto.
         apply has_v in H11. destruct H11 as [? _].
         pose proof (graph_has_gen_start_isptr _ _ H10).
         unfold vertex_address.
         destruct (gen_start g3 (vgeneration _)); auto.
     }
-   forward.  
+   forward.
    forward.
    pose (t_info4 := {|
       ti_heap_p := ti_heap_p t_info3;
@@ -1006,20 +1003,20 @@ abbreviate_semax.
             destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H12; auto.
             eapply incl_app_inv_r with (l1:=[g0]); auto.
         + destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H17; auto.
-              red in H17|-*. simpl in H17. inversion H17; subst; auto. 
+              red in H17|-*. simpl in H17. inversion H17; subst; auto.
        - eapply gc_sound; eauto. apply GCP.
        - apply graph_unmarked_copy_compatible; apply H7.
     }
     repeat simple apply conj; auto.
       ++ simpl ti_heap.
- 
+
         clear - Hn ROOM. simpl in ROOM.
          rewrite Ptrofs.unsigned_repr in ROOM by rep_lia.
          unfold headroom. simpl.  lia.
       ++ apply gc_graph_iso_cons_roots_inv in ISO; auto.
     -- unfold before_gc_thread_info_rep, frame_rep_.
       limited_change_compspecs filteredCompSpecs.
-      unfold ti_fp. 
+      unfold ti_fp.
       unfold t_info4; simpl.
       replace (Vlong (Ptrofs.to_int64 (ti_nalloc t_info3))) with (Vptrofs (ti_nalloc t_info3))
         by (rewrite Vptrofs_unfold_true by reflexivity; reflexivity).
@@ -1046,8 +1043,8 @@ Ltac apply_semax_GC_SAVE1 :=
   let Q2 := get_nonrep_temps _tinfo _nalloc Q in
   let R1 := get_gc_mpreds R in
   let R2 := get_nongc_mpreds R in
- eapply (semax_frame_PQR'' Q1 Q2 R1 R2); 
-  [solve [auto 50 with closed] 
+ eapply (semax_frame_PQR'' Q1 Q2 R1 R2);
+  [solve [auto 50 with closed]
   | solve [go_lowerx; autorewrite with norm; cancel]
   | apply perhaps_gc_1_live_root_aux
   | eapply semax_GC_SAVE1; eauto ]
@@ -1122,12 +1119,12 @@ Qed.
 
 
 Lemma semax_cssub:
-(* A version of this is proved for the shallow-embedded semax, and it 
+(* A version of this is proved for the shallow-embedded semax, and it
   should be not severely difficult to prove for the deep-embedded one;
   but it might need to be by induction over the syntax... *)
   forall {CS CS' : compspecs},
   cspecs_sub CS CS' ->
-  forall (Espec : OracleKind) (Delta : tycontext) 
+  forall (Espec : OracleKind) (Delta : tycontext)
     (P : assert) (c : statement) (R : ret_assert),
   @semax CS Espec Delta P c R ->
   @semax CS' Espec Delta P c R.
@@ -1135,50 +1132,50 @@ Admitted.
 
 
 Fixpoint get_fields g to (xs : list rep_type) (n: nat) :=
-    let v := new_copied_v g to in 
-    match xs with 
-    | nil => nil 
-    | cons x xs => match x with 
+    let v := new_copied_v g to in
+    match xs with
+    | nil => nil
+    | cons x xs => match x with
                   | repNode v_x => ((v, n), (v, v_x) ) :: get_fields g to xs (1 + n)
                   | _ => get_fields g to xs (1 + n)
                   end
     end.
 
 
-Lemma get_fields_eq g to xs (n : nat):   
-  let v := new_copied_v g to in 
-    get_fields g to xs n = 
-            List_ext.filter_option (map (fun x => match (snd x) with | repNode v_x => Some ((v, (fst x)), (v, v_x) )  
+Lemma get_fields_eq g to xs (n : nat):
+  let v := new_copied_v g to in
+    get_fields g to xs n =
+            List_ext.filter_option (map (fun x => match (snd x) with | repNode v_x => Some ((v, (fst x)), (v, v_x) )
                                            | _ => None
                                            end)
                            (combine  (nat_seq n (Datatypes.length xs)) xs)).
-Proof. 
-    intros. 
-    revert n. 
+Proof.
+    intros.
+    revert n.
     induction xs; intros; eauto.
-    simpl. rewrite IHxs. 
-    destruct a; eauto. 
+    simpl. rewrite IHxs.
+    destruct a; eauto.
  Qed.
 
-Lemma nodup_getfields g ps n: 
+Lemma nodup_getfields g ps n:
 NoDup (map fst (get_fields g 0 ps n)).
 Proof.
-  rewrite get_fields_eq. revert n. 
-  induction ps; intros. 
+  rewrite get_fields_eq. revert n.
+  induction ps; intros.
   - simpl. constructor.
-  - simpl. destruct a; eauto. 
-    + simpl. constructor; eauto. 
+  - simpl. destruct a; eauto.
+    + simpl. constructor; eauto.
       intros H.
-      apply in_map_iff in H. 
+      apply in_map_iff in H.
       destruct H as ((v0 & m)  & A1).
-      destruct A1. 
-      apply List_ext.filter_option_In_iff in H0. 
-      apply in_map_iff in H0. 
+      destruct A1.
+      apply List_ext.filter_option_In_iff in H0.
+      apply in_map_iff in H0.
       destruct H0 as (bla & B1).
-      simpl in *. subst. destruct bla. simpl in *. destruct B1. destruct r; try congruence. 
-      injection H. intros. subst. 
-      apply in_combine_l in H0. 
-      apply nat_seq_In_iff in H0.  lia. 
+      simpl in *. subst. destruct bla. simpl in *. destruct B1. destruct r; try congruence.
+      injection H. intros. subst.
+      apply in_combine_l in H0.
+      apply nat_seq_In_iff in H0.  lia.
 Qed.
 
 Lemma add_node_compatible_new g ps t_info roots outlier:
@@ -1187,31 +1184,31 @@ let es :=  get_fields g 0 ps 0 : list (VType * nat * (VType * VType)) in
 Forall (fun p => match p with
 | repNode v' => graph_has_v g v' /\ v <> v'
 | _ => True
-end) ps -> 
-gc_condition_prop g t_info roots outlier 
- -> add_node_compatible g v es. 
-Proof. 
-  intros. 
+end) ps ->
+gc_condition_prop g t_info roots outlier
+ -> add_node_compatible g v es.
+Proof.
+  intros.
   subst es. rewrite get_fields_eq.
   unfold add_node_compatible. intros e scr trg H_In.
   apply List_ext.filter_option_In_iff in H_In.
   apply in_map_iff in H_In.
-  destruct H_In as ((n&p)&(p_eq&H_In)). 
+  destruct H_In as ((n&p)&(p_eq&H_In)).
   pose (H_In' := in_combine_r _ _ _ _ H_In).
-  simpl in *. 
- 
-  destruct p; try congruence. 
-  rewrite Forall_forall in H. 
+  simpl in *.
+
+  destruct p; try congruence.
+  rewrite Forall_forall in H.
     specialize (H _ H_In').
   inversion p_eq. simpl. split3; eauto.
-  subst. 
-  split3; eauto. 
+  subst.
+  split3; eauto.
   -  intuition.
-  - lia. 
-  - split. 
+  - lia.
+  - split.
     + assert (HH := nodup_getfields g ps 0). rewrite get_fields_eq in HH. eauto.
 
-    + intuition. 
+    + intuition.
 Qed.
 
 Lemma add_node_rootpairs_compatible:
@@ -1279,8 +1276,8 @@ gc_condition_prop g t_info roots outlier -> gc_condition_prop g' t_info' roots o
 Proof.
   intros. unfold gc_condition_prop in *. unfold g'.
   assert ( add_node_compatible g (new_copied_v g 0) es).
-  {  eapply add_node_compatible_new; eauto. 
-      rewrite !Forall_forall in *. intros. specialize (H0 _ H2). destruct x; eauto. 
+  {  eapply add_node_compatible_new; eauto.
+      rewrite !Forall_forall in *. intros. specialize (H0 _ H2). destruct x; eauto.
   }
   destruct H1 as (gcc & sup & safetocopy & soundgcgraph & copycompatible).
  red in gcc. destruct gcc as (unmarked & nobackward & nodangling & tisizespec).
@@ -1309,11 +1306,11 @@ unmarked & (nobackward & (nodanging & (tisizespec & (safetocopy & (graphticompat
     * apply add_node_roots_compatible; auto; try apply sup.
     *  apply add_node_outlier_compatible; eauto; try apply sup.
     simpl.
-    unfold incl. intros. apply List_ext.filter_sum_right_In_iff in H3. 
-    apply List_ext.filter_option_In_iff in H3. apply in_map_iff in H3. 
-    destruct H3 as (p & A1 & A2). destruct p; simpl in *; try congruence. 
-    rewrite Forall_forall in H0. injection A1. intros. subst.  exact (H0 _ A2). 
-   + apply add_node_copy_compatible; try apply sup; eauto.   
+    unfold incl. intros. apply List_ext.filter_sum_right_In_iff in H3.
+    apply List_ext.filter_option_In_iff in H3. apply in_map_iff in H3.
+    destruct H3 as (p & A1 & A2). destruct p; simpl in *; try congruence.
+    rewrite Forall_forall in H0. injection A1. intros. subst.  exact (H0 _ A2).
+   + apply add_node_copy_compatible; try apply sup; eauto.
 Qed.
 
 (** If outliers/roots are compatible, the roots never contain the next new node.  *)
@@ -1325,4 +1322,3 @@ Proof.
   apply (computable_theorems.Forall_forall1 _ _ RC2) in A. -
   apply graph_has_v_not_eq with (to := 0%nat) in A. congruence.
 Qed.
-

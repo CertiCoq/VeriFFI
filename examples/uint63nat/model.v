@@ -16,18 +16,18 @@ Require Import VeriFFI.examples.uint63nat.prog.
 
 Module FM <: UInt63.
   Definition t := {z : nat | z < 2^63}.
-  Definition from_nat (z : nat) : t.
-    exists (Nat.modulo z (2^63)).
-    apply Nat.mod_upper_bound.
-    apply Nat.pow_nonzero.
-    auto.
-  Defined.
-
-  Definition to_nat (z : t) : nat := proj1_sig z.
 
   Lemma mod63_ok:
     forall z, (z mod (2^63) < 2^63)%nat.
   Proof. intro. apply Nat.mod_upper_bound, Nat.pow_nonzero. auto. Qed.
+
+  Definition from_nat (z : nat) : t.
+    exists (Nat.modulo z (2^63)).
+    apply mod63_ok.
+  Defined.
+
+  Definition to_nat (z : t) : nat := proj1_sig z.
+
 
   Definition add (x y: t) : t :=
   let '(exist xz x_pf) := x in
@@ -52,7 +52,7 @@ Module UInt63_Proofs.
     apply (match p with repZ i => i= Z.of_nat z | _ => False end).
   Defined.
 
-  #[local] Instance InGraph_t : InGraph FM.t.
+  #[local] Instance ForeignInGraph_t : ForeignInGraph FM.t C.t.
    apply (Build_InGraph _ GraphPredicate_t).
    -  intros ? ? [z H] ? ?. hnf in H0. contradiction.
    - intros; auto.
@@ -60,44 +60,44 @@ Module UInt63_Proofs.
   Defined.
 
   Definition from_nat_desc : fn_desc :=
-    {| type_desc :=
+    {| fn_type_reified :=
         @ARG _ nat transparent (fun _ =>
-          @RES _ FM.t (opaque C.t))
-     ; prim_fn := C.from_nat
+          @RES _ FM.t opaque)
+     ; foreign_fn := C.from_nat
      ; model_fn := fun '(x; tt) => FM.from_nat x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "int63_from_nat"
     |}.
 
   Definition to_nat_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
+    {| fn_type_reified :=
+        @ARG _ FM.t opaque (fun _ =>
           @RES _ nat transparent)
-     ; prim_fn := C.to_nat
+     ; foreign_fn := C.to_nat
      ; model_fn := fun '(x; tt) => FM.to_nat x
-     ; f_arity := 1
+     ; fn_arity := 1
      ; c_name := "int63_to_nat"
      |}.
 
   Definition add_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.add
+    {| fn_type_reified :=
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.add
      ; model_fn := fun '(x; (y; tt)) => FM.add x y
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "int63_add"
      |}.
 
   Definition mul_desc : fn_desc :=
-    {| type_desc :=
-        @ARG _ FM.t (opaque C.t) (fun _ =>
-          @ARG _ FM.t (opaque C.t) (fun _ =>
-            @RES _ FM.t (opaque C.t)))
-     ; prim_fn := C.mul
+    {| fn_type_reified :=
+        @ARG _ FM.t opaque (fun _ =>
+          @ARG _ FM.t opaque (fun _ =>
+            @RES _ FM.t opaque))
+     ; foreign_fn := C.mul
      ; model_fn := fun '(x; (y; tt)) => FM.mul x y
-     ; f_arity := 2
+     ; fn_arity := 2
      ; c_name := "int63_mul"
      |}.
 
@@ -132,7 +132,7 @@ Module UInt63_Proofs.
     props to_nat_spec.
     props add_spec.
     props from_nat_spec.
-    prim_rewrites.
+    foreign_rewrites.
     unfold FM.add, FM.from_nat, FM.to_nat.
     (* the rest is just a proof about the functional model *)
     unfold proj1_sig.

@@ -1,5 +1,5 @@
 (*
-  Author: Joomy Korkut (joomy@cs.princeton.edu), 2020-2022
+  Author: Joomy Korkut (joomy@cs.princeton.edu), 2024
 
   Generator for the [graph_predicate] relation for a given Coq type.
 
@@ -79,10 +79,10 @@ Open Scope bs.
    debugging functions with things that don't execute. *)
 Notation "'tmPrint!'" := (tmPrint).
 Notation "'tmMsg!'" := (tmMsg).
-(* Notation "'tmPrint'" := (tmPrint). *)
-(* Notation "'tmMsg'" := (tmMsg). *)
-Notation "'tmPrint'" := (fun _ => ret tt).
-Notation "'tmMsg'" := (fun _ => ret tt).
+Notation "'tmPrint'" := (tmPrint).
+Notation "'tmMsg'" := (tmMsg).
+(* Notation "'tmPrint'" := (fun _ => ret tt). *)
+(* Notation "'tmMsg'" := (fun _ => ret tt). *)
 
 (* Starting generation of [GraphPredicate] instances! *)
 
@@ -201,12 +201,12 @@ Definition generate_instance_type
   let (quantified, new) := collect ty num_of_params O replacer in
 
   (* Check if there are any non-parameter type arguments *)
-  monad_map (fun '(n,p,s) =>
-              match p, s with
-              | false, true =>
-                tmFail "Our system cannot generate representation relations for types that use type arguments in non-parameter positions."
-              | _ , _ => ret tt
-              end) quantified ;;
+  (* monad_map (fun '(n,p,s) => *)
+  (*             match p, s with *)
+  (*             | false, true => *)
+  (*               tmFail "Our system cannot generate representation relations for types that use type arguments in non-parameter positions." *)
+  (*             | _ , _ => ret tt *)
+  (*             end) quantified ;; *)
   let names := map (fun '(n,_,_) => n) quantified in
   let vars := map tVar names in
   let type_quantifiers := map (fun '(n,_,_) => n) (filter (fun '(_,p,s) => andb p s) quantified) in
@@ -246,7 +246,7 @@ Definition find_missing_instance
            (ind : inductive)
            (mut : mutual_inductive_body)
            (one : one_inductive_body) : TemplateMonad bool :=
-  tmMsg! ("Missing: " ++ string_of_inductive ind) ;;
+  tmMsg ("Missing: " ++ string_of_inductive ind) ;;
   generate_GraphPredicate_instance_type ind mut one >>=
   DB.deBruijn >>= tmUnquoteTyped Type >>= has_instance.
 
@@ -297,78 +297,8 @@ Definition get_one_from_inductive
            (ind : inductive) : TemplateMonad one_inductive_body :=
   ty_body <$> get_ty_info_from_inductive ind.
 
-
-Definition make_tInd (ind : inductive) : global_term :=
-  tInd ind [].
-
-Fixpoint make_lambdas
-         (args : list arg_variant)
-         : named_term -> named_term :=
-  match args with
-  | value_arg arg_name _ nt :: args' =>
-    fun x => tLambda (mkBindAnn (nNamed arg_name) Relevant)
-                     nt
-                     (make_lambdas args' x)
-  | _ :: args' => fun x => make_lambdas args' x
-  | _ => fun x => x
-  end.
-
-(* MetaCoq's [bcontext] expects the context from last to first,
-   so we have to reverse it. *)
-Definition make_bcontext
-           (args : list arg_variant)
-           : list aname :=
-  let fix aux (args : list arg_variant) : list aname :=
-    match args with
-    | value_arg arg_name _ nt :: args' =>
-      (mkBindAnn (nNamed arg_name) Relevant) :: aux args'
-    | _ :: args' => aux args'
-    | _ => []
-    end
-  in rev (aux args).
-
-Fixpoint make_exists
-         (args : list arg_variant)
-         : named_term -> named_term :=
-  match args with
-  | value_arg _ p_name nt :: args' =>
-    fun x => tApp <% ex %>
-                  [ <% rep_type %>
-                  ; tLambda (mkBindAnn (nNamed p_name) Relevant)
-                            <% rep_type %>
-                            (make_exists args' x) ]
-  | _ :: args' => fun x => make_exists args' x
-  | _ => fun x => x
-  end.
-
-
-(* Special helper functions to make lists consisting of [rep_type] values *)
-Definition t_cons (t : any_term) (t' : any_term) : any_term :=
-  tApp <% @cons %> [<% rep_type %> ; t ; t'].
-Definition t_conses (xs : list any_term) : any_term :=
-  fold_right t_cons <% @nil rep_type %> xs.
-Definition t_and (t : any_term) (t' : any_term) : any_term :=
-  tApp <% @and %> [t ; t'].
-
-(* [tmInferInstance] can create some type checking error
-   but this definition solves it for some reason. *)
-Polymorphic Definition tmInferInstanceEval (t : Type) := tmInferInstance (Some all) t.
-
 (* Takes in a term representing a type like [forall A, GraphPredicate (list A)]),
    and finds the type class instance for that. *)
-Definition instance_term (inst_ty : named_term) : TemplateMonad named_term :=
-  tmMsg "instance_term1:" ;;
-  inst_ty' <- DB.deBruijn inst_ty >>= tmUnquoteTyped Type ;;
-  tmMsg "instance_term:" ;;
-  tmEval all inst_ty' >>= tmPrint ;;
-  opt_ins <- tmInferInstanceEval inst_ty' ;;
-  match opt_ins with
-  | my_Some x => tmQuote x >>= DB.undeBruijn
-  | _ => tmMsg! "No instance of type" ;;
-         tmEval all inst_ty >>= tmPrint! ;;
-         tmFail "No such instance"
-  end.
-
 (* Remove all the initial consecutive π-type quantifiers from a [term]. *)
 Fixpoint strip_quantifiers (t : named_term) : named_term :=
   match t with
@@ -414,151 +344,6 @@ Fixpoint build_quantifiers
   | (n, t) :: rest => binder n t (build_quantifiers binder rest base)
   end.
 
-Definition make_arg (x : aname * named_term) : named_term :=
-  match x with
-  | (mkBindAnn (nNamed id) _ , _) => tVar id
-  | _ => <% False %>
-  end.
-
-Definition build_inst_call
-           (all_single_rep_tys : list (aname * named_term))
-           (quantifiers : list (aname * named_term))
-           (ind : inductive)
-           (nt : named_term) : TemplateMonad named_term :=
-  let args := (all_single_rep_tys ++ quantifiers)%list in
-  let quantified := build_quantifiers tProd args (tApp <% GraphPredicate %> [nt]) in
-  quantified <- tmEval all quantified ;;
-  tmMsg "==========" ;;
-  (* tmMsg "FOR:" ;; *)
-  (* tmPrint nt ;; *)
-  (* tmMsg "QUANTIFIED:" ;; *)
-  (* tmPrint quantified ;; *)
-  tmEval all quantified >>= tmPrint ;;
-  t <- instance_term quantified ;;
-  (* NOTE: could this ever be a problem?
-           is it possible for the fake [___GraphPredicate]s to come eta reduced? *)
-  let t := tApp (strip_n_lambdas (length all_single_rep_tys) t)
-                (map make_arg quantifiers) in
-  tmEval cbn t.
-
-Definition build_method_call
-           (all_single_rep_tys : list (aname * named_term))
-           (quantifiers : list (aname * named_term))
-           (ind : inductive)
-           (nt : named_term) : TemplateMonad named_term :=
-  GraphPredicate_call <- build_inst_call all_single_rep_tys quantifiers ind nt ;;
-  res <-
-    match GraphPredicate_call with
-    | tApp (tVar n) rest =>
-      if bytestring.String.prefix "___GraphPredicate" n
-      then
-        let num : string := bytestring.String.substring 17 20 n in
-        ret (tApp (tVar ("graph_predicate" ++ num)) (map make_arg quantifiers))
-        (* ret (tVar ("graph_predicate" ++ num)) *)
-      else
-        ret (tApp <% @graph_predicate %> [nt ; GraphPredicate_call])
-    | _ =>
-      ret (tApp <% @graph_predicate %> [nt ; GraphPredicate_call])
-    end ;;
-  res <- tmEval all res ;;
-  tmMsg "build_method_call :" ;;
-  tmEval all quantifiers >>= tmPrint ;;
-  tmPrint res ;;
-  ret res.
-
-Definition make_prop
-         (all_single_rep_tys : list (aname * named_term))
-         (quantifiers : list (aname * named_term))
-         (ind : inductive)
-         (one : one_inductive_body)
-         (ctor : ctor_info)
-         (args : list arg_variant)
-         : TemplateMonad named_term :=
-  let t_g := tVar "g" in
-  let t_outlier := tVar "outlier" in 
-  let t_p := tVar "p" in
-
-  let make_prop_base : TemplateMonad named_term :=
-    (* Create the [cRep] for this constructor and evaluate *)
-    crep <- tmEval all
-              (match gen_utils.ctor_arity ctor with
-                | O => enum (N.of_nat (ctor_ordinal ctor))
-                | a => boxed (N.of_nat (ctor_ordinal ctor)) (N.of_nat a)
-                end) ;;
-    t_crep <- tmQuote crep ;;
-    (* Create list of [[p0;p1;p2;...]] to pass to [graph_cRep] *)
-    let l := t_conses (map (fun n => tVar ("p" ++ string_of_nat n))
-                           (seq 0 (gen_utils.ctor_arity ctor))) in
-    ret (tApp <% graph_cRep %>
-              [ t_g ; t_p ; t_crep ; l])
-  in
-
-
-  (* Takes in the [arg_variant],
-     generates the call to [graph_predicate] for that argument.
-     Returns a list so that [param_arg] can return a empty list. *)
-  let make_arg_prop (i : nat) (arg : arg_variant) : TemplateMonad (list named_term) :=
-    tmMsg ("ARG_PROP #" ++ string_of_nat i ++ ":") ;;
-    match arg with
-      | value_arg arg_name p_name nt =>
-        (* tmMsg "HERE'S ONE!" ;; *)
-        let t_arg := tVar arg_name in
-        let t_p := tVar p_name in
-        call <- build_method_call all_single_rep_tys quantifiers ind nt ;;
-        tmMsg "IS IN GRAPH CALL: " ;;
-        tmEval all nt >>= tmPrint ;;
-        tmEval all call >>= tmPrint ;;
-        tmEval all t_arg >>= tmPrint ;;
-        tmEval all t_p >>= tmPrint ;;
-        ret [tApp call [ t_g ; t_outlier; t_arg; t_p ]]
-      | _ => ret nil
-    end
-  in
-  arg_props <- monad_map_i make_arg_prop args ;;
-  tmMsg "==== END OF make_arg_props ====" ;;
-  tmMsg "args:" ;;
-  tmEval all args >>= tmPrint ;;
-  tmMsg "arg_props:" ;;
-  tmEval all arg_props >>= tmPrint ;;
-  base <- make_prop_base ;;
-  ret (fold_right t_and base (concat arg_props)).
-
-(* Takes in the info for a single constructor of a type, generates the branches
-   of a match expression for that constructor. *)
-Definition ctor_to_branch
-    (all_single_rep_tys : list (aname * named_term))
-      (* names and types of all [graph_predicate_i] functions in the fix block *)
-    (quantifiers : list (aname * named_term))
-      (* all quantifiers for this type *)
-    (ind : inductive)
-      (* the type we're generating for *)
-    (one : one_inductive_body)
-      (* the single type we're generating for *)
-    (tau : term)
-      (* reified term of the type we're generating for *)
-    (ctor : ctor_info)
-      (* a single constructor to generate for *)
-    : TemplateMonad (branch named_term) :=
-  let kn : kername := inductive_mind ind in
-  mut <- tmQuoteInductive kn ;;
-  (* let ctx : list dissected_type := *)
-  (*     mapi (fun i _ => dInd {| inductive_mind := kn ; inductive_ind := i |}) *)
-  (*          (ind_bodies mut) in *)
-  params <- ty_params <$> get_ty_info (inductive_mind ind) ;;
-  mut <- tmQuoteInductive (inductive_mind ind) ;;
-  '(args, res) <- argumentation ind mut ctor ;;
-
-  (* tmMsg "ARGS:" ;; *)
-  (* tmEval all args >>= tmPrint ;; *)
-
-  (* TODO these are the quantifiers for the entire type? not just this branch *)
-  prop <- make_prop all_single_rep_tys quantifiers ind one ctor args ;;
-  (* tmMsg "PROP:" ;; *)
-  (* tmEval all t >>= tmPrint ;; *)
-  ret {| bcontext := make_bcontext args
-       ; bbody := make_exists args prop
-       |}.
-
 (* For sort parameters we have to skip 2 quantifiers,
    one for the param itself, one for the [GraphPredicate] instance.
    For all other parameters we can just skip one. *)
@@ -568,68 +353,6 @@ Fixpoint count_quantifiers_to_skip (xs : context) : nat :=
     (if check_sort (decl_type x) then 2 else 1) + count_quantifiers_to_skip xs'
   | nil => 0
   end.
-
-(* Generates a reified match expression *)
-Definition matchmaker
-    (all_single_rep_tys : list (aname * named_term))
-      (* names and types of all [graph_predicate_i] functions in the fix block *)
-    (quantifiers : list (aname * named_term))
-      (* all quantifiers for this type *)
-    (ind : inductive)
-      (* description of the type we're generating for *)
-    (mut : mutual_inductive_body)
-      (* the mutual type we're generating for *)
-    (one : one_inductive_body)
-      (* the single type we're generating for *)
-    (tau : term)
-      (* reified term of the type we're generating for *)
-    (ctors : list ctor_info)
-      (* constructors we're generating match branches for *)
-    : TemplateMonad named_term :=
-  branches <- monad_map (ctor_to_branch all_single_rep_tys quantifiers ind one tau) ctors ;;
-  let params : list named_term :=
-    @map _ _ (fun cd => match binder_name (decl_name cd) with
-                        | nAnon => hole | nNamed id => tVar id end)
-    (ind_params mut) in
-  ret (tCase {| ci_ind := ind
-              ; ci_npar := 0
-              ; ci_relevance := Relevant
-              |}
-             {| puinst := []
-              ; pparams := rev params
-              ; pcontext := [{| binder_name := nNamed "x"; binder_relevance := Relevant |}]
-              ; preturn := <% Prop %>
-              |}
-             (tVar "x")
-             branches).
-
-Import GCGraph.
-(* Make a single record to use in a [tFix].
-   For mutually inductive types, we want to build them all once,
-   and define all the [GraphPredicate] instances with that. *)
-Definition make_fix_single
-           (all_single_rep_tys : list (aname * named_term))
-           (quantifiers : list (aname * named_term))
-           (tau : named_term) (* fully applied type constructor *)
-           (ind : inductive)
-           (mut : mutual_inductive_body)
-           (one : one_inductive_body) : TemplateMonad (BasicAst.def named_term) :=
-  let this_name := nNamed ("graph_predicate" ++ string_of_nat (inductive_ind ind)) in
-  prop <- matchmaker all_single_rep_tys quantifiers ind mut one tau (process_ctors (ind_ctors one)) ;;
-  let ty :=
-      tProd (mkBindAnn (nNamed "g") Relevant) <% graph %>
-       (tProd (mkBindAnn (nNamed "outlier") Relevant) <% outlier_t %>
-        (tProd (mkBindAnn (nNamed "x") Relevant) tau
-          (tProd (mkBindAnn (nNamed "p") Relevant) <% rep_type %> <% Prop %>))) in
-  let body :=
-      tLambda (mkBindAnn (nNamed "g") Relevant) <% graph %>
-       (tLambda (mkBindAnn (nNamed "outlier") Relevant) <% outlier_t %>
-        (tLambda (mkBindAnn (nNamed "x") Relevant) tau
-          (tLambda (mkBindAnn (nNamed "p") Relevant) <% rep_type %> prop))) in
-  ret {| dname := mkBindAnn this_name Relevant
-       ; dtype := build_quantifiers tProd quantifiers ty
-       ; dbody := build_quantifiers tLambda quantifiers body
-       ; rarg := 2 + length quantifiers |}.
 
 Definition singles_tys (kn : kername)
                        (mut : mutual_inductive_body)
@@ -651,26 +374,6 @@ Definition singles_tys (kn : kername)
       ret (an, quantified))
     (ind_bodies mut).
 
-Definition singles (kn : kername)
-                   (mut : mutual_inductive_body)
-                   (singles_tys : list (aname * named_term))
-                   : TemplateMonad (list (def named_term)) :=
-  monad_map_i
-    (fun i one =>
-      (* FIXME get rid of repeated computation here *)
-      let ind := {| inductive_mind := kn ; inductive_ind := i |} in
-      quantified <- generate_instance_type ind mut one
-                      (fun ty_name t =>
-                        let n := "GraphPredicate_" ++ ty_name in
-                        tProd (mkBindAnn (nNamed n) Relevant) (tApp <% GraphPredicate %> [tVar ty_name]) t)
-                        id ;;
-      (* tmMsg "quantified:" ;; *)
-      (* tmEval all quantified >>= tmPrint ;; *)
-      let quantifiers := get_quantifiers id quantified in
-      let tau := strip_quantifiers quantified in
-      make_fix_single singles_tys quantifiers tau {| inductive_mind := kn ; inductive_ind := i |} mut one)
-    (ind_bodies mut).
-
 (* This gives us something like [forall (A : Type) (n : nat), vec A n] *)
 Definition quantified ind mut one (inst_prefix: string) (inst: global_term) :=
   generate_instance_type ind mut one
@@ -679,10 +382,24 @@ Definition quantified ind mut one (inst_prefix: string) (inst: global_term) :=
       tProd (mkBindAnn (nNamed n) Relevant) (tApp inst [tVar ty_name]) t)
     id.
 
-Definition add_instances_aux (kn : kername)
-                   (mut : mutual_inductive_body)
-                   (singles_tys : list (aname * named_term))
-                   (singles: list (def named_term)) : TemplateMonad _ :=
+Polymorphic Definition tmLemma' (id : ident) (t : term) : TemplateMonad unit.
+refine (t' <- tmUnquoteTyped Type t ;; _).
+refine (tmLemma id t' ;; _).
+refine (tmReturn tt).
+Defined.
+
+Definition GraphPredicate_with_info
+           (mutuals : nat)
+           (mutual_index : nat)
+           (ctors : list (list arg_variant)) : Type -> Type :=
+  GraphPredicate.
+
+Definition add_instances_aux
+           (kn : kername)
+           (mut : mutual_inductive_body)
+           (singles_tys : list (aname * named_term)) : TemplateMonad unit :=
+  let mutuals : nat := length (ind_bodies mut) in
+  t_mutuals <- tmEval all mutuals >>= tmQuote ;;
   monad_map_i
     (fun i one =>
        let ind := {| inductive_mind := kn ; inductive_ind := i |} in
@@ -692,59 +409,26 @@ Definition add_instances_aux (kn : kername)
        (* The reified type of the fully applied type constructor, *)
        (*    but with free variables! *)
        let tau := strip_quantifiers quantified in
-       let fn_ty := tProd (mkBindAnn (nNamed "g") Relevant)
-                        <% graph %>
-                      (tProd (mkBindAnn (nNamed "outlier") Relevant)
-                         <% outlier_t %>
-                          (tProd (mkBindAnn (nNamed "x") Relevant)
-                                 hole
-                                 (tProd (mkBindAnn (nNamed "p") Relevant)
-                                        <% rep_type %>
-                                        <% Prop %>))) in
        let quantifiers : list (aname * named_term) :=
            get_quantifiers id quantified in
        args_let <- monad_map (fun '(an, _) =>
                                 match an with
-                                | mkBindAnn (nNamed n) _ => ret (tVar n)
+                                | mkBindAnn (nNamed n) _ => tmReturn (tVar n)
                                 | _ => tmFail "Unnamed parameter"
                                 end) quantifiers ;;
-       let fn : named_term :=
-           tLetIn (mkBindAnn (nNamed "f") Relevant)
-                  (tFix singles i)
-                  (build_quantifiers tProd quantifiers fn_ty)
-                  (tApp (tVar "f") args_let) in
-       let prog_named : named_term :=
-           build_quantifiers tLambda quantifiers
-                             (tApp <% @Build_GraphPredicate %>
-                                   [tau; fn]) in
-       prog <- DB.deBruijn prog_named ;;
-       extra_quantified <- DB.deBruijn (build_quantifiers tProd quantifiers
-                                         (tApp <% GraphPredicate %> [tau])) ;;
-       tmMsg "Extra Quantified:" ;;
-       tmEval all extra_quantified >>= tmPrint ;;
-       instance_ty <- tmUnquoteTyped Type extra_quantified ;;
-       tmMsg "Prog" ;;
-       prog' <- tmEval all prog ;;
-       tmPrint prog' ;;
-       instance <- tmUnquote prog' ;;
-       (* tmMsg "Inst" ;; *)
-       (* tmPrint instance ;; *)
+       t_i <- tmQuote i ;;
+       extra_quantified <-
+         DB.deBruijn (build_quantifiers tProd quantifiers
+                                        (tApp <% GraphPredicate_with_info %>
+                                              [ t_mutuals
+                                              ; t_i
+                                              ; tApp <% @nil %> [ hole ]
+                                              ; tau])) ;;
+       (* tmMsg "Extra Quantified:" ;; *)
+       (* tmEval all extra_quantified >>= tmPrint ;; *)
+       (* instance_ty <- tmUnquoteTyped Type extra_quantified ;; *)
        name <- tmFreshName ("GraphPredicate_" ++ ind_name one)%bs ;;
-
-       (* (* This is sort of a hack. I couldn't use [tmUnquoteTyped] above *)
-       (*    because of a mysterious type error. (Coq's type errors in monadic *)
-       (*    contexts are just wild.) Therefore I had to [tmUnquote] it to get *)
-       (*    a Σ-type. But when you project the second field out of that, *)
-       (*    the type doesn't get evaluated to [GraphPredicate _], it stays as *)
-       (*    [my_projT2 {| ... |}]. The same thing goes for the first projection, *)
-       (*    which is the type of the second projection. When the user prints *)
-       (*    their [GraphPredicate] instance, Coq shows the unevaluated version. *)
-       (*    But we don't want to evaluate it [all] the way, that would unfoldd *)
-       (*    the references to other instances of [GraphPredicate]. We only want to get *)
-       (*    the head normal form with [hnf]. *)
-       (*    We have to do this both for the instance body and its type. *) *)
-       tmEval hnf (my_projT2 instance) >>=
-         tmDefinitionRed_ false name (Some hnf) ;;
+       tmEval all extra_quantified >>= tmLemma' name ;;
 
        (* Declare the new definition a type class instance *)
        mp <- tmCurrentModPath tt ;;
@@ -752,15 +436,14 @@ Definition add_instances_aux (kn : kername)
 
        let fake_kn := (fst kn, ind_name one) in
        tmMsg! ("Added GraphPredicate instance for " ++ string_of_kername fake_kn) ;;
-       ret tt) (ind_bodies mut).
+       tmReturn tt) (ind_bodies mut) ;;
+  tmReturn tt.
 
 Definition add_instances (kn : kername) : TemplateMonad unit :=
   mut <- tmQuoteInductive kn ;;
   singles_tys <- singles_tys kn mut ;;
   tmEval all singles_tys >>= tmPrint ;;
-  singles <- singles kn mut singles_tys ;;
-  tmEval all singles >>= tmPrint ;;
-  add_instances_aux kn mut singles_tys singles ;;
+  add_instances_aux kn mut singles_tys ;;
   ret tt.
 
 (* Derives a [GraphPredicate] instance for the type constructor [Tau],
@@ -770,13 +453,163 @@ Definition graph_predicate_gen {kind : Type} (Tau : kind) : TemplateMonad unit :
   missing <- find_missing_instances (declarations env) ;;
   monad_iter add_instances (rev missing).
 
-(* Playground: 
- MetaCoq Run (graph_predicate_gen unit).
- MetaCoq Run (graph_predicate_gen nat).
- MetaCoq Run (graph_predicate_gen option). 
- MetaCoq Run (graph_predicate_gen list). 
- MetaCoq Run (graph_predicate_gen prod). 
-*)
+Inductive vec (A : Type) : nat -> Type :=
+| vnil : vec A O
+| vcons : forall n, A -> vec A n -> vec A (S n).
+
+#[local] Instance GraphPredicate_nat : GraphPredicate nat. Admitted.
+#[local] Instance GraphPredicate_vec (A : Type) (GraphPredicate_A : GraphPredicate A) (n : nat) : GraphPredicate (vec A n) :=
+  let fix graph_predicate_vec (n : nat) (g : graph) (x : vec A n) (p : rep_type) {struct x} : Prop :=
+    match x with
+    | vnil => graph_cRep g p (enum 0) []
+    | vcons arg0 arg1 arg2 =>
+        exists p0 p1 p2 : rep_type,
+          @graph_predicate nat GraphPredicate_nat g arg0 p0 /\
+          @graph_predicate A GraphPredicate_A g arg1 p1 /\
+          graph_predicate_vec arg0 g arg2 p2 /\
+          graph_cRep g p (boxed 0 3) [p0; p1; p2]
+    end
+  in @Build_GraphPredicate (vec A n) (graph_predicate_vec n).
+
+MetaCoq Run (tmInferInstance (Some all) (GraphPredicate nat) >>= tmPrint).
+MetaCoq Run (tmInferInstance (Some all) (forall A `{GraphPredicate A} n, GraphPredicate (vec A n)) >>= tmPrint).
+
+Inductive tree (A : Type) : Type :=
+| tleaf : tree A
+| tnode : A -> forest A -> tree A
+with forest (A : Type) : Type :=
+| fnil : forest A
+| fcons : tree A -> forest A -> forest A.
+
+#[local]
+Instance GraphPredicate_tree (A : Type) (GraphPredicate_A : GraphPredicate A) : GraphPredicate (tree A) :=
+  let f :=
+    fix graph_predicate_tree (g : graph) (x : tree A) (p : rep_type) {struct x} : Prop :=
+      match x with
+      | tleaf => graph_cRep g p (enum 0) []
+      | tnode arg0 arg1 =>
+          exists p0 p1 : rep_type,
+            @graph_predicate A GraphPredicate_A g arg0 p0 /\
+            graph_predicate_forest g arg1 p1 /\
+            graph_cRep g p (boxed 0 2) [p0; p1]
+      end
+    with graph_predicate_forest (g : graph) (x : forest A) (p : rep_type) {struct x} : Prop :=
+      match x with
+      | fnil => graph_cRep g p (enum 0) []
+      | fcons arg0 arg1 =>
+          exists p0 p1 : rep_type,
+            graph_predicate_tree g arg0 p0 /\
+            graph_predicate_forest g arg1 p1 /\
+            graph_cRep g p (boxed 0 2) [p0; p1]
+      end
+    for graph_predicate_tree
+  in @Build_GraphPredicate (tree A) f.
+
+
+(* Fixpoint tree_size {A} (t : tree A) : nat := *)
+(*   match t with *)
+(*   | tleaf => 0 *)
+(*   | tnode _ f => 1 + forest_size f *)
+(*   end *)
+(* with forest_size {A} (f : forest A) : nat := *)
+(*   match f with *)
+(*   | fnil => 0 *)
+(*   | fcons t f => tree_size t + forest_size f *)
+(*   end. *)
+
+Definition tree_size :=
+  fix tree_size {A : Type} (t : tree A) : nat :=
+    match t with
+    | tleaf => 0
+    | tnode _ f => 1 + forest_size f
+    end
+  with forest_size {A : Type} (f : forest A) : nat :=
+    match f with
+    | fnil => 0
+    | fcons t f => tree_size t + forest_size f
+    end
+  for tree_size.
+
+Fixpoint forest_size {A : Type} (f : forest A) : nat :=
+  match f with
+  | fnil => 0
+  | fcons t f => tree_size t + forest_size f
+  end.
+
+Print tmPrint.
+
+
+
+
+(* Playground: *)
+Goal nat -> bool -> True.
+fix f 1.
+Print reductionStrategy.
+Check (let fix ).
+
+Ltac apply_fixes mutuals T :=
+  unfold GraphPredicate_with_info;
+  match mutuals with
+  | 0 => fail "No mutual block can have zero types."
+  | 1 =>
+      let f1 := fresh "f" in
+      refine (let fix f1 g (x : T) p {struct x} : Prop := _
+              in @Build_GraphPredicate T f1)
+  | 2 =>
+      let f := fresh "f" in
+      let f1 := fresh "f" in
+      let f2 := fresh "f" in
+      refine (let f := fix f1 g (x : T) p {struct x} : Prop := _
+                       with f2 g (x : T) p {struct x} : Prop := _
+                       for f1
+              in @Build_GraphPredicate T f1)
+  end.
+    
+Ltac graph_predicate_gen :=
+  match goal with
+  | [ |- @GraphPredicate_with_info ?mutuals ?mutual_index ?ctors ?T ] => 
+      apply_fixes mutuals T
+  | _ => fail
+  end.
+
+Inductive T1 :=
+| c1 : T2 -> T1
+with T2 :=
+| c2 : T1 -> T2.
+MetaCoq Run (graph_predicate_gen T1).
+
+
+(* MetaCoq Run (graph_predicate_gen nat). *)
+Next Obligation.
+  refine
+  graph_predicate_gen.
+        
+  refine (let fix f1 g (x : nat) p {struct x} : Prop := _ in @Build_GraphPredicate nat f1).
+  case x.
+  refine (graph_cRep g p (enum 0) []).
+  intro arg0.
+  refine (exists p0 : rep_type, _).
+  refine (_ /\ _).
+  refine (f1 g arg0 p0).
+  refine (graph_cRep g p (boxed 0 1) [p0]).
+Defined.
+  
+Print GraphPredicate_nat_obligation_1.
+
+Inductive MI {bytestring : Type} : Type -> Type :=
+| pureI : forall {A}, A -> MI A
+| bindI : forall {A B}, MI A -> (A -> MI B) -> MI B
+| printI : bytestring -> MI unit
+| scanI : nat -> MI bytestring.
+
+MetaCoq Run (graph_predicate_gen MI).
+
+
+(* MetaCoq Run (graph_predicate_gen unit). *)
+(* MetaCoq Run (graph_predicate_gen nat). *)
+(* MetaCoq Run (graph_predicate_gen option). *)
+(* MetaCoq Run (graph_predicate_gen list). *)
+(* MetaCoq Run (graph_predicate_gen prod). *)
 
 (*
 

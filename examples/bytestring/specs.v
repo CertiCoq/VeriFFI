@@ -33,15 +33,16 @@ MetaCoq Run (desc_gen EmptyString).
 MetaCoq Run (desc_gen String).
 MetaCoq Run (desc_gen Ascii).
 
+(* TODO this is just Discrimination? *)
 Definition string_get_desc (x : string) : ctor_desc := 
 match x with 
-| EmptyString => (@desc _ EmptyString _)
-| String _ _ =>  (@desc _ String _)
+| EmptyString => (@ctor_desc_of_val _ EmptyString _)
+| String _ _ =>  (@ctor_desc_of_val _ String _)
 end.
   
 Inductive string_has_tag_prop : string -> ctor_desc -> Prop := 
-| tagEmpty : string_has_tag_prop EmptyString (@desc _ EmptyString _)
-| tagString c r : string_has_tag_prop (String c r) (@desc _ String _).
+| tagEmpty : string_has_tag_prop EmptyString (@ctor_desc_of_val _ EmptyString _)
+| tagString c r : string_has_tag_prop (String c r) (@ctor_desc_of_val _ String _).
     
 Remark string_desc_has_tag_prop: forall x, string_has_tag_prop x (string_get_desc x).
 Proof.
@@ -60,9 +61,9 @@ PROP (
 (PARAMSx (  [rep_type_val g p] )
 (GLOBALSx [gv]
 (SEPx (full_gc g t_info roots outlier ti sh gv :: nil))))
-POST [ tuint ]
+POST [ tulong ]
 PROP ( )
-RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (full_gc g t_info roots outlier ti sh gv).
 
 Definition tag_spec_string2 : ident * funspec := 
@@ -72,9 +73,9 @@ PRE  [int_or_ptr_type]
   PROP (@is_in_graph string _ g outlier x p )
   PARAMS (rep_type_val g p)
   SEP (graph_rep g)
-POST [ tuint ]
+POST [ tulong ]
   PROP ( )
-  RETURN  ( Vint (Int.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
+  RETURN  ( Vlong (Int64.repr (Z.of_nat (ctor_tag (string_get_desc x)))) )
 SEP (graph_rep g).
 
 Record alloc_prepackage : Type := {
@@ -270,22 +271,23 @@ DECLARE _get_args
 
 Definition make_Coq_Strings_String_string_EmptyString_spec : ident * funspec :=
     DECLARE _make_Coq_Strings_String_string_EmptyString
-          (alloc_make_spec_general (@desc _ EmptyString _) 0). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ EmptyString _) 0). 
 
 Definition alloc_make_Coq_Strings_String_string_String_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_String_string_String
-          (alloc_make_spec_general (@desc _ String _) 2).     
+          (alloc_make_spec_general (@ctor_desc_of_val _ String _) 2).     
 
 Definition alloc_make_Coq_Strings_Ascii_ascii_Ascii_spec : ident * funspec :=
     DECLARE _alloc_make_Coq_Strings_Ascii_ascii_Ascii
-          (alloc_make_spec_general (@desc _ Ascii _) 8). 
+          (alloc_make_spec_general (@ctor_desc_of_val _ Ascii _) 8). 
 
 
 Definition pack_spec : ident * funspec :=
   fn_desc_to_funspec Bytestring_Proofs.pack_desc.
 
+
 Definition unpack_spec : ident * funspec :=
-  fn_desc_to_funspec Bytestring_Proofs.unpack_desc.
+  fn_desc_to_funspec Bytestring_Proofs.unpack_desc.  
 
 Definition append_spec : ident * funspec :=
   fn_desc_to_funspec Bytestring_Proofs.append_desc.
