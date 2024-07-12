@@ -7,3 +7,6 @@ Participants:
 - [Andrew W. Appel](https://www.cs.princeton.edu/~appel/)
 - [Joomy Korkut](https://www.cs.princeton.edu/~ckorkut/)
 - [Kathrin Stark](https://www.k-stark.de/)
+
+Technical report:
+- [A Verified Foreign Function Interface between Coq and C](https://github.com/CertiCoq/VeriFFI/blob/main/doc/veriffi_techreport.pdf), by Joomy Korkut, Kathrin Stark, and Andrew W. Appel,  July 12, 2024. 
