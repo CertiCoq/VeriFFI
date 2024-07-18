@@ -14,6 +14,7 @@ Require Import VeriFFI.library.base_representation.
 Require Import VeriFFI.library.meta.
 Require Import VeriFFI.generator.Isomorphism. 
 Require Import VeriFFI.generator.GraphPredicate.
+Require Import VeriFFI.verification.proofs_library_general.
 
 (* Warning: MetaCoq doesn't use the Monad notation from ExtLib,
   therefore don't expect ExtLib functions to work with TemplateMonad. *)
@@ -50,12 +51,6 @@ Ltac prove_monotone_with_IH' :=
   | [IH : forall (_ : @eq _ _ _) (_ : rep_type), _ |- _ ] =>
     eapply IH; simpl; eauto
   end.
-
-Axiom graph_cRep_add_node : forall g to lb e p ts ps,
-  add_node_compatible g (GCGraph.new_copied_v g to) e
-   -> GCGraph.graph_has_gen g to
-   -> graph_cRep g p ts ps
-   -> graph_cRep (add_node g to lb e) p ts ps.
 
 Ltac mon n :=
   let i := fresh "_i" in
