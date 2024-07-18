@@ -7,6 +7,11 @@ Open Scope string.
 Require Import VeriFFI.generator.Rep.
 Local Obligation Tactic := gen.
 MetaCoq Run (gen_for nat).
+
+Require Import VeriFFI.library.meta.
+Require Import VeriFFI.generator.InGraph.
+Require Import VeriFFI.generator.Isomorphism.
+
 MetaCoq Run (gen_for string).
 MetaCoq Run (gen_for unit).
 
@@ -15,6 +20,7 @@ Require Import VeriFFI.library.modelled.
 Require Import VeriFFI.library.isomorphism.
 
 Require Import VeriFFI.examples.bytestring.prog.
+Require Import VeriFFI.generator.Isomorphism.
 
 Import GCGraph sublist Integers.
 
@@ -140,6 +146,42 @@ Module Bytestring_Proofs.
     | _ => False
     end).
 
+   
+
+Require Import VeriFFI.generator.InGraph.
+Lemma bytestring_iso : 
+  forall (g g' : LGraph) (roots : list rep_type) (roots' : list root_t) (p : rep_type) 
+  (n : FM.bytestring) (outliers : outlier_t),
+gc_correct.sound_gc_graph g ->
+gc_correct.sound_gc_graph g' ->
+no_dangling_dst g ->
+@graph_predicate _ GraphPredicate_bytestring_foreign g outliers n p ->
+reachable_p g roots p ->
+forall (vmap12 vmap21 : VType -> VType) (emap12 emap21 : EType -> EType),
+roots' = map (root_map vmap12) (map roots_rep_type roots) ->
+graph_isomorphism.label_preserving_graph_isomorphism_explicit
+  (subgraph2.reachable_sub_labeledgraph g (List_ext.filter_sum_right (map roots_rep_type roots)))
+  (subgraph2.reachable_sub_labeledgraph g' (List_ext.filter_sum_right roots')) vmap12 vmap21 emap12 emap21 ->
+@graph_predicate _ GraphPredicate_bytestring_foreign g' outliers n (lift vmap12 p). 
+Proof. 
+  prove_isomorphism.
+  - hnf in H0. hnf. destruct p0; simpl; try eauto. 
+    destruct H0. destruct (graph_model.vlabel g v) eqn : Hl.
+    destruct raw_mark; try contradiction. destruct H0. subst. 
+    split.
+    +  eapply iso_graph_has_v; try apply H12; eauto.
+    +  erewrite <- vlabel_vmap; try eapply H12; eauto. 
+      rewrite Hl. split; eauto.
+  - hnf in H0. hnf. destruct p0; simpl; try eauto. 
+  destruct H0. destruct (graph_model.vlabel g v) eqn : Hl.
+  destruct raw_mark; try contradiction. destruct H0. subst. 
+  split.
+  +  eapply iso_graph_has_v; try apply H12; eauto.
+  +  erewrite <- vlabel_vmap; try eapply H12; eauto. 
+    rewrite Hl. split; eauto.
+Qed.
+
+
   #[local] Instance ForeignInGraph_bytestring : ForeignInGraph FM.bytestring C.bytestring.
    apply (Build_InGraph _ GraphPredicate_bytestring_foreign).
    intros. destruct H as [H _]. auto.
@@ -155,6 +197,7 @@ Module Bytestring_Proofs.
           rewrite add_node_vlabel_old by (apply graph_has_v_not_eq; auto).
           rewrite H3. split; auto.
    InGraph.prove_outlier_compat.
+   apply  bytestring_iso.
    Defined.
 
   #[local] Instance GraphPredicate_M {A : Type} `{GP : GraphPredicate A} : GraphPredicate (FM.M A).
@@ -183,6 +226,7 @@ Module Bytestring_Proofs.
     * intros.  destruct p; try contradiction.
       hnf; auto.
     * auto.
+    * intros. hnf. destruct p; eauto.
    Defined.
 
   Definition append_desc : fn_desc :=

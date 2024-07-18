@@ -20,6 +20,7 @@ From VeriFFI Require Export verification.specs_library.
 Import spatial_gcgraph.
 
 
+
 (** ** 3. A General Specification *)
 
 (** Generation of the in_graphs predicate, given the constructor or function arguments. *)
@@ -771,19 +772,8 @@ Definition GC_SAVE1_tycontext :=
   (make_tycontext_s GC_SAVE1_G)
   (make_tycontext_a nil).
 
-Print graph_unmarked.
+  Require Import VeriFFI.generator.Isomorphism.
 
-(* delete this from examples/*/*.v *)
-Lemma gc_preserved {A: Type} `{InG: InGraph A}:
-  forall outlier (g1 :graph) (roots1: list root_t)
-         (g2: graph) (roots2: list root_t),
-    gc_graph_iso g1 roots1 g2 roots2 ->
-    graph_unmarked g2 /\ no_backward_edge g2 /\ no_dangling_dst g2 ->
-    forall (a: A) (n: Z),
-      0 <= n < Zlength roots1 ->
-    @graph_predicate _ (@in_graph_pred _ InG) g1 outlier a (rep_type_of_root_t (Znth n roots1)) ->
-    @graph_predicate _ (@in_graph_pred _ InG) g2 outlier a (rep_type_of_root_t (Znth n roots2)).
-Admitted.
 
 Lemma semax_GC_SAVE1:
  forall (n: Z) (Espec : OracleKind)
@@ -938,34 +928,70 @@ abbreviate_semax.
        red in H2.
        eapply has_v; eauto.
     }
+
+   pose (t_info4 := {|
+    ti_heap_p := ti_heap_p t_info3;
+    ti_heap := ti_heap t_info3;
+    ti_args := ti_args t_info3;
+    arg_size := arg_size t_info3;
+    ti_frames := r2;
+    ti_nalloc := ti_nalloc t_info3
+  |} ).
+
+
    assert (ISO: gc_graph_iso g (root_t_of_rep_type v0 :: roots) g3 roots3). {
      red in H6; decompose [and] H6.
      apply garbage_collect_isomorphism; auto; try apply GCP.
     }
    assert (exists v0', exists roots3',
-        v0x = rep_type_val g3 v0' /\ is_in_graph g3 outlier m0 v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'). {
-       rewrite <- H14 in H3. simpl frames2rootpairs in H3.
-    pose proof @gc_preserved _ IG0 outlier _ _ _ _ ISO ltac:(clear - H7; red in H7; tauto)
-    m0 0 ltac:(clear; Zlength_solve).
-    rewrite Znth_0_cons,rep_type_of_root_t_of_rep_type in H10.
-    specialize (H10 H2).
-    exists (rep_type_of_root_t (Znth 0 roots3)), (sublist 1 (Zlength roots3) roots3).
-    rewrite root_t_of_rep_type_of_root_t.
-    split3; auto.
-    destruct H3 as [_ [H3 _] ].
-    red in H3. simpl in H3.
-    assert (v0x = root2val g3 (Znth 0 roots3)) by list_solve.
-    rewrite H11.
-    destruct (Znth 0 roots3); try destruct s ; auto.
-    apply graph_iso_Zlength in ISO.
-    clear - ISO. rewrite Zlength_cons in ISO.
-    destruct roots3; autorewrite with sublist in ISO. rep_lia.
-    autorewrite with sublist.
-    f_equal. rewrite sublist_S_cons by lia.
-    rewrite Z.sub_diag. unfold Z.succ.
-    rewrite sublist_same by lia. auto.
-    }
-   destruct H10 as [v0' [roots3' [ ? [? ?] ] ] ].
+        v0x = rep_type_val g3 v0' /\ is_in_graph g3 outlier m0 v0' /\ roots3 = root_t_of_rep_type v0' :: roots3'
+        /\ gc_condition_prop g3 t_info4 roots3' outlier). {
+       rewrite <- H14 in H3. simpl frames2rootpairs in H3. 
+       
+
+      destruct ISO as (vmap12&vmap21&emap12&emap21&roots_eq&ISO).
+       simpl in roots_eq.
+       exists (lift vmap12 v0). exists (map (root_map vmap12) roots).
+       pose (roots3' := map (root_map vmap12) roots).
+
+       assert (GCP3: gc_condition_prop g3 t_info4 roots3' outlier).  {
+        unfold gc_condition_prop, garbage_collect_condition.
+        change (ti_heap t_info4) with (ti_heap t_info3).
+        repeat simple apply conj; try apply GCP; try apply H7; auto.
+        - destruct H3 as [? [? [ ?  ? ] ] ].
+          destruct H11.
+          red; unfold roots_compatible; repeat simple apply conj; auto.
+          + subst roots3'.  rewrite roots_eq in H10. 
+        (*   rewrite <- H14 in H10. *)
+              unfold frames2rootpairs in H10. simpl in H10.
+              red in H10. simpl in H10. inversion H10; subst; auto.
+          +  red in H11|-*. subst roots3'. rewrite roots_eq in H11.
+            intros p A. eapply H11. simpl. destruct v0; simpl;  eauto. 
+          + red. red in H16. subst roots3'. rewrite roots_eq in H16.
+            simpl in H16. destruct v0; eauto. simpl in H16. inversion H16; eauto. 
+         - eapply gc_sound; eauto. apply GCP.
+         - apply graph_unmarked_copy_compatible; apply H7.
+      }
+
+       split3. 
+       - destruct H3. destruct H10.  unfold rootpairs_compatible in H10. simpl in H10. 
+         rewrite roots_eq in H10. simpl in H10. injection H10. intros. subst. destruct v0; reflexivity. 
+       - eapply meta.gc_preserved; try eapply ISO; try eauto.
+        5 : { assert (root_t_of_rep_type v0 :: roots = map roots_rep_type (v0 ::map rep_type_of_root_t (roots))).
+        simpl. f_equal. rewrite map_map. rewrite MCList.map_id_f; try eauto. intros x; destruct x; eauto. destruct s; eauto. 
+      rewrite <- H10. 
+      enough (roots3 = map (root_map vmap12) (root_t_of_rep_type v0 :: roots)) as <- by eauto. 
+        now rewrite roots_eq. }
+        + apply GCP. 
+        + eapply GCP3. 
+        + apply GCP. 
+        + eapply (@in_graph_reachable T0 ); eauto. 
+          eapply meta.has_v; eauto. 
+          eapply GCP. now left.
+        - split; eauto. rewrite roots_eq. f_equal. 
+       destruct v0; reflexivity. } 
+
+   destruct H10 as [v0' [roots3' [ ? [? [ ? GCP3]] ] ] ].
    subst v0x roots3.
   limited_change_compspecs filteredCompSpecs.
    forward. entailer!!. rewrite Znth_0_cons. {
@@ -977,37 +1003,12 @@ abbreviate_semax.
     }
    forward.
    forward.
-   pose (t_info4 := {|
-      ti_heap_p := ti_heap_p t_info3;
-      ti_heap := ti_heap t_info3;
-      ti_args := ti_args t_info3;
-      arg_size := arg_size t_info3;
-      ti_frames := r2;
-      ti_nalloc := ti_nalloc t_info3
-    |} ).
+
    Exists g3 v0' roots3' t_info4.
    rewrite Znth_0_cons.
     unfold full_gc.
     entailer!!.
-    --  assert (gc_condition_prop g3 t_info4 roots3' outlier). {
-      unfold gc_condition_prop, garbage_collect_condition.
-      change (ti_heap t_info4) with (ti_heap t_info3).
-      repeat simple apply conj; try apply GCP; try apply H7; auto.
-      - destruct H3 as [? [? [ ?  ? ] ] ].
-        destruct H12.
-        red; unfold roots_compatible; repeat simple apply conj; auto.
-        + rewrite <- H14 in H10.
-            unfold frames2rootpairs in H10. simpl in H10.
-            red in H10. simpl in H10. inversion H10; subst; auto.
-        +  red in H12|-*.
-            destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H12; auto.
-            eapply incl_app_inv_r with (l1:=[g0]); auto.
-        + destruct (root_t_of_rep_type v0') as [ [ | ] | ]; simpl in H17; auto.
-              red in H17|-*. simpl in H17. inversion H17; subst; auto.
-       - eapply gc_sound; eauto. apply GCP.
-       - apply graph_unmarked_copy_compatible; apply H7.
-    }
-    repeat simple apply conj; auto.
+    --  repeat simple apply conj; auto.
       ++ simpl ti_heap.
 
         clear - Hn ROOM. simpl in ROOM.

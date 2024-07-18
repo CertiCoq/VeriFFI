@@ -21,6 +21,26 @@ Notation " ( x ; p ) " := (existT _ x p).
 (* Set Universe Polymorphism. *)
 (* Set Polymorphic Inductive Cumulativity. *)
 
+Definition roots_rep_type (p : rep_type) : root_t := 
+match p with 
+  | repZ z => inl (inl z) 
+  | repOut p => inl (inr p) 
+  | repNode v => (inr v) 
+end. 
+
+Definition lift vmap p := 
+  match p with 
+   | repNode v' => repNode (vmap v')
+   | _ => p
+  end.
+
+  Definition reachable_p (g : LGraph) roots p' :=  match p' with
+  | repNode v' =>
+      path_lemmas.reachable_through_set (graph_model.pg_lg g)
+        (List_ext.filter_sum_right (map roots_rep_type roots)) v'
+  | _ => True
+  end.
+
 (* The type class to describe how a Coq type is represented in the CertiCoq heap graph.
    We also have some lemmas about this representation as a part of the type class. *)
 (* GraphPredicate is only for internal use, just to make automatic generation easier *)
@@ -39,6 +59,19 @@ Class InGraph (A : Type) : Type :=
     outlier_compatible g outliers ->
     graph_predicate g outliers x (repOut p) ->
     In p outliers
+  ; gc_preserved: 
+    forall  g g' roots roots' p n outliers,
+  gc_correct.sound_gc_graph g  -> gc_correct.sound_gc_graph g'
+    -> no_dangling_dst g 
+    -> graph_predicate g outliers n p 
+    -> reachable_p g roots p -> 
+    forall vmap12 vmap21 emap12 emap21, 
+    roots' = map (root_map vmap12) (map roots_rep_type roots) ->
+    graph_isomorphism.label_preserving_graph_isomorphism_explicit
+        (subgraph2.reachable_sub_labeledgraph g (List_ext.filter_sum_right (map roots_rep_type roots)))
+        (subgraph2.reachable_sub_labeledgraph g' (List_ext.filter_sum_right roots')) vmap12 vmap21 emap12
+        emap21 ->
+    graph_predicate g' outliers n (lift vmap12 p)
   }.
 
 Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> outlier_t -> A -> rep_type -> Prop :=
@@ -53,21 +86,21 @@ Definition is_in_graph {A : Type} `{IA : InGraph A} : graph -> outlier_t -> A ->
 
 #[export] Instance InGraph_Prop : InGraph Prop.
 Proof.
-  refine (@Build_InGraph _ _ _ _ _).
+  refine (@Build_InGraph _ _ _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
-  intuition auto with *.
+  intuition auto with *. intros. destruct p; simpl in *; eauto. 
 Defined.
 #[export] Instance InGraph_Set : InGraph Set.
 Proof.
-  refine (@Build_InGraph _ _ _ _ _).
+  refine (@Build_InGraph _ _ _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
-  intuition auto with *.
+  intuition auto with *.  intros. destruct p; simpl in *; eauto. 
 Defined.
 #[export] Instance InGraph_Type : InGraph Type.
 Proof.
-  refine (@Build_InGraph _ _ _ _ _).
+  refine (@Build_InGraph _ _ _ _ _ _).
   intros; simpl in *. intuition. induction p; intuition.
-  intuition auto with *.
+  intuition auto with *.  intros. destruct p; simpl in *; eauto. 
 Defined.
 
 Definition GraphPredicate_fun (A B : Type) : GraphPredicate (A -> B) :=
@@ -83,6 +116,7 @@ Proof.
 - intros. contradiction H1.
 - intros. destruct p; try contradiction. apply H3.
 - intros. apply H2.
+-  intros. destruct p; simpl in *; eauto. 
 Defined.
 
 (* This is an unprovable but useful predicate about

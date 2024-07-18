@@ -6,7 +6,7 @@ Contains
 
 *) 
 
-From VC Require Export specs proofs_library.
+From VeriFFI Require Export specs proofs_library.
 
 
 (** ** Proof that make_nat_0 satisfies its specification *)
@@ -131,6 +131,8 @@ Proof.
   - destruct H as (?&?). intuition. 
 Qed.
        
+
+
 (* TODO: In p roots is too strong, it should be reachable. *) 
 Lemma iso_nat_in_graph g g' roots roots' p n :
   vertex_valid g -> vertex_valid g' -> nat_in_graph g n p -> In p roots -> gc_graph_iso g (map roots_rep_type roots) g' roots' -> exists p', nat_in_graph g' n p'. 

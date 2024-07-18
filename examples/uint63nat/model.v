@@ -57,6 +57,7 @@ Module UInt63_Proofs.
    -  intros ? ? [z H] ? ?. hnf in H0. contradiction.
    - intros; auto.
    - intros ? ? [z H] ? ? ?. hnf in H1. contradiction.
+   - intros. hnf. destruct n. destruct p; eauto. 
   Defined.
 
   Definition from_nat_desc : fn_desc :=
