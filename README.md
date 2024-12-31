@@ -8,5 +8,8 @@ Participants:
 - [Joomy Korkut](https://www.cs.princeton.edu/~ckorkut/)
 - [Kathrin Stark](https://www.k-stark.de/)
 
-Technical report:
-- [A Verified Foreign Function Interface between Coq and C](https://github.com/CertiCoq/VeriFFI/blob/main/doc/veriffi_techreport.pdf), by Joomy Korkut, Kathrin Stark, and Andrew W. Appel,  July 12, 2024. 
+Journal Article:
+- [A Verified Foreign Function Interface between Coq and C](https://doi.org/10.1145/3704860), by Joomy Korkut, Kathrin Stark, and Andrew W. Appel,  _Proc. ACM Program. Lang._ 9, POPL, Article 24 (January 2025), 31 pages.
+
+PhD Thesis:
+- [_Foreign Function Verification Through Metaprogramming_](http://arks.princeton.edu/ark:/88435/dsp01k930c143z), by Joomy Korkut, PhD Thesis, Princeton University, October 2024.
