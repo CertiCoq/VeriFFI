@@ -5,7 +5,7 @@ VeriFFI is a verified Foreign Function Interface (FFI) for Coq (Gallina) program
 
 Participants:
 - [Andrew W. Appel](https://www.cs.princeton.edu/~appel/)
-- [Joomy Korkut](https://www.cs.princeton.edu/~ckorkut/)
+- [Joomy Korkut](https://joomy.korkutblech.com/)
 - [Kathrin Stark](https://www.k-stark.de/)
 
 Journal Article:
